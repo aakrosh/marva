@@ -3,7 +3,7 @@
 ######################################################################
 
 TEMPLATE = app
-TARGET = Project1
+TARGET = Marva
 QT += widgets core gui
 INCLUDEPATH += .
 

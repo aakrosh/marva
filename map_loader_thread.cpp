@@ -43,21 +43,7 @@ void MapLoaderThread::run()
         }
         while (!line.isNull());
         file.close();
-    }/*
-    if ( !merge )
-    {
-        graph->tax_map.swap(new_map);
     }
-    else
-    {
-        TaxMapIterator it = new_map.constEnd();
-        const TaxMapIterator b = new_map.constBegin();
-        while (it != b)
-        {
-            --it;
-            graph->tax_map.insert(it.key(), it.value());
-        }
-    }*/
     emit resultReady();
 }
 
