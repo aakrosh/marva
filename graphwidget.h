@@ -42,61 +42,53 @@
 #define GRAPHWIDGET_H
 
 #include <QGraphicsView>
+#include "tax_map.h"
 
-class Node;
+class GraphNode;
+class TreeLoaderThread;
 
-class GraphWidget : public QGraphicsView
+class GraphView : public QGraphicsView
 {
     Q_OBJECT
 
 public:
-    GraphWidget(QWidget *parent = 0);
-
+    GraphView(QWidget *parent = 0);
 
     int max_node_y;
-    void itemMoved();
+    //GraphNode *root;
+    TaxNode *root;
+    TaxMap tax_map;
     void reset();
-    Node *root;
-    void GenerateChildrenNodes(Node *parent, int child_num, QString prefix);
     void adjust_scene_boundaries();
-    void set_vert_interval(int interval)
-    {
-        vert_interval = interval;
-        vert_interval_div2 = interval/2;
-    }
-    int get_vert_interval_div2() const
-    {
-        return vert_interval_div2;
-    }
-    int get_vert_interval() const
-    {
-        return vert_interval;
-    }
+    inline void set_vert_interval(int interval) { vert_interval = interval; }
+    inline int get_vert_interval() const { return vert_interval; }
     virtual void resizeEvent(QResizeEvent *e);
     void resetNodesCoordinates();
-
-public slots:
-    void shuffle();
-    void zoomIn();
-    void zoomOut();
+    void generateTestNodes();
+    void generateDefaultNodes();
+    void AddNodeToScene(TaxNode *node);
+    void CreateGraphNode(TaxNode *node);
+    void adjustAllEdges();
+    void markAllNodesDirty();
+    void updateDirtyNodes(quint32 flag);
+    QList<GraphNode *> dirtyList;
 
 protected:
-    void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
 #ifndef QT_NO_WHEELEVENT
     void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE;
 #endif
-    void scaleView(qreal scaleFactor);
-//    QPointF target_scene_pos, target_viewport_pos;
-//    bool eventFilter(QObject* object, QEvent* event);
 private:
-    int timerId;
-//    Node *centerNode;
     int hor_interval;
     int vert_interval;
-    int vert_interval_div2;
+    TreeLoaderThread *tlThread;
 
     void shrink_vertically(int s=4);
     void expand_vertically(int s=4);
+    void updateYCoord(qreal factor);
+private slots:
+    void mapIsLoaded();
+    void updateLoadedNames();
+    void treeIsLoaded(TaxNode *tree);
 };
 //! [0]
 

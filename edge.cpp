@@ -39,35 +39,35 @@
 ****************************************************************************/
 
 #include "edge.h"
-#include "node.h"
+#include "graph_node.h"
 
 #include <math.h>
 
 #include <QPainter>
+#include <QDebug>
 
 static const double Pi = 3.14159265358979323846264338327950288419717;
-//static double TwoPi = 2.0 * Pi;
 
 //=========================================================================
-Edge::Edge(Node *sourceNode, Node *destNode)
+Edge::Edge(GraphNode *sourceNode, GraphNode *destNode)
     : arrowSize(10)
 {
     setAcceptedMouseButtons(0);
     source = sourceNode;
     dest = destNode;
-    source->addEdge(this);
+    //source->addEdge(this);
     dest->addEdge(this);
     adjust();
 }
 
 //=========================================================================
-Node *Edge::sourceNode() const
+GraphNode *Edge::sourceNode() const
 {
     return source;
 }
 
 //=========================================================================
-Node *Edge::destNode() const
+GraphNode *Edge::destNode() const
 {
     return dest;
 }
@@ -78,35 +78,11 @@ void Edge::adjust()
     if (!source || !dest)
         return;
 
-    QPointF sp = mapFromItem(source, 0, 0);
-    QPointF dp = mapFromItem(dest, 0, 0);
-
-    QLineF line1(sp, QPointF(sp.x(), dp.y()));
-    QLineF line2(QPointF(sp.x(), dp.y()), dp);
-
-    qreal length2 = line2.length();
-    qreal length1 = line1.length();
-
     prepareGeometryChange();
-
-    if ( length2 > qreal(20.))
-    {
-       if ( length1 != 0 )
-       {
-         QPointF edgeOffset1((line1.dx() * 10) / length1, (line1.dy() * 10) / length1);
-         sourcePoint = line1.p1() + edgeOffset1;
-       }
-       else
-       {
-         sourcePoint = line1.p1() + QPointF(10, 0);
-       }
-       QPointF edgeOffset2((line2.dx() * 10) / length2, (line2.dy() * 10) / length2);
-       destPoint = line2.p2() - edgeOffset2;
-    }
-    else
-    {
-        sourcePoint = destPoint = line1.p2();
-    }
+    points[0] = mapFromItem(source, 10, 0);
+    points[1] = mapFromItem(source, LINE_BREAK_X, 0);
+    points[2] = mapFromItem(source, LINE_BREAK_X, dest->y() - source->y());
+    points[3] = mapFromItem(dest, -10, 0);
 }
 
 //=========================================================================
@@ -118,8 +94,7 @@ QRectF Edge::boundingRect() const
     qreal penWidth = 1;
     qreal extra = (penWidth + arrowSize) / 2.0;
 
-    return QRectF(sourcePoint, QSizeF(destPoint.x() - sourcePoint.x(),
-                                      destPoint.y() - sourcePoint.y()))
+    return QRectF(points[0], points[3])
         .normalized()
         .adjusted(-extra, -extra, extra, extra);
 }
@@ -130,20 +105,15 @@ void Edge::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
     if (!source || !dest)
         return;
 
-    QLineF line1(QPointF(sourcePoint.x(), sourcePoint.y()), QPointF(sourcePoint.x(), destPoint.y()));
-    QLineF line2(QPointF(sourcePoint.x(), destPoint.y()), QPointF(destPoint.x(), destPoint.y()));
-
     // Draw the line itself
-    painter->setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-    painter->drawLine(line1);
-    painter->drawLine(line2);
-
+    painter->setPen(QPen(dest->isGreyedOut() ? Qt::lightGray : Qt::black, 0.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter->drawPolyline(points, 4);
     // Draw the arrows
-    QPointF destArrowP1 = destPoint + QPointF(sin(-Pi / 3) * arrowSize,
+    QPointF destArrowP1 = points[3] + QPointF(sin(-Pi / 3) * arrowSize,
                                               cos(-Pi / 3) * arrowSize);
-    QPointF destArrowP2 = destPoint + QPointF(sin(-Pi + Pi / 3) * arrowSize,
+    QPointF destArrowP2 = points[3] + QPointF(sin(-Pi + Pi / 3) * arrowSize,
                                               cos(-Pi + Pi / 3) * arrowSize);
 
-    painter->setBrush(Qt::black);
-    painter->drawPolygon(QPolygonF() << line2.p2() << destArrowP1 << destArrowP2);
+    painter->setBrush(dest->isGreyedOut() ? Qt::lightGray : Qt::black);
+    painter->drawPolygon(QPolygonF() << points[3] << destArrowP1 << destArrowP2);
 }

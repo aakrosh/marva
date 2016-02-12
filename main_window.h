@@ -1,20 +1,27 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
+
 #include <QMainWindow>
 #include "graphwidget.h"
-#include "ui_MainWindow.h"
+#include "blast_data.h"
 
-class MainWindow : public QMainWindow, private Ui::MainWindow
+namespace Ui {
+class MainWindow;
+}
+
+class MainWindow : public QMainWindow
 {
-  Q_OBJECT
+    Q_OBJECT
+
 public:
-  MainWindow() : QMainWindow(NULL)
-  {
-    setupUi(this);
-    connect(this->actionQuit, SIGNAL(triggered()), this, SLOT(close()));
-    GraphWidget *gwidget = new GraphWidget;
-    setCentralWidget(gwidget);
-  }
+    explicit MainWindow(QWidget *parent = 0);
+    ~MainWindow();
+    BlastData *blastData;
+private:
+    Ui::MainWindow *ui;
+private slots:
+    void open_tab_blast_file();
+
 };
 
 #endif

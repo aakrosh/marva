@@ -1,11 +1,24 @@
 #ifndef MAP_LOADER_MAP_H
 #define MAP_LOADER_MAP_H
 
+#include "graphwidget.h"
 
-class map_loader_map : public QThread
+#include <QThread>
+
+class MapLoaderThread : public QThread
 {
+    Q_OBJECT
+private:
+    bool merge;
+    GraphView *graph;
+    TaxMap *map;
 public:
-    map_loader_map();
+    MapLoaderThread(QObject *parent, bool merge, GraphView *gw, TaxMap *map);
+protected:
+    virtual void run();
+signals:
+    void resultReady();
+    void progress();
 };
 
 #endif // MAP_LOADER_MAP_H

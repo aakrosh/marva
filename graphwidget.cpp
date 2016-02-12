@@ -1,61 +1,83 @@
-/****************************************************************************
-**
-** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
-** Contact: http://www.qt-project.org/legal
-**
-** This file is part of the examples of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:BSD$
-** You may use this file under the terms of the BSD license as follows:
-**
-** "Redistribution and use in source and binary forms, with or without
-** modification, are permitted provided that the following conditions are
-** met:
-**   * Redistributions of source code must retain the above copyright
-**     notice, this list of conditions and the following disclaimer.
-**   * Redistributions in binary form must reproduce the above copyright
-**     notice, this list of conditions and the following disclaimer in
-**     the documentation and/or other materials provided with the
-**     distribution.
-**   * Neither the name of Digia Plc and its Subsidiary(-ies) nor the names
-**     of its contributors may be used to endorse or promote products derived
-**     from this software without specific prior written permission.
-**
-**
-** THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-** "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-** LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-** OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-** SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-** LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-** DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-** THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-** (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-** OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
-
-#include "graphwidget.h"
-#include "edge.h"
-#include "node.h"
-
-#include <math.h>
-
 #include <QKeyEvent>
 #include <QDebug>
 #include <QApplication>
 
-//=========================================================================
-GraphWidget::GraphWidget(QWidget *parent)
-    : QGraphicsView(parent), timerId(0)
+#include <QMessageBox>
+
+#include "graphwidget.h"
+#include "edge.h"
+#include "graph_node.h"
+#include "map_loader_thread.h"
+#include "tree_loader_thread.h"
+
+void GraphView::generateDefaultNodes()
 {
+    tax_map.clear();
+    tax_map.insertName(1, "root");
+    tax_map.insertName(131567, "cellular organisms");
+    tax_map.insertName(2, "Bacteria");
+    tax_map.insertName(201174, "Actinobacteria <phylum>");
+    tax_map.insertName(2157, "Archaea");
+    tax_map.insertName(2759, "Eukaryota");
+    tax_map.insertName(10239, "Viruses");
+    tax_map.insertName(39759, "Deltavirus");
+    tax_map.insertName(12884, "Viroids");
+    tax_map.insertName(185752, "Avsunviroidae");
+    tax_map.insertName(12908, "unclassified sequences");
+    tax_map.insertName(28384, "other sequences");
+
+    // To improve the startup speed, first create hardcoded default nodes, they will be updated then the whole tree will be loaded
+    root = new TaxNode(1);
+    TaxNode *n131567 = root->addChild(131567);
+    TaxNode *n2 = n131567->addChild(2);
+    n2->addChild(201174);
+    n131567->addChild(2157);
+    n131567->addChild(2759);
+    n131567->setCollapsed(false);
+    TaxNode *n10239 = root->addChild(10239);
+    n10239->addChild(39759);
+    TaxNode *n12884 = root->addChild(12884);
+    n12884->addChild(185752);
+    root->addChild(12908);
+    root->addChild(28384);
+    root->setCollapsed(false);
+}
+
+void GraphView::markAllNodesDirty()
+{
+    class DirtyMarker : public GraphNodeVisitor
+    {
+        GraphView *graph_view;
+    public:
+        DirtyMarker(GraphView *gv) : GraphNodeVisitor(false), graph_view(gv){}
+        virtual void makeAction(GraphNode *node, bool)
+        {
+            node->markDirty(DIRTY_ALL, &graph_view->dirtyList);
+        }
+    };
+
+    DirtyMarker dirtyMarker(this);
+    dirtyMarker.visitRootLeave(root->gnode);
+}
+
+GraphView::GraphView(QWidget *parent)
+    : QGraphicsView(parent)
+{
+
+    MapLoaderThread *mlThread = new MapLoaderThread(this, true, this, &tax_map);
+    connect(mlThread, SIGNAL(progress()), this, SLOT(updateLoadedNames()));
+    connect(mlThread, SIGNAL(resultReady()), this, SLOT(mapIsLoaded()));
+    connect(mlThread, SIGNAL(finished()), mlThread, SLOT(deleteLater()));
+    mlThread->start();
+
+    tlThread = new TreeLoaderThread(this, true);
+    connect(tlThread, SIGNAL(resultReady(TaxNode *)), this, SLOT(treeIsLoaded(TaxNode *)));
+    tlThread->start();
+
     QGraphicsScene *scene = new QGraphicsScene(this);
     scene->setItemIndexMethod(QGraphicsScene::NoIndex);
     setScene(scene);
-    scene->setSceneRect(0, 0, size().width(), 200);
+    scene->setSceneRect(-30, 0, size().width(), 200);
     setCacheMode(CacheBackground);
     setViewportUpdateMode(BoundingRectViewportUpdate);
     setRenderHint(QPainter::Antialiasing);
@@ -63,22 +85,15 @@ GraphWidget::GraphWidget(QWidget *parent)
     setMinimumSize(200, 300);
     setWindowTitle(tr("Tree view"));
     setDragMode(QGraphicsView::ScrollHandDrag);
-    root = new Node(this, "Root item");
-    root->setPos(0, 0);
     hor_interval = 300;
-    set_vert_interval(80);
-    GenerateChildrenNodes(root, 30, "Item ");
-    Node *ch2 = root->children.at(1);
-    GenerateChildrenNodes(ch2, 200, "Item 2");
-    GenerateChildrenNodes(root->children.at(0), 20, "Item 2");
-    GenerateChildrenNodes(root->children.at(2), 400, "Item 2");
-    GenerateChildrenNodes(ch2->children.at(1), 500, "Item 21");
-    root->setCollapsed(false);
+    set_vert_interval(30);
+    generateDefaultNodes();
     reset();
+    markAllNodesDirty();
 }
 
 //=========================================================================
-void GraphWidget::resizeEvent(QResizeEvent *e)
+void GraphView::resizeEvent(QResizeEvent *e)
 {
     QRectF r = sceneRect();
     r.setWidth(e->size().width()-20);
@@ -88,70 +103,70 @@ void GraphWidget::resizeEvent(QResizeEvent *e)
 }
 
 //=========================================================================
-void GraphWidget::GenerateChildrenNodes(Node *parent, int child_num, QString prefix)
+void GraphView::adjust_scene_boundaries()
 {
-    for ( int i=0; i < child_num; i++ )
-        parent->addChild( new Node(this, QString(prefix).append(QString::number(i))));
+    QRectF rect = sceneRect();
+    rect.setHeight(scene()->itemsBoundingRect().height());
+    setSceneRect(rect);
 }
 
 //=========================================================================
-void GraphWidget::adjust_scene_boundaries()
+void GraphView::CreateGraphNode(TaxNode *node)
 {
-    setSceneRect(this->scene()->itemsBoundingRect());
+    node->gnode = new GraphNode(this, node);
+    if ( node->parent != NULL )
+        new Edge(node->parent->gnode, node->gnode);
 }
 
 //=========================================================================
-void GraphWidget::reset()
+void GraphView::AddNodeToScene(TaxNode *node)
 {
-  root->setAsRoot(scene());
+    if ( node->gnode == NULL )
+        CreateGraphNode(node);
+    scene()->addItem(node->gnode);
+    foreach(Edge *e, node->gnode->edges())
+        scene()->addItem(e);
+    if ( node->isCollapsed() )
+        return;
+    if ( node->children.size() > 100 )
+        qDebug() << "Very big node";
+    for (TaxNodeIterator it=node->children.begin(); it!=node->children.end(); it++ )
+        AddNodeToScene(*it);
 }
 
 //=========================================================================
-void GraphWidget::itemMoved()
+void GraphView::adjustAllEdges()
 {
-/*    if (!timerId)
-        timerId = startTimer(1000 / 25);*/
-}
-
-//=========================================================================
-void GraphWidget::keyPressEvent(QKeyEvent *event)
-{
-    switch (event->key())
+    class EdgesAdjustor: public GraphNodeVisitor
     {
-      /*
-      case Qt::Key_Up:
-          centerNode->moveBy(0, -20);
-          break;
-      case Qt::Key_Down:
-          centerNode->moveBy(0, 20);
-          break;
-      case Qt::Key_Left:
-          centerNode->moveBy(-20, 0);
-          break;
-      case Qt::Key_Right:
-          centerNode->moveBy(20, 0);
-          break;
-          */
-      case Qt::Key_Plus:
-          zoomIn();
-          break;
-      case Qt::Key_Minus:
-          zoomOut();
-          break;
-          /*
-      case Qt::Key_Space:
-      case Qt::Key_Enter:
-          shuffle();
-          break;*/
-      default:
-          QGraphicsView::keyPressEvent(event);
-    }
+        public:
+        EdgesAdjustor():GraphNodeVisitor(false){}
+        virtual void makeAction(GraphNode *node, bool)
+        {
+            foreach(Edge *edge, node->edges())
+                edge->adjust();
+        }
+    };
+    EdgesAdjustor edgesAdjustor;
+    edgesAdjustor.visitRootLeave(root->gnode);
+}
+
+//=========================================================================
+void GraphView::reset()
+{
+    // Do NOT call clene->clean(). It will destroy all QGraphicItems in scene
+    foreach(QGraphicsItem *i, scene()->items())
+      scene()->removeItem(i);
+    AddNodeToScene(root);
+    if ( !root->isCollapsed() )
+        resetNodesCoordinates();
+    adjustAllEdges();
 }
 
 #ifndef QT_NO_WHEELEVENT
 
 //=========================================================================
-void GraphWidget::wheelEvent(QWheelEvent *event)
+void GraphView::wheelEvent(QWheelEvent *event)
 {
     if ( (QApplication::keyboardModifiers() & Qt::ControlModifier) == Qt::ControlModifier )
     {
@@ -159,113 +174,151 @@ void GraphWidget::wheelEvent(QWheelEvent *event)
         {
             if ( get_vert_interval() >= 20 )
                 shrink_vertically();
-         //   else
-         //       scaleView(pow((double)2, -event->delta() / 480.0));
         }
         else
         {
-            //qreal m11 = transform().m11();
-
             if ( get_vert_interval() <= 100 )
                 expand_vertically();
-        //    else
-        //        scaleView(pow((double)2, -event->delta() / 480.0));
         }
     }
     else
     {
         QGraphicsView::wheelEvent(event);
     }
-        //scaleView(1 / qreal(1.2));
-  //const QPointF p0scene = mapToScene(event->pos());
-  //scaleView(pow((double)2, -event->delta() / 240.0));
- // const QPointF p1mouse = mapFromScene(p0scene);
- // QPointF d = p1mouse - event->pos();
-  //transform().translate(d.x(), d.y());
-     /*
-  const QPointF p0scene = mapToScene(event->pos());
-
-  qreal factor = std::pow(1.01, event->delta());
-  scale(factor, factor);
-
-  const QPointF p1mouse = mapFromScene(p0scene);
-  const QPointF move = p1mouse - event->pos(); // The move
-  horizontalScrollBar()->setValue(move.x() + horizontalScrollBar()->value());
- // verticalScrollBar()->setValue(move.y() + verticalScrollBar()->value());*/
 }
 #endif
 
 //=========================================================================
-void GraphWidget::scaleView(qreal scaleFactor)
+void GraphView::shrink_vertically(int s)
 {
-    qreal factor = transform().scale(scaleFactor, scaleFactor).mapRect(QRectF(0, 0, 1, 1)).width();
-    if (factor < 0.07 || factor > 100)
-        return;
-    scale(scaleFactor, scaleFactor);
+    qreal old_vert_int = vert_interval;
+    vert_interval-=s;
+    updateYCoord(((qreal) vert_interval)/old_vert_int);
 }
 
 //=========================================================================
-void GraphWidget::shuffle()
+void GraphView::expand_vertically(int s)
 {
-    foreach (QGraphicsItem *item, scene()->items()) {
-        if (qgraphicsitem_cast<Node *>(item))
-            item->setPos(-150 + qrand() % 300, -150 + qrand() % 300);
+    qreal old_vert_int = vert_interval;
+    vert_interval+=s;
+    updateYCoord(((qreal) vert_interval)/old_vert_int);
+}
+
+//=========================================================================
+void GraphView::updateYCoord(qreal factor)
+{
+    class NodeYChanger: public GraphNodeVisitor
+    {
+        public:
+        qreal factor;
+        NodeYChanger(qreal _factor):GraphNodeVisitor(false), factor(_factor){}
+        virtual void makeAction(GraphNode *node, bool)
+        {
+            node->setY(factor*node->y());
+        }
+    };
+    NodeYChanger nodeYChanger(factor);
+    nodeYChanger.visitRootLeave(root->gnode);
+    adjustAllEdges();
+    adjust_scene_boundaries();
+}
+
+//=========================================================================
+void GraphView::resetNodesCoordinates()
+{
+    class NodeYSetter: public GraphNodeVisitor
+    {
+    public:
+        int maxLevel;
+        int y;
+        quint64 max_node_y;
+        NodeYSetter(int inity):GraphNodeVisitor(false), maxLevel(0), y(inity), max_node_y(0) {}
+        virtual void makeAction(GraphNode *node, bool visit_children)
+        {
+            if ( !visit_children )
+            {
+                if ( node->tax_node->level > maxLevel )
+                    maxLevel = node->tax_node->level;
+                y = max_node_y;
+                max_node_y += node->view->get_vert_interval();
+            }
+            node->setY(y);  // x-coordinate MUST be set later
+        }
+        virtual void beforeVisitChildren(GraphNode *node)
+        {
+            max_node_y += node->view->get_vert_interval()/4;
+        }
+        virtual void afterVisitChildren(GraphNode *node)
+        {
+            quint64 sum_y = 0;
+            QList<TaxNode *> &list = node->tax_node->children;
+            for ( TaxNodeIterator it = list.begin(); it < list.end(); it++ )
+                sum_y += (*it)->gnode->y();
+            y = sum_y / list.size();
+            max_node_y += node->view->get_vert_interval()/4;
+        }
+    };
+
+    NodeYSetter y_setter(0);
+    y_setter.visitLeaveRoot(root->gnode);
+    int maxLevel = y_setter.maxLevel;
+    int w = this->sceneRect().width()-200;
+    int dx = maxLevel == 0 ? 0 : w/maxLevel;
+    class NodeXSetter : public GraphNodeVisitor
+    {
+        int dx;
+        int max_x;
+    public:
+        NodeXSetter(int _dx, int _max_x): GraphNodeVisitor(false), dx(_dx), max_x(_max_x){}
+        virtual void makeAction(GraphNode *node, bool visit_children)
+        {
+            int x = visit_children ? node->tax_node->level*dx : max_x;
+            node->setX(x);
+        }
+    };
+    NodeXSetter x_setter(dx, w);
+    x_setter.visitRootLeave(root->gnode);
+    QRectF sr = sceneRect();
+    sr.setHeight(y_setter.max_node_y+40);
+    setSceneRect(sr);
+}
+//=========================================================================
+void GraphView::updateDirtyNodes(quint32 flag)
+{
+    foreach(GraphNode *n, dirtyList)
+    {
+        if ( (n->dirty & flag) == 0 )
+            continue;
+        n->update();
+        n->dirty &= ~flag;
+        if ( n->dirty == 0 )
+            dirtyList.removeAll(n);
     }
 }
 
 //=========================================================================
-void GraphWidget::zoomIn()
+void GraphView::mapIsLoaded()
 {
-    scaleView(qreal(1.2));
+    qDebug() << "Map Loading is finished";
+    // Handle end of mapLoading
+    updateDirtyNodes(DIRTY_NAME);
+    update();
 }
 
 //=========================================================================
-void GraphWidget::zoomOut()
+void GraphView::updateLoadedNames()
 {
-    if ( get_vert_interval() < 20 )
-        scaleView(1 / qreal(1.2));
-    else
-        shrink_vertically();
+    updateDirtyNodes(DIRTY_NAME);
 }
 
 //=========================================================================
-void GraphWidget::shrink_vertically(int s)
+void GraphView::treeIsLoaded(TaxNode *tree)
 {
-    vert_interval-=s;
-    resetNodesCoordinates();
+    qDebug() << "Tree Loading is finished";
+    root->mergeWith(tree, this);
+    tlThread->deleteLater();
+    tlThread = NULL;
     reset();
-}
-
-//=========================================================================
-void GraphWidget::expand_vertically(int s)
-{
-    vert_interval+=s;
-    resetNodesCoordinates();
-    reset();
-}
-
-//=========================================================================
-void GraphWidget::resetNodesCoordinates()
-{
-    int x = this->sceneRect().width()-100;
-    int y = -get_vert_interval();
-    int levels = 0;
-    int width = 0;
-    root->assignNodeCoordinates(&levels, &y, &x, &width);
-    QRectF sr = sceneRect();
-    //if ( max_node_y > sr.height() )
-    //{
-        sr.setHeight(max_node_y+40);
-        setSceneRect(sr);
-        /*
-        int n = max_node_y / vert_interval;
-        int vi = sceneRect().height()/n;
-        set_vert_interval(vi < 20 ? 20 : vi);
-        int x = sceneRect().width()-100;
-        int y = -get_vert_interval();
-        int levels = 0;
-        int width = 0;
-        root->assignNodeCoordinates(&levels, &y, &x, &width);
-        */
-    //}
+    updateDirtyNodes(DIRTY_CHILD);
+    update();
 }

@@ -43,16 +43,17 @@
 
 #include <QGraphicsItem>
 
-class Node;
+class GraphNode;
 
-//! [0]
+#define LINE_BREAK_X 40
+
 class Edge : public QGraphicsItem
 {
 public:
-    Edge(Node *sourceNode, Node *destNode);
+    Edge(GraphNode *sourceNode, GraphNode *destNode);
 
-    Node *sourceNode() const;
-    Node *destNode() const;
+    GraphNode *sourceNode() const;
+    GraphNode *destNode() const;
 
     void adjust();
 
@@ -64,10 +65,9 @@ protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
 
 private:
-    Node *source, *dest;
+    GraphNode *source, *dest;
 
-    QPointF sourcePoint;
-    QPointF destPoint;
+    QPointF points[4];
     qreal arrowSize;
 };
 //! [0]

@@ -8,6 +8,21 @@ QT += widgets core gui
 INCLUDEPATH += .
 
 # Input
-HEADERS += edge.h graphwidget.h MainWindow.h Node.h ui_MainWindow.h
-FORMS += MainWindow.ui
-SOURCES += edge.cpp graphwidget.cpp node.cpp Source.cpp
+HEADERS += edge.h graphwidget.h \
+    blast_record.h \
+    blast_data.h \
+    main_window.h \
+    tax_map.h \
+    map_loader_thread.h \
+    tree_loader_thread.h \
+    graph_node.h
+FORMS += \
+    main_window.ui
+SOURCES += edge.cpp graphwidget.cpp Source.cpp \
+    blast_record.cpp \
+    blast_data.cpp \
+    main_window.cpp \
+    tax_map.cpp \
+    map_loader_thread.cpp \
+    tree_loader_thread.cpp \
+    graph_node.cpp

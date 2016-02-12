@@ -47,69 +47,80 @@
 #define HOR_INTERVAL  150
 
 class Edge;
-class GraphWidget;
+class GraphView;
 QT_BEGIN_NAMESPACE
 class QGraphicsSceneMouseEvent;
 QT_END_NAMESPACE
 
-class Node : public QGraphicsItem
+class GraphNodeVisitor;
+class TaxNode;
+
+#define DIRTY_NAME  0x1
+#define DIRTY_CHILD 0x2
+#define DIRTY_ALL   DIRTY_NAME|DIRTY_CHILD
+
+class GraphNode : public QGraphicsItem
 {
 public:
-    Node(GraphWidget *graphWidget, const QString &_text = "");
+    GraphNode(GraphView *graphWidget, TaxNode *node);
+    ~GraphNode();
+
+    QList<Edge *> edges() const;
+    TaxNode *tax_node;
 
     void addEdge(Edge *edge);
-    QList<Edge *> edges() const;
 
     enum { Type = UserType + 1 };
     int type() const Q_DECL_OVERRIDE { return Type; }
 
-    void calculateForces();
-    bool advance();
-
     QRectF boundingRect() const Q_DECL_OVERRIDE;
     QPainterPath shape() const Q_DECL_OVERRIDE;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
-    inline void addChild(Node *n)
-    {
-        if ( !children.empty() )
-            width++;
-        Node *p = parent;
-        while ( p != NULL )
-        {
-            p->width++;
-            p = p->parent;
-        }
-        children.append(n);
-        n->parent = this;
-        n->level = level+1;
-    }
-    inline void collapse() { setCollapsed(true); }
-    inline void expend() { setCollapsed(false); }
     void setAsRoot(QGraphicsScene *scene);
-    void assignNodeCoordinates(int *levels, int *y, int *x, int *width);
+    void assignNodeYCoordinate(int *levels, int *y);
 
-    QList<Node *> children;
-    Node *parent;
+    void setSize(int s) { size = s; }
+    void setColor(quint32 c) { color = c; }
+    QString text();
+    QString get_const_text() const;
+    bool isGreyedOut();
+    void onNodeCollapsed(bool b);
+    void adjustAdges();
+    void markDirty(qint32 dirty_flags,QList<GraphNode *> *dirtyList);
 
 protected:
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) Q_DECL_OVERRIDE;
     void mousePressEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
     void addToScene(QGraphicsScene *scene);
-    void setCollapsed(bool b);
+
     void move(int dy);
     void moveSubTree(int dy);
 
 private:
-    GraphWidget *graph;
+    GraphView *view;
     QList<Edge *> edgeList;
-    QPointF newPos;
-    QString text;
-    bool collapsed;
-    int width;
-    int level;
+    int size;
+    quint32 color;
+    qint32 dirty;
 
-friend class GraphWidget;
+friend class TreeLoaderThread;
+friend class GraphView;
+friend class GraphNodeVisitor;
+};
+
+class GraphNodeVisitor
+{
+private:
+    bool visit_collapsed;
+    inline bool shouldVisitChildren(GraphNode *node);
+public:
+    GraphNodeVisitor(bool _visit_collapsed);
+    void visitRootLeave(GraphNode *root);
+    void visitLeaveRoot(GraphNode *root);
+    virtual void beforeVisitChildren(GraphNode *) {};
+    virtual void afterVisitChildren(GraphNode *) {};
+    virtual void makeAction(GraphNode *node, bool visit_children) = 0;
 };
 
 #endif // NODE_H

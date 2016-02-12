@@ -2,7 +2,7 @@
 #include <qpushbutton.h>
 #include <QtGui>
 
-#include "MainWindow.h"
+#include "main_window.h"
 
 
 int main(int argc, char **argv)
