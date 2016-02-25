@@ -4,8 +4,9 @@
 #include <QFile>
 #include <QTextStream>
 
+//=========================================================================
 MapLoaderThread::MapLoaderThread(QObject *parent, bool _merge, GraphView* gw, TaxMap *_map) :
-    QThread(parent),
+    LoaderThread(parent, "/data/ncbi.map", "loading taxanomy map"),
     merge(_merge),
     graph(gw),
     map(_map)
@@ -13,37 +14,12 @@ MapLoaderThread::MapLoaderThread(QObject *parent, bool _merge, GraphView* gw, Ta
 
 }
 
-void MapLoaderThread::run()
+//=========================================================================
+void MapLoaderThread::processLine(QString &line)
 {
-    QString fileName = QApplication::applicationDirPath();
-    fileName.append("/data/ncbi.map");
-    QFile file(fileName);
-    QTextStream in(&file);
-    QString line;
-    if ( file.open(QIODevice::ReadOnly|QIODevice::Text) )
-    {
-        if ( !merge )
-            map->clear();
-        int i = 0;
-        do
-        {
-            line = in.readLine();
-            if ( line == NULL || line.isEmpty() )
-                continue;
-            QStringList list = line.split("\t", QString::SkipEmptyParts);
-            if ( list.size() < 2 )
-                throw(QString("Bad .map file record ").append(line).toLocal8Bit().constData());
-            qint32 id = list[0].toInt();
-            map->insert(id,list[1]);
-            if ( ++i > 1000 )
-            {
-                progress();
-                i = 0;
-            }
-        }
-        while (!line.isNull());
-        file.close();
-    }
-    emit resultReady();
+    QStringList list = line.split("\t", QString::SkipEmptyParts);
+    if ( list.size() < 2 )
+        throw(QString("Bad .map file record ").append(line).toLocal8Bit().constData());
+    qint32 id = list[0].toInt();
+    map->setName(id, list[1].toLocal8Bit().constData());
 }
-

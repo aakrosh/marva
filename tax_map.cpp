@@ -1,39 +1,104 @@
 #include "tax_map.h"
 #include "graph_node.h"
 #include "graphwidget.h"
+#include "edge.h"
 
 #include <QString>
 #include <QFile>
 #include <QTextStream>
 #include <QDebug>
+#include <QMessageBox>
 
-TaxMap::TaxMap() : QMap<qint32, QString>(){}
+//=========================================================================
+TaxMap::TaxMap() : QMap<qint32, TaxNode *>(){}
 
-void TaxMap::insertName(qint32 tid, const char *name)
+//=========================================================================
+void TaxMap::setName(qint32 tid, const char *name)
 {
-    insert(tid, name);
-    //TaxNode *node = insertTaxId(tid);
-    //node->name = name;
+    TaxMapIterator it = find(tid);
+    if ( it == end() )
+    {
+        QMessageBox::information(0, "Cannot set name", QString("No node with id %1 found").arg(tid));
+        return;
+    }
+    it.value()->text = name;
 }
 
-TaxNodeVisitor::TaxNodeVisitor(VisitorDirection _direction) : direction(_direction) {}
-
-void TaxNodeVisitor::VisitRootToLeaves(TaxNode *node)
+//=========================================================================
+TaxNodeVisitor::TaxNodeVisitor(
+        VisitorDirection _direction,
+        bool visit_collapsed,
+        GraphView *gv,
+        bool createGNodes,
+        bool _visitNullGnodes) :
+    direction(_direction),
+    createGraphNodes(createGNodes),
+    visitCollapsed(visit_collapsed),
+    graphView(gv),
+    visitNullGnodes(_visitNullGnodes)
 {
+
+}
+
+//=========================================================================
+bool TaxNodeVisitor::shouldVisitChildren(BaseTaxNode *node)
+{
+    if ( node->children.isEmpty() )
+        return false;
+    else
+        return this->visitCollapsed || !node->isCollapsed();
+}
+
+//=========================================================================
+void TaxNodeVisitor::VisitRootToLeaves(BaseTaxNode *node)
+{
+    if ( node->getGnode() == NULL )
+    {
+        if ( createGraphNodes )
+            graphView->CreateGraphNode(node);
+        else if ( !visitNullGnodes )
+            return;
+
+    }
+    bool visit_children = shouldVisitChildren(node);
     Action(node);
-    for ( TaxNodeIterator it  = node->children.begin(); it != node->children.end(); it++ )
-        VisitRootToLeaves(*it);
+    if ( visit_children )
+    {
+        beforeVisitChildren(node);
+        ThreadSafeListLocker<BaseTaxNode *> locker(&node->children);
+        for ( TaxNodeIterator it  = node->children.begin(); it != node->children.end(); it++ )
+            VisitRootToLeaves(*it);
+        afterVisitChildren(node);
+    }
 }
 
-void TaxNodeVisitor::VisitLeavesToRoot(TaxNode *node)
+//=========================================================================
+void TaxNodeVisitor::VisitLeavesToRoot(BaseTaxNode *node)
 {
-    for ( TaxNodeIterator it  = node->children.begin(); it != node->children.end(); it++ )
-        VisitLeavesToRoot(*it);
+    if ( node->getGnode()  == NULL )
+    {
+        if ( createGraphNodes )
+            graphView->CreateGraphNode(node);
+        else if ( !visitNullGnodes )
+            return;
+    }
+    bool visit_children = shouldVisitChildren(node);
+    if ( visit_children )
+    {
+        beforeVisitChildren(node);
+        ThreadSafeListLocker<BaseTaxNode *> locker(&node->children);
+        for ( TaxNodeIterator it  = node->children.begin(); it != node->children.end(); it++ )
+            VisitLeavesToRoot(*it);
+        afterVisitChildren(node);
+    }
     Action(node);
 }
 
-void TaxNodeVisitor::Visit(TaxNode *node)
+//=========================================================================
+void TaxNodeVisitor::Visit(BaseTaxNode *node)
 {
+    if ( node == NULL )
+        return;
     if ( direction == RootToLeaves )
         VisitRootToLeaves(node);
     else
@@ -41,52 +106,21 @@ void TaxNodeVisitor::Visit(TaxNode *node)
 }
 
 
-TaxNode::TaxNode(): id(-555), level(0), gnode(NULL), parent(NULL), collapsed(true){}
+//=========================================================================
+TaxNode::TaxNode(): BaseTaxNode(true), id(-555), level(0){}
 
-TaxNode::TaxNode(qint32 _id):id(_id), level(0), gnode(NULL), parent(NULL), collapsed(true){}
+//=========================================================================
+TaxNode::TaxNode(qint32 _id): BaseTaxNode(true), id(_id), level(0){}
 
-TaxNode *TaxNode::addChild(quint32 chId)
+//=========================================================================
+TaxNode *TaxNode::TaxNode::addChildById(quint32 chId)
 {
-    return addChild(new TaxNode(chId));
+    return (TaxNode *)addChild(new TaxNode(chId));
 }
 
-TaxNode *TaxNode::addChild(TaxNode *node)
+//=========================================================================
+GraphNode *TaxNode::createGnode(GraphView *gv)
 {
-    children.append(node);
-    node->level = level+1;
-    node->parent = this;
-    return node;
-}
-
-void TaxNode::setCollapsed(bool b)
-{
-    collapsed = b;
-    if ( gnode != NULL )
-        gnode->onNodeCollapsed(b);
-}
-
-void TaxNode::mergeWith(TaxNode *other, GraphView *gview)
-{
-    if ( id != other->id )
-        return;
-    bool changed = false;
-    for ( TaxNodeIterator o_it = other->children.begin(); o_it<other->children.end(); o_it++ )
-    {
-        bool found = false;
-        for ( TaxNodeIterator this_it = children.begin(); this_it<children.end(); this_it++ )
-        {
-            if ((*this_it)->id == (*o_it)->id)
-            {
-                (*this_it)->mergeWith(*o_it, gview);
-                found = true;
-                break;
-            }
-        }
-        if ( found )
-            continue;
-        addChild(*o_it);
-        changed = true;
-    }
-    if ( gnode != NULL && changed )
-        gnode->markDirty(DIRTY_CHILD, &gview->dirtyList);
+    gnode = new GraphNode(gv, this);
+    return gnode;
 }

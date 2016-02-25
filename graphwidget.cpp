@@ -1,135 +1,123 @@
-#include <QKeyEvent>
-#include <QDebug>
 #include <QApplication>
-
+#include <QDebug>
+#include <QKeyEvent>
 #include <QMessageBox>
+#include <QScrollBar>
 
 #include "graphwidget.h"
 #include "edge.h"
 #include "graph_node.h"
 #include "map_loader_thread.h"
 #include "tree_loader_thread.h"
+#include "blast_data.h"
 
-void GraphView::generateDefaultNodes()
-{
-    tax_map.clear();
-    tax_map.insertName(1, "root");
-    tax_map.insertName(131567, "cellular organisms");
-    tax_map.insertName(2, "Bacteria");
-    tax_map.insertName(201174, "Actinobacteria <phylum>");
-    tax_map.insertName(2157, "Archaea");
-    tax_map.insertName(2759, "Eukaryota");
-    tax_map.insertName(10239, "Viruses");
-    tax_map.insertName(39759, "Deltavirus");
-    tax_map.insertName(12884, "Viroids");
-    tax_map.insertName(185752, "Avsunviroidae");
-    tax_map.insertName(12908, "unclassified sequences");
-    tax_map.insertName(28384, "other sequences");
+#define RIGHT_NODE_MARGIN   200
 
-    // To improve the startup speed, first create hardcoded default nodes, they will be updated then the whole tree will be loaded
-    root = new TaxNode(1);
-    TaxNode *n131567 = root->addChild(131567);
-    TaxNode *n2 = n131567->addChild(2);
-    n2->addChild(201174);
-    n131567->addChild(2157);
-    n131567->addChild(2759);
-    n131567->setCollapsed(false);
-    TaxNode *n10239 = root->addChild(10239);
-    n10239->addChild(39759);
-    TaxNode *n12884 = root->addChild(12884);
-    n12884->addChild(185752);
-    root->addChild(12908);
-    root->addChild(28384);
-    root->setCollapsed(false);
-}
-
+//=========================================================================
 void GraphView::markAllNodesDirty()
 {
-    class DirtyMarker : public GraphNodeVisitor
+    class DirtyMarker : public TaxNodeVisitor
     {
-        GraphView *graph_view;
     public:
-        DirtyMarker(GraphView *gv) : GraphNodeVisitor(false), graph_view(gv){}
-        virtual void makeAction(GraphNode *node, bool)
+        DirtyMarker(GraphView *gv) : TaxNodeVisitor(LeavesToRoot, false, gv){}
+        virtual void Action(BaseTaxNode *node)
         {
-            node->markDirty(DIRTY_ALL, &graph_view->dirtyList);
+            node->getGnode()->markDirty(DIRTY_ALL, &graphView->dirtyList);
         }
     };
 
     DirtyMarker dirtyMarker(this);
-    dirtyMarker.visitRootLeave(root->gnode);
+    dirtyMarker.Visit(root);
 }
 
-GraphView::GraphView(QWidget *parent)
-    : QGraphicsView(parent)
+//=========================================================================
+GraphView::GraphView(QWidget *parent, TaxNode *taxTree)
+    : QGraphicsView(parent),
+      root(taxTree),
+      create_nodes(true)
 {
-
-    MapLoaderThread *mlThread = new MapLoaderThread(this, true, this, &tax_map);
-    connect(mlThread, SIGNAL(progress()), this, SLOT(updateLoadedNames()));
-    connect(mlThread, SIGNAL(resultReady()), this, SLOT(mapIsLoaded()));
-    connect(mlThread, SIGNAL(finished()), mlThread, SLOT(deleteLater()));
-    mlThread->start();
-
-    tlThread = new TreeLoaderThread(this, true);
-    connect(tlThread, SIGNAL(resultReady(TaxNode *)), this, SLOT(treeIsLoaded(TaxNode *)));
-    tlThread->start();
-
     QGraphicsScene *scene = new QGraphicsScene(this);
     scene->setItemIndexMethod(QGraphicsScene::NoIndex);
     setScene(scene);
-    scene->setSceneRect(-30, 0, size().width(), 200);
+    scene->setSceneRect(-30, 0, size().width(), size().height());
     setCacheMode(CacheBackground);
     setViewportUpdateMode(BoundingRectViewportUpdate);
     setRenderHint(QPainter::Antialiasing);
     setTransformationAnchor(AnchorUnderMouse);
     setMinimumSize(200, 300);
     setWindowTitle(tr("Tree view"));
-    setDragMode(QGraphicsView::ScrollHandDrag);
+    //setDragMode(QGraphicsView::ScrollHandDrag);
     hor_interval = 300;
     set_vert_interval(30);
-    generateDefaultNodes();
     reset();
     markAllNodesDirty();
+}
+
+//=========================================================================
+void GraphView::updateXCoord(qreal factor)
+{
+    class NodeXChanger: public TaxNodeVisitor
+    {
+        public:
+        qreal factor;
+        NodeXChanger(qreal _factor):TaxNodeVisitor(RootToLeaves, false, NULL, false, false), factor(_factor){}
+        virtual void Action(BaseTaxNode *node)
+        {
+            node->getGnode()->setX(factor*node->getGnode()->x());
+        }
+    };
+    NodeXChanger nodeXChanger(factor);
+    nodeXChanger.Visit(root);
+    adjustAllEdges();
+    adjust_scene_boundaries();
 }
 
 //=========================================================================
 void GraphView::resizeEvent(QResizeEvent *e)
 {
     QRectF r = sceneRect();
+    qreal oldW = r.width() - RIGHT_NODE_MARGIN;
     r.setWidth(e->size().width()-20);
     setSceneRect(r);
     scene()->setSceneRect(r);
-    reset();
+    qreal newW = sceneRect().width() - RIGHT_NODE_MARGIN;
+    updateXCoord(newW/oldW);
 }
 
 //=========================================================================
 void GraphView::adjust_scene_boundaries()
 {
     QRectF rect = sceneRect();
-    rect.setHeight(scene()->itemsBoundingRect().height());
+    rect.setHeight(scene()->itemsBoundingRect().height()+30);
     setSceneRect(rect);
 }
 
 //=========================================================================
-void GraphView::CreateGraphNode(TaxNode *node)
+void GraphView::CreateGraphNode(BaseTaxNode *node)
 {
-    node->gnode = new GraphNode(this, node);
-    if ( node->parent != NULL )
-        new Edge(node->parent->gnode, node->gnode);
+    node->createGnode(this);
 }
 
 //=========================================================================
-void GraphView::AddNodeToScene(TaxNode *node)
+void GraphView::AddNodeToScene(BaseTaxNode *node)
 {
-    if ( node->gnode == NULL )
-        CreateGraphNode(node);
-    scene()->addItem(node->gnode);
-    foreach(Edge *e, node->gnode->edges())
+    if ( node->getGnode() == NULL )
+    {
+        if ( create_nodes )
+            CreateGraphNode(node);
+        else
+            return;
+    }
+    GraphNode *gnode = node->getGnode();
+    scene()->addItem(gnode);
+    Edge *e = gnode->edge;
+    if ( e == NULL && node->parent != NULL )
+        e = new Edge(node->parent->getGnode(), gnode);
+    if ( e != NULL )
         scene()->addItem(e);
     if ( node->isCollapsed() )
         return;
-    if ( node->children.size() > 100 )
-        qDebug() << "Very big node";
+    ThreadSafeListLocker<BaseTaxNode *> locker(&node->children);
     for (TaxNodeIterator it=node->children.begin(); it!=node->children.end(); it++ )
         AddNodeToScene(*it);
 }
@@ -137,26 +125,26 @@ void GraphView::AddNodeToScene(TaxNode *node)
 //=========================================================================
 void GraphView::adjustAllEdges()
 {
-    class EdgesAdjustor: public GraphNodeVisitor
+    class EdgesAdjustor: public TaxNodeVisitor
     {
         public:
-        EdgesAdjustor():GraphNodeVisitor(false){}
-        virtual void makeAction(GraphNode *node, bool)
+        EdgesAdjustor():TaxNodeVisitor(RootToLeaves, false, NULL, false, false ){}
+        virtual void Action(BaseTaxNode *node)
         {
-            foreach(Edge *edge, node->edges())
-                edge->adjust();
+            Edge *e = node->getGnode()->edge;
+            if ( e != NULL )
+                e->adjust();
         }
     };
     EdgesAdjustor edgesAdjustor;
-    edgesAdjustor.visitRootLeave(root->gnode);
+    edgesAdjustor.Visit(root);
 }
 
 //=========================================================================
 void GraphView::reset()
 {
-    // Do NOT call clene->clean(). It will destroy all QGraphicItems in scene
-    foreach(QGraphicsItem *i, scene()->items())
-      scene()->removeItem(i);
+    dirtyList.clear();
+    scene()->clear();
     AddNodeToScene(root);
     if ( !root->isCollapsed() )
         resetNodesCoordinates();
@@ -170,6 +158,9 @@ void GraphView::wheelEvent(QWheelEvent *event)
 {
     if ( (QApplication::keyboardModifiers() & Qt::ControlModifier) == Qt::ControlModifier )
     {
+        QPoint p = event->pos();
+        qreal oldY = mapToScene(p).y();
+        qreal oldH = sceneRect().height();
         if ( event->delta()>0 )
         {
             if ( get_vert_interval() >= 20 )
@@ -180,6 +171,9 @@ void GraphView::wheelEvent(QWheelEvent *event)
             if ( get_vert_interval() <= 100 )
                 expand_vertically();
         }
+        qreal newH = sceneRect().height();
+        qreal newY = oldY*newH/oldH;
+        verticalScrollBar()->setValue(verticalScrollBar()->value()+newY-oldY);
     }
     else
     {
@@ -207,18 +201,18 @@ void GraphView::expand_vertically(int s)
 //=========================================================================
 void GraphView::updateYCoord(qreal factor)
 {
-    class NodeYChanger: public GraphNodeVisitor
+    class NodeYChanger: public TaxNodeVisitor
     {
         public:
         qreal factor;
-        NodeYChanger(qreal _factor):GraphNodeVisitor(false), factor(_factor){}
-        virtual void makeAction(GraphNode *node, bool)
+        NodeYChanger(qreal _factor):TaxNodeVisitor(RootToLeaves, false, NULL, false, false), factor(_factor){}
+        virtual void Action(BaseTaxNode *node)
         {
-            node->setY(factor*node->y());
+            node->getGnode()->setY(factor*node->getGnode()->y());
         }
     };
     NodeYChanger nodeYChanger(factor);
-    nodeYChanger.visitRootLeave(root->gnode);
+    nodeYChanger.Visit(root);
     adjustAllEdges();
     adjust_scene_boundaries();
 }
@@ -226,99 +220,137 @@ void GraphView::updateYCoord(qreal factor)
 //=========================================================================
 void GraphView::resetNodesCoordinates()
 {
-    class NodeYSetter: public GraphNodeVisitor
+    class NodeYSetter: public TaxNodeVisitor
     {
     public:
         int maxLevel;
         int y;
         quint64 max_node_y;
-        NodeYSetter(int inity):GraphNodeVisitor(false), maxLevel(0), y(inity), max_node_y(0) {}
-        virtual void makeAction(GraphNode *node, bool visit_children)
-        {
-            if ( !visit_children )
+        NodeYSetter(int inity, GraphView *gv):TaxNodeVisitor(LeavesToRoot, false, gv, false, false), maxLevel(0), y(inity), max_node_y(0) {}
+        virtual void Action(BaseTaxNode *node)
+        {            
+            if ( !shouldVisitChildren(node) )
             {
-                if ( node->tax_node->level > maxLevel )
-                    maxLevel = node->tax_node->level;
+                if ( node->getLevel() > maxLevel )
+                    maxLevel = node->getLevel();
                 y = max_node_y;
-                max_node_y += node->view->get_vert_interval();
+                max_node_y += graphView->get_vert_interval();
             }
-            node->setY(y);  // x-coordinate MUST be set later
+            node->getGnode()->setY(y);
         }
-        virtual void beforeVisitChildren(GraphNode *node)
+        virtual void beforeVisitChildren(BaseTaxNode *node)
         {
-            max_node_y += node->view->get_vert_interval()/4;
+            max_node_y += node->getGnode()->view->get_vert_interval()/4;
         }
-        virtual void afterVisitChildren(GraphNode *node)
+        virtual void afterVisitChildren(BaseTaxNode *node)
         {
             quint64 sum_y = 0;
-            QList<TaxNode *> &list = node->tax_node->children;
+            QList<BaseTaxNode *> &list = node->children;
             for ( TaxNodeIterator it = list.begin(); it < list.end(); it++ )
-                sum_y += (*it)->gnode->y();
+                sum_y += (*it)->getGnode() == NULL ? 0 : (*it)->getGnode()->y();
             y = sum_y / list.size();
-            max_node_y += node->view->get_vert_interval()/4;
+            max_node_y += graphView->get_vert_interval()/4;
         }
     };
 
-    NodeYSetter y_setter(0);
-    y_setter.visitLeaveRoot(root->gnode);
+    NodeYSetter y_setter(0, this);
+    y_setter.Visit(root);
     int maxLevel = y_setter.maxLevel;
-    int w = this->sceneRect().width()-200;
+    int w = this->sceneRect().width()-RIGHT_NODE_MARGIN;
     int dx = maxLevel == 0 ? 0 : w/maxLevel;
-    class NodeXSetter : public GraphNodeVisitor
+    class NodeXSetter : public TaxNodeVisitor
     {
         int dx;
         int max_x;
     public:
-        NodeXSetter(int _dx, int _max_x): GraphNodeVisitor(false), dx(_dx), max_x(_max_x){}
-        virtual void makeAction(GraphNode *node, bool visit_children)
+        NodeXSetter(int _dx, int _max_x): TaxNodeVisitor(RootToLeaves, false, NULL, false, false), dx(_dx), max_x(_max_x){}
+        virtual void Action(BaseTaxNode *node)
         {
-            int x = visit_children ? node->tax_node->level*dx : max_x;
-            node->setX(x);
+            int x = max_x;
+            if ( node->getLevel() == 0 )
+                x = 0;
+            else if ( shouldVisitChildren(node) )
+                x = node->getLevel()*dx;
+            node->getGnode()->setX(x);
         }
     };
     NodeXSetter x_setter(dx, w);
-    x_setter.visitRootLeave(root->gnode);
-    QRectF sr = sceneRect();
-    sr.setHeight(y_setter.max_node_y+40);
-    setSceneRect(sr);
+    x_setter.Visit(root);
+//    QRectF sr = sceneRect();
+//    sr.setHeight(y_setter.max_node_y+40);
+    adjustAllEdges();
+    adjust_scene_boundaries();
+//    setSceneRect(sr);
 }
 //=========================================================================
 void GraphView::updateDirtyNodes(quint32 flag)
 {
-    foreach(GraphNode *n, dirtyList)
+    for (DirtyGNodesList::iterator it = dirtyList.begin(); it < dirtyList.end(); it++ )
+    //foreach(GraphNode *n, dirtyList)
     {
+        GraphNode *n = *it;
         if ( (n->dirty & flag) == 0 )
             continue;
         n->update();
-        n->dirty &= ~flag;
+        n->clearDirtyFlag(flag);
         if ( n->dirty == 0 )
-            dirtyList.removeAll(n);
+            dirtyList.Delete(n);
     }
 }
 
 //=========================================================================
-void GraphView::mapIsLoaded()
+void GraphView::createMissedGraphNodes()
 {
-    qDebug() << "Map Loading is finished";
-    // Handle end of mapLoading
-    updateDirtyNodes(DIRTY_NAME);
-    update();
+    class GNodesCreator : public TaxNodeVisitor
+    {
+    public:
+        int nodesCreated;
+        GNodesCreator(GraphView *gv) : TaxNodeVisitor(RootToLeaves, false, gv), nodesCreated(0){}
+        virtual void Action(BaseTaxNode *node)
+        {
+            if ( node->getGnode() == NULL )
+            {
+                graphView->CreateGraphNode(node);
+                graphView->AddNodeToScene(node);
+                nodesCreated++;
+            }
+        }
+    };
+    GNodesCreator gnCreator(this);
+    gnCreator.Visit(root);
+    if ( gnCreator.nodesCreated > 0 )        
+        resetNodesCoordinates();
 }
 
 //=========================================================================
-void GraphView::updateLoadedNames()
+void GraphView::blastLoadingProgress(void *obj)
 {
+    static bool updating = false;
+    if ( updating )
+        return;
+    updating = true;
+    if ( root != obj )
+        root = (BlastTaxNode *)obj;
+    createMissedGraphNodes();
+    //reset();
+    updateDirtyNodes(DIRTY_NAME);
+    updating = false;
+}
+
+//=========================================================================
+void GraphView::blastIsLoaded(void *obj)
+{
+    if ( root != obj )
+        root = (BlastTaxNode *)obj;
+    createMissedGraphNodes();
+    //reset();
     updateDirtyNodes(DIRTY_NAME);
 }
 
 //=========================================================================
-void GraphView::treeIsLoaded(TaxNode *tree)
+void DirtyGNodesList::Add(GraphNode *node)
 {
-    qDebug() << "Tree Loading is finished";
-    root->mergeWith(tree, this);
-    tlThread->deleteLater();
-    tlThread = NULL;
-    reset();
-    updateDirtyNodes(DIRTY_CHILD);
-    update();
+    if ( contains(node) )
+        return;
+    ThreadSafeList::Add(node);
 }

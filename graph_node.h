@@ -41,8 +41,11 @@
 #ifndef NODE_H
 #define NODE_H
 
+#include "blast_data.h"
+
 #include <QGraphicsItem>
 #include <QList>
+
 
 #define HOR_INTERVAL  150
 
@@ -53,20 +56,23 @@ class QGraphicsSceneMouseEvent;
 QT_END_NAMESPACE
 
 class GraphNodeVisitor;
-class TaxNode;
+class BaseTaxNode;
+class DirtyGNodesList;
 
 #define DIRTY_NAME  0x1
 #define DIRTY_CHILD 0x2
 #define DIRTY_ALL   DIRTY_NAME|DIRTY_CHILD
 
+extern TaxColorSrc taxColorSrc;
+
 class GraphNode : public QGraphicsItem
 {
 public:
-    GraphNode(GraphView *graphWidget, TaxNode *node);
+    GraphNode(GraphView *graphWidget, BaseTaxNode *node);
     ~GraphNode();
 
-    QList<Edge *> edges() const;
-    TaxNode *tax_node;
+    BaseTaxNode *tax_node;
+    Edge *edge;
 
     void addEdge(Edge *edge);
 
@@ -79,48 +85,41 @@ public:
     void setAsRoot(QGraphicsScene *scene);
     void assignNodeYCoordinate(int *levels, int *y);
 
-    void setSize(int s) { size = s; }
-    void setColor(quint32 c) { color = c; }
     QString text();
     QString get_const_text() const;
     bool isGreyedOut();
     void onNodeCollapsed(bool b);
     void adjustAdges();
-    void markDirty(qint32 dirty_flags,QList<GraphNode *> *dirtyList);
+    void markDirty(qint32 dirty_flags, DirtyGNodesList *dirtyList=NULL);
+    void clearDirtyFlag(qint32 dirty_flag);
 
 protected:
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) Q_DECL_OVERRIDE;
     void mousePressEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
     void addToScene(QGraphicsScene *scene);
-
     void move(int dy);
-    void moveSubTree(int dy);
+    void deleteChildrenNodes();
+    virtual void updateToolTip();
 
 private:
     GraphView *view;
-    QList<Edge *> edgeList;
-    int size;
-    quint32 color;
     qint32 dirty;
 
 friend class TreeLoaderThread;
 friend class GraphView;
-friend class GraphNodeVisitor;
 };
 
-class GraphNodeVisitor
+class BlastGraphNode: public GraphNode
 {
-private:
-    bool visit_collapsed;
-    inline bool shouldVisitChildren(GraphNode *node);
 public:
-    GraphNodeVisitor(bool _visit_collapsed);
-    void visitRootLeave(GraphNode *root);
-    void visitLeaveRoot(GraphNode *root);
-    virtual void beforeVisitChildren(GraphNode *) {};
-    virtual void afterVisitChildren(GraphNode *) {};
-    virtual void makeAction(GraphNode *node, bool visit_children) = 0;
+    BlastGraphNode(GraphView *graphWidget, BlastTaxNode *node);
+    QPainterPath shape() const Q_DECL_OVERRIDE;
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
+    int size() const;
+    quint32 color();
+protected:
+    virtual void updateToolTip();
 };
 
 #endif // NODE_H

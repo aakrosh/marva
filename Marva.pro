@@ -15,14 +15,22 @@ HEADERS += edge.h graphwidget.h \
     tax_map.h \
     map_loader_thread.h \
     tree_loader_thread.h \
-    graph_node.h
+    graph_node.h \
+    loader_thread.h \
+    base_tax_node.h \
+    ui_components/statuslistpanel.h \
+    threadsafelist.h
 FORMS += \
     main_window.ui
-SOURCES += edge.cpp graphwidget.cpp Source.cpp \
+SOURCES += edge.cpp graphwidget.cpp \
     blast_record.cpp \
     blast_data.cpp \
     main_window.cpp \
     tax_map.cpp \
     map_loader_thread.cpp \
     tree_loader_thread.cpp \
-    graph_node.cpp
+    graph_node.cpp \
+    loader_thread.cpp \
+    base_tax_node.cpp \
+    ui_components/statuslistpanel.cpp \
+    main.cpp

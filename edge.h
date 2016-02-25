@@ -70,6 +70,5 @@ private:
     QPointF points[4];
     qreal arrowSize;
 };
-//! [0]
 
 #endif // EDGE_H

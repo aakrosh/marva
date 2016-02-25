@@ -2,6 +2,7 @@
 
 #include <QStringList>
 
+//=========================================================================
 BlastRecord::BlastRecord(BlastFileType type, QStringList list)
 {
     switch ( type )
@@ -9,8 +10,8 @@ BlastRecord::BlastRecord(BlastFileType type, QStringList list)
         case tabular:
             if ( list.size() < 13 )
                 throw("Bad tabular BLAST file");
-            query_name = list[0];
-            alligment_id = list[1];
+            //query_name = list[0];         //Ignore them for now
+            //alligment_id = list[1];
             identity = list[2].toDouble();
             allignment_len = list[3].toUInt();
             mismatch_count = list[4].toUInt();

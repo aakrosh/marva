@@ -43,21 +43,29 @@
 
 #include <QGraphicsView>
 #include "tax_map.h"
+#include "threadsafelist.h"
 
 class GraphNode;
 class TreeLoaderThread;
+class TaxColorSrc;
+class BlastData;
+
+class DirtyGNodesList: public ThreadSafeList<GraphNode *>
+{
+public:
+    virtual void Add(GraphNode *node);
+};
 
 class GraphView : public QGraphicsView
 {
     Q_OBJECT
 
 public:
-    GraphView(QWidget *parent = 0);
+    GraphView(QWidget *parent, TaxNode *taxTree);
 
     int max_node_y;
-    //GraphNode *root;
-    TaxNode *root;
-    TaxMap tax_map;
+    BaseTaxNode *root;
+    TaxMap *tax_map;
     void reset();
     void adjust_scene_boundaries();
     inline void set_vert_interval(int interval) { vert_interval = interval; }
@@ -66,12 +74,14 @@ public:
     void resetNodesCoordinates();
     void generateTestNodes();
     void generateDefaultNodes();
-    void AddNodeToScene(TaxNode *node);
-    void CreateGraphNode(TaxNode *node);
+    void AddNodeToScene(BaseTaxNode *node);
+    void CreateGraphNode(BaseTaxNode *node);
     void adjustAllEdges();
     void markAllNodesDirty();
     void updateDirtyNodes(quint32 flag);
-    QList<GraphNode *> dirtyList;
+    void createMissedGraphNodes();
+
+    DirtyGNodesList dirtyList;
 
 protected:
 #ifndef QT_NO_WHEELEVENT
@@ -80,16 +90,15 @@ protected:
 private:
     int hor_interval;
     int vert_interval;
-    TreeLoaderThread *tlThread;
+    bool create_nodes;
 
     void shrink_vertically(int s=4);
     void expand_vertically(int s=4);
     void updateYCoord(qreal factor);
+    void updateXCoord(qreal factor);
 private slots:
-    void mapIsLoaded();
-    void updateLoadedNames();
-    void treeIsLoaded(TaxNode *tree);
+    void blastLoadingProgress(void *bdata);
+    void blastIsLoaded(void *bdata);
 };
-//! [0]
 
 #endif // GRAPHWIDGET_H

@@ -40,6 +40,7 @@
 
 #include "edge.h"
 #include "graph_node.h"
+#include "tax_map.h"
 
 #include <math.h>
 
@@ -55,7 +56,6 @@ Edge::Edge(GraphNode *sourceNode, GraphNode *destNode)
     setAcceptedMouseButtons(0);
     source = sourceNode;
     dest = destNode;
-    //source->addEdge(this);
     dest->addEdge(this);
     adjust();
 }
@@ -81,7 +81,7 @@ void Edge::adjust()
     prepareGeometryChange();
     points[0] = mapFromItem(source, 10, 0);
     points[1] = mapFromItem(source, LINE_BREAK_X, 0);
-    points[2] = mapFromItem(source, LINE_BREAK_X, dest->y() - source->y());
+    points[2] = mapFromItem(source, LINE_BREAK_X+30, dest->y()-source->y());
     points[3] = mapFromItem(dest, -10, 0);
 }
 
@@ -107,13 +107,24 @@ void Edge::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 
     // Draw the line itself
     painter->setPen(QPen(dest->isGreyedOut() ? Qt::lightGray : Qt::black, 0.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-    painter->drawPolyline(points, 4);
-    // Draw the arrows
-    QPointF destArrowP1 = points[3] + QPointF(sin(-Pi / 3) * arrowSize,
-                                              cos(-Pi / 3) * arrowSize);
-    QPointF destArrowP2 = points[3] + QPointF(sin(-Pi + Pi / 3) * arrowSize,
-                                              cos(-Pi + Pi / 3) * arrowSize);
 
-    painter->setBrush(dest->isGreyedOut() ? Qt::lightGray : Qt::black);
-    painter->drawPolygon(QPolygonF() << points[3] << destArrowP1 << destArrowP2);
+    if ( dest->x()-source->x()<60 )
+    {
+        painter->drawLine(points[0], points[3]);
+    }
+    else
+    {
+        if ( dest->tax_node != source->tax_node->children[0] )
+            painter->drawPolyline(&points[1], 3);
+        else
+            painter->drawPolyline(points, 4);
+        // Draw the arrows
+        QPointF destArrowP1 = points[3] + QPointF(sin(-Pi / 2.5) * arrowSize,
+                                                  cos(-Pi / 2.5) * arrowSize);
+        QPointF destArrowP2 = points[3] + QPointF(sin(-Pi + Pi / 2.5) * arrowSize,
+                                                  cos(-Pi + Pi / 2.5) * arrowSize);
+        painter->setBrush(dest->isGreyedOut() ? Qt::lightGray : Qt::black);
+        painter->drawPolygon(QPolygonF() << points[3] << destArrowP1 << destArrowP2);
+    }
+
 }

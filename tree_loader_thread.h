@@ -3,24 +3,26 @@
 
 #include "graphwidget.h"
 #include "tax_map.h"
+#include "loader_thread.h"
 
 
 #include <QThread>
 
-class TreeLoaderThread : public QThread
+class TreeLoaderThread : public LoaderThread
 {
     Q_OBJECT
 private:
     bool merge;
+    TaxMap *taxMap;
     TaxNode *parse(QString &s, TaxNode *parentTree, int *pos);
 public:
-    TreeLoaderThread(QObject *parent, bool _merge) : QThread(parent), merge(_merge){}
+    TreeLoaderThread(QObject *parent, TaxMap *_taxMap, bool _merge) : LoaderThread(parent, "/data/ncbi.tre", "loading taxonomy tree"), merge(_merge), taxMap(_taxMap){}
     TaxNode tree;
 protected:
-    virtual void run();
+    virtual void processLine(QString &line);
+    virtual void finishProcessing();
 signals:
     void resultReady(TaxNode *);
-    void progress(int i);
 };
 
 #endif // TREE_LOADER_THREAD_H

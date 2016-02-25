@@ -1,6 +1,6 @@
 #ifndef BLAST_RECORD
 #define BLAST_RECORD
-#include <math.h>
+
 #include <QString>
 enum BlastFileType
 {
