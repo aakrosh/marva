@@ -80,25 +80,38 @@ public:
     void markAllNodesDirty();
     void updateDirtyNodes(quint32 flag);
     void createMissedGraphNodes();
+    void setCurrentNode(BaseTaxNode *);
+    inline BaseTaxNode *currentNode() { return curNode; }
 
     DirtyGNodesList dirtyList;
 
 protected:
 #ifndef QT_NO_WHEELEVENT
-    void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE;
+    virtual void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE;
 #endif
+    virtual void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
 private:
     int hor_interval;
     int vert_interval;
     bool create_nodes;
+    BaseTaxNode *curNode;
 
     void shrink_vertically(int s=4);
     void expand_vertically(int s=4);
     void updateYCoord(qreal factor);
     void updateXCoord(qreal factor);
+    void expandPathTo(BaseTaxNode *node);
+    void goUp();
+    void goDown();
+    void goLeft();
+    void goRight();
+
+signals:
+    currentNodeChanged(BaseTaxNode *);
 private slots:
     void blastLoadingProgress(void *bdata);
     void blastIsLoaded(void *bdata);
+    void onCurrentNodeChanged(BaseTaxNode *);
 };
 
 #endif // GRAPHWIDGET_H

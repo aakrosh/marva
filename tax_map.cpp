@@ -110,7 +110,11 @@ void TaxNodeVisitor::Visit(BaseTaxNode *node)
 TaxNode::TaxNode(): BaseTaxNode(true), id(-555), level(0){}
 
 //=========================================================================
-TaxNode::TaxNode(qint32 _id): BaseTaxNode(true), id(_id), level(0){}
+TaxNode::TaxNode(qint32 _id): BaseTaxNode(true), id(_id), level(0)
+{
+    if ( _id == 12884 )
+        qDebug() << "node " << this << "with id == " << _id << " created";
+}
 
 //=========================================================================
 TaxNode *TaxNode::TaxNode::addChildById(quint32 chId)

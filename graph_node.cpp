@@ -73,13 +73,14 @@ QPainterPath GraphNode::shape() const
 //=========================================================================
 void GraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 {
+    QColor mainColor = tax_node == view->currentNode() ? Qt::red : Qt::black;
     painter->setBrush(Qt::transparent);
-    painter->setPen(QPen(tax_node->getId() >= 0 ? Qt::black : Qt::lightGray, 0));
+    painter->setPen(QPen(tax_node->getId() >= 0 ? mainColor : Qt::lightGray, 0));
     painter->drawEllipse(QPointF(0, 0), NODE_CIRCLE_SIZE, NODE_CIRCLE_SIZE);
 
     QFont font;
     QFontMetricsF fm(font);
-    painter->setPen(QPen(Qt::black, 0.5, Qt::SolidLine));
+    painter->setPen(QPen(mainColor, 0.5, Qt::SolidLine));
     if ( !tax_node->children.isEmpty() )
     {
       painter->drawLine(-HALF_PLUS_SIZE, 0, HALF_PLUS_SIZE, 0);
@@ -142,7 +143,9 @@ QVariant GraphNode::itemChange(GraphicsItemChange change, const QVariant &value)
 //=========================================================================
 void GraphNode::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-  tax_node->setCollapsed(!tax_node->isCollapsed(), true);
+  view->setCurrentNode(tax_node);
+  if ( QRectF(-NODE_CIRCLE_SIZE, -NODE_CIRCLE_SIZE, 2*NODE_CIRCLE_SIZE, 2*NODE_CIRCLE_SIZE).contains(event->pos()) )
+    tax_node->setCollapsed(!tax_node->isCollapsed(), true);
   update();
   QGraphicsItem::mousePressEvent(event);
 }

@@ -6,7 +6,7 @@
 
 //=========================================================================
 MapLoaderThread::MapLoaderThread(QObject *parent, bool _merge, GraphView* gw, TaxMap *_map) :
-    LoaderThread(parent, "/data/ncbi.map", "loading taxanomy map"),
+    LoaderThread(parent, "/data/ncbi.map", "loading taxanomy map", NULL, 50000),
     merge(_merge),
     graph(gw),
     map(_map)

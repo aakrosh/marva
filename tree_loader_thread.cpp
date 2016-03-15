@@ -2,6 +2,14 @@
 #include "graph_node.h"
 
 //=========================================================================
+TreeLoaderThread::TreeLoaderThread(QObject *parent, TaxMap *_taxMap, bool _merge) :
+    LoaderThread(parent, "/data/ncbi.tre", "loading taxonomy tree"),
+    merge(_merge),
+    taxMap(_taxMap)
+{
+}
+
+//=========================================================================
 TaxNode *TreeLoaderThread::parse(QString &s, TaxNode *parent, int *pos)
 {
     if ( must_stop )
@@ -17,6 +25,8 @@ TaxNode *TreeLoaderThread::parse(QString &s, TaxNode *parent, int *pos)
         while (  s[*pos].isDigit() )
             (*pos)++;
         qint32 tid = s.mid(pstart, *pos-pstart).toInt();
+        if ( taxMap->contains(tid) )
+            return taxMap->value(tid);
         TaxNode *newNode = (TaxNode *)parent->addChildById(tid);
         taxMap->insert(newNode->id, newNode);
         return newNode;
@@ -40,8 +50,28 @@ TaxNode *TreeLoaderThread::parse(QString &s, TaxNode *parent, int *pos)
         while (  s[*pos].isDigit() )
             (*pos)++;
         qint32 tid = s.mid(pstart, *pos-pstart).toInt();
-        n->id = tid;
-        taxMap->insert(tid, n);
+        if ( taxMap->contains(tid) )
+        {
+            if ( tid == 12884 )
+               tid = tid *1;
+            TaxNode *tn = taxMap->value(tid);
+            for (ChildrenList::ConstIterator it = n->children.constBegin(); it != n->children.constEnd(); it++ )
+            {
+                if ( !tn->children.contains(*it) )
+                    tn->addChild(*it);
+                else
+                    (*it)->parent = tn;
+            }
+            parent->children.removeOne(n);
+            parent->addChild(tn);
+            delete n;
+            return tn;
+        }
+        else
+        {
+            n->id = tid;
+            taxMap->insert(tid, n);
+        }
         return n;
     }
     else if ( s[*pos] == ';' )
@@ -57,10 +87,7 @@ void TreeLoaderThread::processLine(QString &line)
     tree.level = -1;
     int pos=0;
     parse(line, &tree, &pos);
-}
-
-//=========================================================================
-void TreeLoaderThread::finishProcessing()
-{
-    emit resultReady(tree.children.size() == 0 ? NULL : (TaxNode *)tree.children[0]);
+    result = tree.children.size() == 0 ? NULL : (TaxNode *)tree.children[0];
+    if ( result != NULL )
+        ((BaseTaxNode *)result)->parent = NULL;
 }

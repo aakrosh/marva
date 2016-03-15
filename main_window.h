@@ -32,7 +32,7 @@ private slots:
     void mapIsLoaded();
     void updateLoadedNames();
     void open_tab_blast_file();
-    void treeIsLoaded(TaxNode *tree);
+    void treeIsLoaded(void *obj);
 };
 extern MainWindow *mainWindow;
 

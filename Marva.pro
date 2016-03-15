@@ -19,9 +19,11 @@ HEADERS += edge.h graphwidget.h \
     loader_thread.h \
     base_tax_node.h \
     ui_components/statuslistpanel.h \
-    threadsafelist.h
+    threadsafelist.h \
+    ui_components/taxlistwidget.h
 FORMS += \
-    main_window.ui
+    main_window.ui \
+    ui_components/taxlistwidget.ui
 SOURCES += edge.cpp graphwidget.cpp \
     blast_record.cpp \
     blast_data.cpp \
@@ -33,4 +35,5 @@ SOURCES += edge.cpp graphwidget.cpp \
     loader_thread.cpp \
     base_tax_node.cpp \
     ui_components/statuslistpanel.cpp \
-    main.cpp
+    main.cpp \
+    ui_components/taxlistwidget.cpp

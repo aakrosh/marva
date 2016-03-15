@@ -16,13 +16,10 @@ private:
     TaxMap *taxMap;
     TaxNode *parse(QString &s, TaxNode *parentTree, int *pos);
 public:
-    TreeLoaderThread(QObject *parent, TaxMap *_taxMap, bool _merge) : LoaderThread(parent, "/data/ncbi.tre", "loading taxonomy tree"), merge(_merge), taxMap(_taxMap){}
+    TreeLoaderThread(QObject *parent, TaxMap *_taxMap, bool _merge);
     TaxNode tree;
 protected:
     virtual void processLine(QString &line);
-    virtual void finishProcessing();
-signals:
-    void resultReady(TaxNode *);
 };
 
 #endif // TREE_LOADER_THREAD_H

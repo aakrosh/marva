@@ -33,7 +33,7 @@ public:
 
     virtual void removeGnode() { gnode = NULL; }
     virtual GraphNode *getGnode() { return gnode; }
-    virtual GraphNode * createGnode(GraphView *gv) = 0;
+    virtual GraphNode *createGnode(GraphView *gv) = 0;
     // Abstract methods
     virtual QString getName() = 0;
     virtual qint32 getId() = 0;

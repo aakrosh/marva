@@ -3,6 +3,7 @@
 #include "tree_loader_thread.h"
 #include "map_loader_thread.h"
 #include "graph_node.h"
+#include "ui_components/taxlistwidget.h"
 
 #include <QFileDialog>
 #include <QDebug>
@@ -66,19 +67,25 @@ MainWindow::MainWindow(QWidget *parent) :
 {
   mainWindow = this;
   generateDefaultNodes();
+  TaxListWidget *tlw = new TaxListWidget(this);
 
   TreeLoaderThread *tlThread = new TreeLoaderThread(this, &taxMap, true);
-  connect(tlThread, SIGNAL(resultReady(TaxNode *)), this, SLOT(treeIsLoaded(TaxNode *)));
+  connect(tlThread, SIGNAL(resultReady(void *)), this, SLOT(treeIsLoaded(void *)));
+  connect(tlThread, SIGNAL(resultReady(void *)), tlw, SLOT(refresh()));
   connect(tlThread, SIGNAL(finished()), tlThread, SLOT(deleteLater()));
   tlThread->start();
 
   ui->setupUi(this);
+  ui->taxListDockWidget->setWidget(tlw);
   activeGraphView = new GraphView(this, taxTree);
   centralWidget()->layout()->addWidget(activeGraphView);
   statusList = new StatusListPanel(this);
   statusList->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   centralWidget()->layout()->addWidget(statusList);
   statusList->setMaximumHeight(0);
+
+  connect(tlw, SIGNAL(currentTaxChanged(BaseTaxNode*)), activeGraphView, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
+  connect(activeGraphView, SIGNAL(currentNodeChanged(BaseTaxNode*)), tlw, SLOT(onCurrentTaxChanged(BaseTaxNode*)));
 }
 
 //=========================================================================
@@ -105,20 +112,25 @@ void MainWindow::open_tab_blast_file()
     activeGraphView->root = NULL;
     BlastDataTreeLoader *bdtl = new BlastDataTreeLoader(this, fileName, tabular);
     connect(bdtl, SIGNAL(progress(void *)), activeGraphView, SLOT(blastLoadingProgress(void *)));
+    connect(bdtl, SIGNAL(progress(void *)), ui->taxListDockWidget->widget(), SLOT(refresh()));
     connect(bdtl, SIGNAL(resultReady(void *)), activeGraphView, SLOT(blastIsLoaded(void *)));
+    connect(bdtl, SIGNAL(resultReady(void *)), ui->taxListDockWidget->widget(), SLOT(refresh()));
     connect(bdtl, SIGNAL(finished()), bdtl, SLOT(deleteLater()));
     bdtl->start();
 }
 
 //=========================================================================
-void MainWindow::treeIsLoaded(TaxNode *tree)
+void MainWindow::treeIsLoaded(void *obj)
 {
+    TaxNode *tree = (TaxNode *)obj;
     qDebug() << "Tree Loading is finished";
-    taxTree->mergeWith(tree, activeGraphView);
+//    taxTree->mergeWith(tree, activeGraphView);
 
     MapLoaderThread *mlThread = new MapLoaderThread(this, true, activeGraphView, &taxMap);
     connect(mlThread, SIGNAL(progress(void *)), this, SLOT(updateLoadedNames()));
+    connect(mlThread, SIGNAL(progress(void *)), ui->taxListDockWidget->widget(), SLOT(refreshValues()));
     connect(mlThread, SIGNAL(resultReady(void *)), this, SLOT(mapIsLoaded()));
+    connect(mlThread, SIGNAL(resultReady(void *)), ui->taxListDockWidget->widget(), SLOT(refresh()));
     connect(mlThread, SIGNAL(finished()), mlThread, SLOT(deleteLater()));
     mlThread->start();
 
@@ -126,13 +138,11 @@ void MainWindow::treeIsLoaded(TaxNode *tree)
     activeGraphView->createMissedGraphNodes();
 }
 
-
 //=========================================================================
 void MainWindow::updateLoadedNames()
 {
     activeGraphView->updateDirtyNodes(DIRTY_NAME);
 }
-
 
 //=========================================================================
 void MainWindow::mapIsLoaded()

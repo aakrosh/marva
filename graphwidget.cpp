@@ -34,7 +34,8 @@ void GraphView::markAllNodesDirty()
 GraphView::GraphView(QWidget *parent, TaxNode *taxTree)
     : QGraphicsView(parent),
       root(taxTree),
-      create_nodes(true)
+      create_nodes(true),
+      curNode(taxTree)
 {
     QGraphicsScene *scene = new QGraphicsScene(this);
     scene->setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -70,6 +71,102 @@ void GraphView::updateXCoord(qreal factor)
     nodeXChanger.Visit(root);
     adjustAllEdges();
     adjust_scene_boundaries();
+}
+
+//=========================================================================
+void GraphView::expandPathTo(BaseTaxNode *node)
+{
+    if ( node->parent == NULL )
+        return;
+    QList<BaseTaxNode *> path;
+    BaseTaxNode *n = node;
+    while ( n->parent != NULL )
+    {
+        path.append(n->parent);
+        n = n->parent;
+    }
+    foreach( BaseTaxNode *pn, path )
+    {
+        if ( pn->isCollapsed() )
+            pn->setCollapsed(false, true);
+    }
+}
+
+//=========================================================================
+void GraphView::goUp()
+{
+    if ( curNode->parent == NULL )
+        return;
+    QPointF p = curNode->getGnode()->pos();
+    qreal y = p.y() + 1 - get_vert_interval();
+    QGraphicsItem *gi = NULL;
+    qreal h = curNode->getGnode()->boundingRect().height();
+    do
+    {
+        p.setY(y);
+        gi = scene()->itemAt(p, transform());
+        y -= h;
+    }
+    while ( ( gi == NULL || gi->type() != GraphNode::Type ) && y > 0 );
+    if ( gi != NULL && gi->type() == GraphNode::Type )
+    {
+        setCurrentNode(((GraphNode *)gi)->tax_node);
+        return;
+    }
+
+    int ind = curNode->parent->children.indexOf(curNode)-1;
+    if ( ind < 0 )
+    {
+        //goLeft();
+        return;
+    }
+    setCurrentNode(curNode->parent->children.at(ind));
+}
+
+//=========================================================================
+void GraphView::goDown()
+{
+    if ( curNode->parent == NULL )
+        return;
+    QPointF p = curNode->getGnode()->pos();
+    qreal y = p.y() - 1 + get_vert_interval();
+    QGraphicsItem *gi = NULL;
+    qreal h = curNode->getGnode()->boundingRect().height();
+    do
+    {
+        p.setY(y);
+        gi = scene()->itemAt(p, transform());
+        y += h;
+    }
+    while ( ( gi == NULL || gi->type() != GraphNode::Type ) && y < scene()->itemsBoundingRect().height() );
+    if ( gi != NULL && gi->type() == GraphNode::Type )
+    {
+        setCurrentNode(((GraphNode *)gi)->tax_node);
+        return;
+    }
+    int ind = curNode->parent->children.indexOf(curNode)+1;
+    if ( ind >= curNode->parent->children.count() )
+    {
+        return;
+    }
+    setCurrentNode(curNode->parent->children.at(ind));
+}
+
+//=========================================================================
+void GraphView::goLeft()
+{
+    if ( curNode->parent == NULL )
+        return;
+    setCurrentNode(curNode->parent);
+}
+
+//=========================================================================
+void GraphView::goRight()
+{
+    if ( curNode->children.empty() )
+        return;
+    int ind = curNode->children.size()/2;
+    setCurrentNode(curNode->children.at(ind));
 }
 
 //=========================================================================
@@ -183,6 +280,27 @@ void GraphView::wheelEvent(QWheelEvent *event)
 #endif
 
 //=========================================================================
+void GraphView::keyPressEvent(QKeyEvent *event)
+{
+    switch( event->key() )
+    {
+        case Qt::Key_Right:
+            goRight();
+            return;
+        case Qt::Key_Left:
+            goLeft();
+            return;
+        case Qt::Key_Up:
+            goUp();
+            return;
+        case Qt::Key_Down:
+            goDown();
+            return;
+    }
+    QGraphicsView::keyPressEvent(event);
+}
+
+//=========================================================================
 void GraphView::shrink_vertically(int s)
 {
     qreal old_vert_int = vert_interval;
@@ -276,17 +394,13 @@ void GraphView::resetNodesCoordinates()
     };
     NodeXSetter x_setter(dx, w);
     x_setter.Visit(root);
-//    QRectF sr = sceneRect();
-//    sr.setHeight(y_setter.max_node_y+40);
     adjustAllEdges();
     adjust_scene_boundaries();
-//    setSceneRect(sr);
 }
 //=========================================================================
 void GraphView::updateDirtyNodes(quint32 flag)
 {
     for (DirtyGNodesList::iterator it = dirtyList.begin(); it < dirtyList.end(); it++ )
-    //foreach(GraphNode *n, dirtyList)
     {
         GraphNode *n = *it;
         if ( (n->dirty & flag) == 0 )
@@ -323,6 +437,15 @@ void GraphView::createMissedGraphNodes()
 }
 
 //=========================================================================
+void GraphView::setCurrentNode(BaseTaxNode *node)
+{
+    if ( curNode == node )
+        return;
+    onCurrentNodeChanged(node);
+    emit currentNodeChanged(node);
+}
+
+//=========================================================================
 void GraphView::blastLoadingProgress(void *obj)
 {
     static bool updating = false;
@@ -343,8 +466,25 @@ void GraphView::blastIsLoaded(void *obj)
     if ( root != obj )
         root = (BlastTaxNode *)obj;
     createMissedGraphNodes();
-    //reset();
     updateDirtyNodes(DIRTY_NAME);
+}
+
+//=========================================================================
+void GraphView::onCurrentNodeChanged(BaseTaxNode *node)
+{
+    if ( curNode == node )
+        return;
+    expandPathTo(node);
+    BaseTaxNode *oldNode = curNode;
+    curNode = node;
+    GraphNode *oldGNode = oldNode->getGnode();
+    if ( oldGNode != NULL )
+        oldGNode->update();
+    GraphNode *gnode = curNode->getGnode();
+    if ( gnode == NULL )
+        return;
+    gnode->update();
+    ensureVisible(gnode);
 }
 
 //=========================================================================

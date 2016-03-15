@@ -30,6 +30,8 @@ void BaseTaxNode::setCollapsed(bool b, bool updateGnode)
 //=========================================================================
 void BaseTaxNode::mergeWith(BaseTaxNode *other, GraphView *gview)
 {
+    if ( other == NULL )
+        return;
     if ( getId() != other->getId() )
         return;
     bool changed = false;
