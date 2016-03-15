@@ -47,7 +47,6 @@ GraphView::GraphView(QWidget *parent, TaxNode *taxTree)
     setTransformationAnchor(AnchorUnderMouse);
     setMinimumSize(200, 300);
     setWindowTitle(tr("Tree view"));
-    //setDragMode(QGraphicsView::ScrollHandDrag);
     hor_interval = 300;
     set_vert_interval(30);
     reset();
@@ -101,8 +100,11 @@ void GraphView::goUp()
     qreal y = p.y() + 1 - get_vert_interval();
     QGraphicsItem *gi = NULL;
     qreal h = curNode->getGnode()->boundingRect().height();
+    int max_count = 10;
     do
     {
+        if ( max_count-- <=0 )
+            break;
         p.setY(y);
         gi = scene()->itemAt(p, transform());
         y -= h;
@@ -132,8 +134,11 @@ void GraphView::goDown()
     qreal y = p.y() - 1 + get_vert_interval();
     QGraphicsItem *gi = NULL;
     qreal h = curNode->getGnode()->boundingRect().height();
+    int max_count = 10;
     do
     {
+        if ( max_count-- <=0 )
+            break;
         p.setY(y);
         gi = scene()->itemAt(p, transform());
         y += h;
@@ -258,16 +263,10 @@ void GraphView::wheelEvent(QWheelEvent *event)
         QPoint p = event->pos();
         qreal oldY = mapToScene(p).y();
         qreal oldH = sceneRect().height();
-        if ( event->delta()>0 )
-        {
-            if ( get_vert_interval() >= 20 )
-                shrink_vertically();
-        }
+        if ( event->delta() > 0 )
+            shrink_vertically();
         else
-        {
-            if ( get_vert_interval() <= 100 )
-                expand_vertically();
-        }
+            expand_vertically();
         qreal newH = sceneRect().height();
         qreal newY = oldY*newH/oldH;
         verticalScrollBar()->setValue(verticalScrollBar()->value()+newY-oldY);
@@ -296,6 +295,22 @@ void GraphView::keyPressEvent(QKeyEvent *event)
         case Qt::Key_Down:
             goDown();
             return;
+        case Qt::Key_Enter:
+        case Qt::Key_Return:
+            curNode->setCollapsed(!curNode->isCollapsed(), true);
+            return;
+        case Qt::Key_Minus:
+            if ( (event->modifiers() & Qt::ControlModifier) == Qt::ControlModifier )
+                shrink_vertically();
+            else
+                curNode->setCollapsed(true, true);
+            return;
+        case Qt::Key_Plus:
+            if ( (event->modifiers() & Qt::ControlModifier) == Qt::ControlModifier )
+                expand_vertically();
+            else
+                curNode->setCollapsed(false, true);
+            return;
     }
     QGraphicsView::keyPressEvent(event);
 }
@@ -303,6 +318,8 @@ void GraphView::keyPressEvent(QKeyEvent *event)
 //=========================================================================
 void GraphView::shrink_vertically(int s)
 {
+    if ( get_vert_interval() <20 )
+        return;
     qreal old_vert_int = vert_interval;
     vert_interval-=s;
     updateYCoord(((qreal) vert_interval)/old_vert_int);
@@ -311,6 +328,8 @@ void GraphView::shrink_vertically(int s)
 //=========================================================================
 void GraphView::expand_vertically(int s)
 {
+    if ( get_vert_interval() > 100 )
+        return;
     qreal old_vert_int = vert_interval;
     vert_interval+=s;
     updateYCoord(((qreal) vert_interval)/old_vert_int);

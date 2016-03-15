@@ -86,6 +86,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(tlw, SIGNAL(currentTaxChanged(BaseTaxNode*)), activeGraphView, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
   connect(activeGraphView, SIGNAL(currentNodeChanged(BaseTaxNode*)), tlw, SLOT(onCurrentTaxChanged(BaseTaxNode*)));
+  activeGraphView->setFocus();
 }
 
 //=========================================================================
@@ -124,7 +125,7 @@ void MainWindow::treeIsLoaded(void *obj)
 {
     TaxNode *tree = (TaxNode *)obj;
     qDebug() << "Tree Loading is finished";
-//    taxTree->mergeWith(tree, activeGraphView);
+    taxTree->mergeWith(tree, activeGraphView);
 
     MapLoaderThread *mlThread = new MapLoaderThread(this, true, activeGraphView, &taxMap);
     connect(mlThread, SIGNAL(progress(void *)), this, SLOT(updateLoadedNames()));

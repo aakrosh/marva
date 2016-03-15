@@ -52,8 +52,6 @@ TaxNode *TreeLoaderThread::parse(QString &s, TaxNode *parent, int *pos)
         qint32 tid = s.mid(pstart, *pos-pstart).toInt();
         if ( taxMap->contains(tid) )
         {
-            if ( tid == 12884 )
-               tid = tid *1;
             TaxNode *tn = taxMap->value(tid);
             for (ChildrenList::ConstIterator it = n->children.constBegin(); it != n->children.constEnd(); it++ )
             {

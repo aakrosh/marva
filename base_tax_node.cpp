@@ -34,6 +34,8 @@ void BaseTaxNode::mergeWith(BaseTaxNode *other, GraphView *gview)
         return;
     if ( getId() != other->getId() )
         return;
+    if ( children.count() == other->children.count() )
+        return;
     bool changed = false;
     for ( TaxNodeIterator o_it = other->children.begin(); o_it<other->children.end(); o_it++ )
     {
