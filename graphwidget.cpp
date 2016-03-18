@@ -12,6 +12,7 @@
 #include "blast_data.h"
 
 #define RIGHT_NODE_MARGIN   200
+#define MIN_DX 70
 
 //=========================================================================
 void GraphView::markAllNodesDirty()
@@ -35,7 +36,8 @@ GraphView::GraphView(QWidget *parent, TaxNode *taxTree)
     : QGraphicsView(parent),
       root(taxTree),
       create_nodes(true),
-      curNode(taxTree)
+      curNode(taxTree),
+      treeDepth(0)
 {
     QGraphicsScene *scene = new QGraphicsScene(this);
     scene->setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -45,7 +47,7 @@ GraphView::GraphView(QWidget *parent, TaxNode *taxTree)
     setViewportUpdateMode(BoundingRectViewportUpdate);
     setRenderHint(QPainter::Antialiasing);
     setTransformationAnchor(AnchorUnderMouse);
-    setMinimumSize(200, 300);
+    setMinimumSize(300, 300);
     setWindowTitle(tr("Tree view"));
     hor_interval = 300;
     set_vert_interval(30);
@@ -54,19 +56,27 @@ GraphView::GraphView(QWidget *parent, TaxNode *taxTree)
 }
 
 //=========================================================================
-void GraphView::updateXCoord(qreal factor)
+void GraphView::updateXCoord()
 {
+    quint32 max_w = this->sceneRect().width()-RIGHT_NODE_MARGIN;
+    qreal dx = max_w/treeDepth;
+    if ( dx < MIN_DX )
+        dx = MIN_DX;
     class NodeXChanger: public TaxNodeVisitor
     {
         public:
-        qreal factor;
-        NodeXChanger(qreal _factor):TaxNodeVisitor(RootToLeaves, false, NULL, false, false), factor(_factor){}
+        qreal dx;
+        qreal max_w;
+        NodeXChanger(qreal _dx, qreal _max_w):TaxNodeVisitor(RootToLeaves, false, NULL, false, false), dx(_dx), max_w(_max_w) {}
         virtual void Action(BaseTaxNode *node)
         {
-            node->getGnode()->setX(factor*node->getGnode()->x());
+            if ( shouldVisitChildren(node) )
+                node->getGnode()->setX(node->getLevel()*dx);
+            else
+                node->getGnode()->setX(max_w);
         }
     };
-    NodeXChanger nodeXChanger(factor);
+    NodeXChanger nodeXChanger(dx, max_w);
     nodeXChanger.Visit(root);
     adjustAllEdges();
     adjust_scene_boundaries();
@@ -178,19 +188,24 @@ void GraphView::goRight()
 void GraphView::resizeEvent(QResizeEvent *e)
 {
     QRectF r = sceneRect();
-    qreal oldW = r.width() - RIGHT_NODE_MARGIN;
-    r.setWidth(e->size().width()-20);
+    qreal newW = e->size().width()-20;
+    quint32 minW = MIN_DX*treeDepth+RIGHT_NODE_MARGIN;
+    if ( newW < minW )
+        newW = minW;
+    r.setWidth(newW);
     setSceneRect(r);
-    scene()->setSceneRect(r);
-    qreal newW = sceneRect().width() - RIGHT_NODE_MARGIN;
-    updateXCoord(newW/oldW);
+    //scene()->setSceneRect(r);
+    updateXCoord();
 }
 
 //=========================================================================
 void GraphView::adjust_scene_boundaries()
 {
     QRectF rect = sceneRect();
-    rect.setHeight(scene()->itemsBoundingRect().height()+30);
+    QRectF ibr = scene()->itemsBoundingRect();
+    rect.setHeight(ibr.height()+30);
+    qreal sizew = size().width()-20;
+    rect.setWidth(ibr.width() > sizew ? ibr.width() : sizew);
     setSceneRect(rect);
 }
 
@@ -392,9 +407,11 @@ void GraphView::resetNodesCoordinates()
 
     NodeYSetter y_setter(0, this);
     y_setter.Visit(root);
-    int maxLevel = y_setter.maxLevel;
-    int w = this->sceneRect().width()-RIGHT_NODE_MARGIN;
-    int dx = maxLevel == 0 ? 0 : w/maxLevel;
+    treeDepth = y_setter.maxLevel;
+    int w = size().width()-RIGHT_NODE_MARGIN;
+    int dx = treeDepth == 0 ? 0 : w/treeDepth;
+    if ( dx < MIN_DX )
+        dx = MIN_DX;
     class NodeXSetter : public TaxNodeVisitor
     {
         int dx;
@@ -411,7 +428,7 @@ void GraphView::resetNodesCoordinates()
             node->getGnode()->setX(x);
         }
     };
-    NodeXSetter x_setter(dx, w);
+    NodeXSetter x_setter(dx, dx*treeDepth);
     x_setter.Visit(root);
     adjustAllEdges();
     adjust_scene_boundaries();

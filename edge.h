@@ -45,7 +45,7 @@
 
 class GraphNode;
 
-#define LINE_BREAK_X 40
+#define LINE_BREAK_X 20
 
 class Edge : public QGraphicsItem
 {

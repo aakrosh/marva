@@ -5,6 +5,8 @@
 
 #include <QMap>
 #include <QReadWriteLock>
+#include <QColor>
+#include <QVariant>
 
 class QString;
 class GraphNode;
@@ -80,4 +82,21 @@ public:
 };
 
 typedef TaxMap::const_iterator TaxMapIterator;
+
+class TaxDataProvider
+{
+public:
+    TaxDataProvider(){}
+    virtual ~TaxDataProvider(){}
+    virtual quint32 count() = 0;
+    virtual qint32 id(quint32 index) = 0;
+    virtual BaseTaxNode *taxNode(quint32 index) = 0;
+    virtual quint32 reads(quint32 index) = 0;
+    virtual quint32 indexOf(qint32 id) = 0;
+    virtual void updateCache(bool /*ids_only*/) {}
+    virtual QColor color(int /*index*/) { return Qt::white; }
+    virtual QVariant checkState(int /*index*/) { return QVariant(); }
+    virtual void setCheckedState(int /*index*/, QVariant /*value*/) {}
+};
+
 #endif // TAX_MAP_H

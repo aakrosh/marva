@@ -338,8 +338,8 @@ void BlastGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *op
 //=========================================================================
 int BlastGraphNode::size() const
 {
-    BlastNodeMap::iterator it = blastNodeMap.find(tax_node->getId());
-    if ( it == blastNodeMap.end() )
+    BlastNodeMap::iterator it = view->blastNodeMap->find(tax_node->getId());
+    if ( it == view->blastNodeMap->end() )
         return 0;
     return it.value()->count;
 }

@@ -44,6 +44,7 @@
 #include <QGraphicsView>
 #include "tax_map.h"
 #include "threadsafelist.h"
+#include "blast_data.h"
 
 class GraphNode;
 class TreeLoaderThread;
@@ -66,6 +67,7 @@ public:
     int max_node_y;
     BaseTaxNode *root;
     TaxMap *tax_map;
+    BlastNodeMap *blastNodeMap;
     void reset();
     void adjust_scene_boundaries();
     inline void set_vert_interval(int interval) { vert_interval = interval; }
@@ -95,11 +97,12 @@ private:
     int vert_interval;
     bool create_nodes;
     BaseTaxNode *curNode;
+    int treeDepth;
 
     void shrink_vertically(int s=4);
     void expand_vertically(int s=4);
     void updateYCoord(qreal factor);
-    void updateXCoord(qreal factor);
+    void updateXCoord();
     void expandPathTo(BaseTaxNode *node);
     void goUp();
     void goDown();

@@ -68,7 +68,6 @@ MainWindow::MainWindow(QWidget *parent) :
   mainWindow = this;
   generateDefaultNodes();
   TaxListWidget *tlw = new TaxListWidget(this);
-
   TreeLoaderThread *tlThread = new TreeLoaderThread(this, &taxMap, true);
   connect(tlThread, SIGNAL(resultReady(void *)), this, SLOT(treeIsLoaded(void *)));
   connect(tlThread, SIGNAL(resultReady(void *)), tlw, SLOT(refresh()));
@@ -77,6 +76,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   ui->setupUi(this);
   ui->taxListDockWidget->setWidget(tlw);
+//  ui->taxListDockWidget->setVisible(false);
   activeGraphView = new GraphView(this, taxTree);
   centralWidget()->layout()->addWidget(activeGraphView);
   statusList = new StatusListPanel(this);
@@ -112,10 +112,16 @@ void MainWindow::open_tab_blast_file()
     activeGraphView->scene()->clear();
     activeGraphView->root = NULL;
     BlastDataTreeLoader *bdtl = new BlastDataTreeLoader(this, fileName, tabular);
+    TaxListWidget *tlw = (TaxListWidget *)ui->taxListDockWidget->widget();
+    tlw->setTaxDataProvider(new BlastTaxDataProvider(bdtl->blastNodeMap));
+    tlw->reset();
+    ui->taxListDockWidget->setVisible(true);
+    activeGraphView->blastNodeMap = bdtl->blastNodeMap;
+
     connect(bdtl, SIGNAL(progress(void *)), activeGraphView, SLOT(blastLoadingProgress(void *)));
-    connect(bdtl, SIGNAL(progress(void *)), ui->taxListDockWidget->widget(), SLOT(refresh()));
+    connect(bdtl, SIGNAL(progress(void *)), tlw, SLOT(refreshAll()));
     connect(bdtl, SIGNAL(resultReady(void *)), activeGraphView, SLOT(blastIsLoaded(void *)));
-    connect(bdtl, SIGNAL(resultReady(void *)), ui->taxListDockWidget->widget(), SLOT(refresh()));
+    connect(bdtl, SIGNAL(resultReady(void *)), tlw, SLOT(refreshAll()));
     connect(bdtl, SIGNAL(finished()), bdtl, SLOT(deleteLater()));
     bdtl->start();
 }

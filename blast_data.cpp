@@ -18,7 +18,12 @@ BlastDataTreeLoader::BlastDataTreeLoader(QObject *parent, QString fileName, Blas
     type(_type),
     root(NULL)
 {
-    blastNodeMap.clear();
+    blastNodeMap = new BlastNodeMap();
+}
+
+//=========================================================================
+BlastDataTreeLoader::~BlastDataTreeLoader()
+{
 }
 
 //=========================================================================
@@ -37,17 +42,17 @@ void BlastDataTreeLoader::processLine(QString &line)
                 return;
             }
             TaxNode *node = it.value();
-            BlastNodeMap::iterator bit = blastNodeMap.find(rec.taxa_id);
-            if ( bit == blastNodeMap.end() )
+            BlastNodeMap::iterator bit = blastNodeMap->find(rec.taxa_id);
+            if ( bit == blastNodeMap->end() )
             {
-                BlastTaxNode *blastNode = new BlastTaxNode(node, 1);
-                BlastTaxNode *res = blastNode->createPathToNode();
+                BlastTaxNode *blastNode = new BlastTaxNode(node, 1, blastNodeMap);
+                BlastTaxNode *res = blastNode->createPathToNode(blastNodeMap);
+                //blastNodeMap->insert(node->getId(), blastNode);
                 if ( root == NULL )
                 {
                     root = res;
                     result = res;
                 }
-                blastNodeMap.insert(node->getId(), blastNode);
             }
             else
             {
@@ -66,21 +71,22 @@ void BlastDataTreeLoader::processLine(QString &line)
 }
 
 //=========================================================================
-BlastTaxNode::BlastTaxNode(TaxNode *refNode, int _count):BaseTaxNode(false), count(_count), tNode(refNode)
+BlastTaxNode::BlastTaxNode(TaxNode *refNode, int _count, BlastNodeMap *blastNodeMap):BaseTaxNode(false), count(_count), tNode(refNode)
 {
-    blastNodeMap.insert(refNode->getId(), this);
+    blastNodeMap->insert(refNode->getId(), this);
+    visible = true;
 }
 
 //=========================================================================
-BlastTaxNode *BlastTaxNode::createPathToNode()
+BlastTaxNode *BlastTaxNode::createPathToNode(BlastNodeMap *blastNodeMap)
 {
     BlastTaxNode *curNode = this;
     while ( curNode->tNode->parent != NULL && curNode->parent == NULL )
     {
-        BlastNodeMap::iterator it = blastNodeMap.find(curNode->tNode->parent->getId());
+        BlastNodeMap::iterator it = blastNodeMap->find(curNode->tNode->parent->getId());
         BlastTaxNode *cur_parent =
-                it == blastNodeMap.end()
-              ? new BlastTaxNode((TaxNode *)curNode->tNode->parent, 0)
+                it == blastNodeMap->end()
+              ? new BlastTaxNode((TaxNode *)curNode->tNode->parent, 0, blastNodeMap)
               : it.value();
         cur_parent->addChild(curNode);
         curNode = cur_parent;
@@ -110,4 +116,79 @@ quint32 TaxColorSrc::getColor(qint32 tax_id)
     {
         return it.value();
     }
+}
+
+//=========================================================================
+BlastTaxDataProvider::BlastTaxDataProvider(BlastNodeMap *bnm):TaxDataProvider(), blastNodeMap(bnm){}
+
+//=========================================================================
+quint32 BlastTaxDataProvider::count()
+{
+    QReadWriteLocker locker(&lock);
+    return ids.count();
+}
+
+//=========================================================================
+qint32 BlastTaxDataProvider::id(quint32 index)
+{
+    QReadWriteLocker locker(&lock);
+    return ids.at(index);
+}
+
+//=========================================================================
+BaseTaxNode *BlastTaxDataProvider::taxNode(quint32 index)
+{
+    QReadWriteLocker locker(&lock);
+    if ( index >= (quint32)taxnodes.count() )
+        return NULL;
+    return (BaseTaxNode *)taxnodes.at(index);
+}
+
+//=========================================================================
+quint32 BlastTaxDataProvider::reads(quint32 index)
+{
+    return taxnodes.at(index)->count;
+}
+
+//=========================================================================
+quint32 BlastTaxDataProvider::indexOf(qint32 id)
+{
+    QReadWriteLocker locker(&lock);
+    return ids.indexOf(id);
+}
+
+//=========================================================================
+void BlastTaxDataProvider::updateCache(bool values_only)
+{
+    QReadWriteLocker locker(&lock, true);
+    taxnodes = blastNodeMap->values();
+    if ( !values_only )
+        ids = blastNodeMap->keys();
+}
+
+//=========================================================================
+QColor BlastTaxDataProvider::color(int index)
+{
+    QReadWriteLocker locker(&lock);
+    if ( index < (int)count() )
+        return QColor(taxColorSrc.getColor(ids.at(index))).lighter(150);
+    else
+        return TaxDataProvider::color(index);
+}
+
+//=========================================================================
+QVariant BlastTaxDataProvider::checkState(int index)
+{
+    QReadWriteLocker locker(&lock);
+    if ( index < (int)count() )
+        return taxnodes.at(index)->visible ? Qt::Checked : Qt::Unchecked;
+    else
+        return TaxDataProvider::checkState(index);
+}
+
+//=========================================================================
+void BlastTaxDataProvider::setCheckedState(int index, QVariant value)
+{
+    QReadWriteLocker locker(&lock);
+    taxnodes.at(index)->visible = value == Qt::Checked;
 }

@@ -8,6 +8,7 @@
 
 #include <QList>
 #include <QMap>
+#include <QReadWriteLock>
 
 typedef QMap<quint32, quint32> TaxQuantity;
 typedef QMap<qint32, quint32> TaxColorMap;
@@ -18,16 +19,19 @@ class TaxColorSrc : public TaxColorMap
 public:
     virtual quint32 getColor(qint32 tax_id);
 };
-extern TaxColorSrc colorSrc;
+//extern TaxColorSrc colorSrc;
+class BlastTaxNode;
+typedef QMap<qint32, BlastTaxNode *> BlastNodeMap;
 
 class BlastTaxNode : public BaseTaxNode
 {
 public:
-    int count;
+    quint32 count;
+    bool visible;
     TaxNode *tNode;
-    BlastTaxNode(TaxNode *refNode, int _count);
+    BlastTaxNode(TaxNode *refNode, int _count, BlastNodeMap *map);
     virtual ~BlastTaxNode(){}
-    BlastTaxNode *createPathToNode();
+    BlastTaxNode *createPathToNode(BlastNodeMap *blastNodeMap);
 
     virtual QString getName() { return tNode->getName(); }
     virtual qint32 getId() { return tNode->getId(); }
@@ -38,9 +42,6 @@ public:
     virtual QString getText() { return tNode->getText(); }
 };
 
-typedef QMap<qint32, BlastTaxNode *> BlastNodeMap;
-extern BlastNodeMap blastNodeMap;
-
 class BlastDataTreeLoader: public LoaderThread
 {
 private:
@@ -48,8 +49,49 @@ private:
     BlastTaxNode *root;
 public:
     BlastDataTreeLoader(QObject *parent, QString fileName, BlastFileType _type);
+    ~BlastDataTreeLoader();
+    BlastNodeMap *blastNodeMap;
 protected:
     virtual void processLine(QString &line);
+
+};
+class QReadWriteLocker
+{
+    QReadWriteLock *lock;
+public:
+    QReadWriteLocker(QReadWriteLock *_lock, bool write=false): lock(_lock)
+    {
+        if ( write )
+            lock->lockForWrite();
+        else
+            lock->lockForRead();
+    }
+    ~QReadWriteLocker()
+    {
+        lock->unlock();
+    }
+};
+
+extern TaxColorSrc taxColorSrc;
+
+class BlastTaxDataProvider : public TaxDataProvider
+{
+    QReadWriteLock lock;
+    BlastNodeMap *blastNodeMap;
+    QList<BlastTaxNode *> taxnodes;
+    QList<int> ids;
+public:
+    BlastTaxDataProvider(BlastNodeMap *bnm);
+    virtual quint32 count();
+    virtual qint32 id(quint32 index);
+    virtual BaseTaxNode *taxNode(quint32 index);
+    virtual quint32 reads(quint32 index);
+    virtual quint32 indexOf(qint32 id);
+    virtual void updateCache(bool values_only);
+    virtual QColor color(int index);
+    virtual QVariant checkState(int index);
+
+    virtual void setCheckedState(int index, QVariant value);
 
 };
 

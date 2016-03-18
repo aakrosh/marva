@@ -101,8 +101,6 @@ protected:
     void move(int dy);
     void deleteChildrenNodes();
     virtual void updateToolTip();
-
-private:
     GraphView *view;
     qint32 dirty;
 
