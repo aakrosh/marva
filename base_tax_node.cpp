@@ -1,9 +1,10 @@
 #include "base_tax_node.h"
 #include "graph_node.h"
 #include "graphwidget.h"
+#include "taxnodesignalsender.h"
 
 //=========================================================================
-BaseTaxNode::BaseTaxNode(bool _collapsed): collapsed(_collapsed), gnode(NULL), parent(NULL)
+BaseTaxNode::BaseTaxNode(bool _collapsed): collapsed(_collapsed), gnode(NULL), parent(NULL), visible(true)
 {
 
 }
@@ -25,6 +26,7 @@ void BaseTaxNode::setCollapsed(bool b, bool updateGnode)
     collapsed = b;
     if ( gnode != NULL && updateGnode )
         gnode->onNodeCollapsed(b);
+    getTaxNodeSignalSender(this)->CollapsedChanged(b);
 }
 
 //=========================================================================

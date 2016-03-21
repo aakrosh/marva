@@ -4,6 +4,7 @@
 #include "map_loader_thread.h"
 #include "graph_node.h"
 #include "ui_components/taxlistwidget.h"
+#include "taxnodesignalsender.h"
 
 #include <QFileDialog>
 #include <QDebug>
@@ -76,7 +77,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
   ui->setupUi(this);
   ui->taxListDockWidget->setWidget(tlw);
-//  ui->taxListDockWidget->setVisible(false);
   activeGraphView = new GraphView(this, taxTree);
   centralWidget()->layout()->addWidget(activeGraphView);
   statusList = new StatusListPanel(this);
@@ -87,6 +87,10 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(tlw, SIGNAL(currentTaxChanged(BaseTaxNode*)), activeGraphView, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
   connect(activeGraphView, SIGNAL(currentNodeChanged(BaseTaxNode*)), tlw, SLOT(onCurrentTaxChanged(BaseTaxNode*)));
   activeGraphView->setFocus();
+  TaxNodeSignalSender *tnss = getTaxNodeSignalSender(NULL);
+  connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), tlw, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
+  connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), activeGraphView, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
+
 }
 
 //=========================================================================

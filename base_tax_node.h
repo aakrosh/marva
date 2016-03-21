@@ -22,10 +22,12 @@ protected:
     bool collapsed;
     GraphNode *gnode;
 public:
-    BaseTaxNode(bool collapsed);
-    virtual ~BaseTaxNode(){}
     ChildrenList children;
     BaseTaxNode *parent;
+    bool visible;
+
+    BaseTaxNode(bool collapsed);
+    virtual ~BaseTaxNode(){}
     virtual BaseTaxNode *addChild(BaseTaxNode *node);
     virtual bool isCollapsed() {return collapsed; }
     void setCollapsed(bool b, bool updateGnode);

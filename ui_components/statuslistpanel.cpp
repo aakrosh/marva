@@ -23,4 +23,3 @@ void StatusListPanel::RemoveItem(QListWidgetItem *item)
     setMaximumHeight(size().height()-h);
     delete item;
 }
-

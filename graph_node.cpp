@@ -10,6 +10,7 @@
 #include <QStyleOption>
 #include <QDebug>
 #include <QScrollBar>
+#include <QMenu>
 
 #define NODE_CIRCLE_SIZE  8
 #define HALF_PLUS_SIZE 3
@@ -33,9 +34,12 @@ GraphNode::GraphNode(GraphView *graphWidget, BaseTaxNode *node)
 GraphNode::~GraphNode()
 {
     if  ( edge != NULL )
+    {
+        view->scene()->removeItem(edge);
         delete edge;
+    }
+    view->scene()->removeItem(this);
     tax_node->removeGnode();
-    tax_node = NULL;
 }
 
 //=========================================================================
@@ -158,6 +162,12 @@ void GraphNode::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 }
 
 //=========================================================================
+void GraphNode::contextMenuEvent(QGraphicsSceneContextMenuEvent *event)
+{
+    view->nodePopupMenu->popup(event->screenPos());
+}
+
+//=========================================================================
 void GraphNode::addToScene(QGraphicsScene *scene)
 {
   if ( !tax_node->isCollapsed() )
@@ -205,9 +215,6 @@ void GraphNode::deleteChildrenNodes()
             if ( gnode != NULL )
             {
                 graphView->dirtyList.Delete(gnode);
-                if ( gnode->edge != NULL )
-                    graphView->scene()->removeItem(gnode->edge);
-                graphView->scene()->removeItem(gnode);
                 delete gnode;
                 children_deleted++;
             }

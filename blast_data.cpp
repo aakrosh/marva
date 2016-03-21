@@ -189,6 +189,8 @@ QVariant BlastTaxDataProvider::checkState(int index)
 //=========================================================================
 void BlastTaxDataProvider::setCheckedState(int index, QVariant value)
 {
+    bool visible = value == Qt::Checked;
     QReadWriteLocker locker(&lock);
-    taxnodes.at(index)->visible = value == Qt::Checked;
+    if ( visible != taxnodes.at(index)->visible )
+        taxnodes.at(index)->visible = value == Qt::Checked;
 }

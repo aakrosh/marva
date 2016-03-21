@@ -50,6 +50,7 @@ class GraphNode;
 class TreeLoaderThread;
 class TaxColorSrc;
 class BlastData;
+class QMenu;
 
 class DirtyGNodesList: public ThreadSafeList<GraphNode *>
 {
@@ -68,6 +69,9 @@ public:
     BaseTaxNode *root;
     TaxMap *tax_map;
     BlastNodeMap *blastNodeMap;
+    QMenu *nodePopupMenu;
+    QAction *hideNodeAction;
+
     void reset();
     void adjust_scene_boundaries();
     inline void set_vert_interval(int interval) { vert_interval = interval; }
@@ -86,6 +90,9 @@ public:
     inline BaseTaxNode *currentNode() { return curNode; }
 
     DirtyGNodesList dirtyList;
+
+    void hideNode(BaseTaxNode *node);
+    void showNode(BaseTaxNode *node);
 
 protected:
 #ifndef QT_NO_WHEELEVENT
@@ -115,6 +122,9 @@ private slots:
     void blastLoadingProgress(void *bdata);
     void blastIsLoaded(void *bdata);
     void onCurrentNodeChanged(BaseTaxNode *);
+    void hideCurrent();
+public slots:
+    void onNodeVisibilityChanged(BaseTaxNode*,bool);
 };
 
 #endif // GRAPHWIDGET_H

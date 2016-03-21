@@ -27,7 +27,6 @@ class BlastTaxNode : public BaseTaxNode
 {
 public:
     quint32 count;
-    bool visible;
     TaxNode *tNode;
     BlastTaxNode(TaxNode *refNode, int _count, BlastNodeMap *map);
     virtual ~BlastTaxNode(){}

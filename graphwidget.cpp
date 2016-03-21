@@ -3,6 +3,8 @@
 #include <QKeyEvent>
 #include <QMessageBox>
 #include <QScrollBar>
+#include <QMenu>
+#include <QAction>
 
 #include "graphwidget.h"
 #include "edge.h"
@@ -23,7 +25,10 @@ void GraphView::markAllNodesDirty()
         DirtyMarker(GraphView *gv) : TaxNodeVisitor(LeavesToRoot, false, gv){}
         virtual void Action(BaseTaxNode *node)
         {
-            node->getGnode()->markDirty(DIRTY_ALL, &graphView->dirtyList);
+            GraphNode *gnode = node->getGnode();
+            if ( gnode == NULL )
+                return;
+            gnode->markDirty(DIRTY_ALL, &graphView->dirtyList);
         }
     };
 
@@ -53,6 +58,10 @@ GraphView::GraphView(QWidget *parent, TaxNode *taxTree)
     set_vert_interval(30);
     reset();
     markAllNodesDirty();
+    nodePopupMenu = new QMenu();
+    hideNodeAction = new QAction("Hide node", this);
+    nodePopupMenu->addAction(hideNodeAction);
+    connect(hideNodeAction, SIGNAL(triggered()), this, SLOT(hideCurrent()));
 }
 
 //=========================================================================
@@ -128,10 +137,7 @@ void GraphView::goUp()
 
     int ind = curNode->parent->children.indexOf(curNode)-1;
     if ( ind < 0 )
-    {
-        //goLeft();
         return;
-    }
     setCurrentNode(curNode->parent->children.at(ind));
 }
 
@@ -161,9 +167,7 @@ void GraphView::goDown()
     }
     int ind = curNode->parent->children.indexOf(curNode)+1;
     if ( ind >= curNode->parent->children.count() )
-    {
         return;
-    }
     setCurrentNode(curNode->parent->children.at(ind));
 }
 
@@ -194,7 +198,6 @@ void GraphView::resizeEvent(QResizeEvent *e)
         newW = minW;
     r.setWidth(newW);
     setSceneRect(r);
-    //scene()->setSceneRect(r);
     updateXCoord();
 }
 
@@ -218,6 +221,8 @@ void GraphView::CreateGraphNode(BaseTaxNode *node)
 //=========================================================================
 void GraphView::AddNodeToScene(BaseTaxNode *node)
 {
+    if ( !node->visible )
+        return;
     if ( node->getGnode() == NULL )
     {
         if ( create_nodes )
@@ -398,9 +403,18 @@ void GraphView::resetNodesCoordinates()
         {
             quint64 sum_y = 0;
             QList<BaseTaxNode *> &list = node->children;
+            int n = 0;
             for ( TaxNodeIterator it = list.begin(); it < list.end(); it++ )
-                sum_y += (*it)->getGnode() == NULL ? 0 : (*it)->getGnode()->y();
-            y = sum_y / list.size();
+            {
+                GraphNode *gnode = (*it)->getGnode();
+                if ( gnode != NULL )
+                {
+                    sum_y += gnode->y();
+                    n++;
+                }
+            }
+            if ( n > 0 )
+                y = sum_y / n;
             max_node_y += graphView->get_vert_interval()/4;
         }
     };
@@ -458,7 +472,7 @@ void GraphView::createMissedGraphNodes()
         GNodesCreator(GraphView *gv) : TaxNodeVisitor(RootToLeaves, false, gv), nodesCreated(0){}
         virtual void Action(BaseTaxNode *node)
         {
-            if ( node->getGnode() == NULL )
+            if ( node->getGnode() == NULL && node->visible )
             {
                 graphView->CreateGraphNode(node);
                 graphView->AddNodeToScene(node);
@@ -521,6 +535,66 @@ void GraphView::onCurrentNodeChanged(BaseTaxNode *node)
         return;
     gnode->update();
     ensureVisible(gnode);
+}
+
+//=========================================================================
+void GraphView::hideNode(BaseTaxNode *node)
+{
+    if ( node == NULL )
+        return;
+    node->visible = false;
+    GraphNode *gnode = node->getGnode();
+    if ( gnode == NULL || !scene()->items().contains(gnode) )
+        return;
+    class NodeRemover : public TaxNodeVisitor
+    {
+    public:
+        NodeRemover(GraphView *gv):TaxNodeVisitor(RootToLeaves, false, gv, false, false){}
+        virtual void Action(BaseTaxNode *node)
+        {
+            GraphNode *gnode = node->getGnode();
+            if ( gnode != NULL )
+            {
+                graphView->dirtyList.Delete(gnode);
+                delete gnode;
+            }
+        }
+    };
+    NodeRemover nr(this);
+    nr.Visit(node);
+    resetNodesCoordinates();
+}
+
+//=========================================================================
+void GraphView::showNode(BaseTaxNode *node)
+{
+    GraphNode *gnode = node->getGnode();
+    if ( gnode == NULL || !scene()->items().contains(gnode) )
+    {
+        if ( node->parent != NULL )
+        {
+            GraphNode *pgnode = node->parent->getGnode();
+            if ( pgnode == NULL || !scene()->items().contains(pgnode) )
+                return;
+        }
+        AddNodeToScene(node);
+        resetNodesCoordinates();
+    }
+}
+
+//=========================================================================
+void GraphView::hideCurrent()
+{
+    hideNode(curNode);
+}
+
+//=========================================================================
+void GraphView::onNodeVisibilityChanged(BaseTaxNode *node, bool node_visible)
+{
+    if ( node_visible )
+        showNode(node);
+    else
+        hideNode(node);
 }
 
 //=========================================================================

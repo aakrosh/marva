@@ -20,7 +20,8 @@ HEADERS += edge.h graphwidget.h \
     base_tax_node.h \
     ui_components/statuslistpanel.h \
     threadsafelist.h \
-    ui_components/taxlistwidget.h
+    ui_components/taxlistwidget.h \
+    taxnodesignalsender.h
 FORMS += \
     main_window.ui \
     ui_components/taxlistwidget.ui
@@ -36,4 +37,5 @@ SOURCES += edge.cpp graphwidget.cpp \
     base_tax_node.cpp \
     ui_components/statuslistpanel.cpp \
     main.cpp \
-    ui_components/taxlistwidget.cpp
+    ui_components/taxlistwidget.cpp \
+    taxnodesignalsender.cpp

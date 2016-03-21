@@ -50,6 +50,8 @@ public:
     virtual quint32 reads(quint32 /*index*/);
     virtual quint32 indexOf(qint32 id);
     virtual void updateCache(bool values_only);
+    virtual QVariant checkState(int index);
+    virtual void setCheckedState(int index, QVariant value);
 };
 
 class TaxListTableModel : public QAbstractItemModel
@@ -108,6 +110,8 @@ private slots:
     void refreshValues();
     void taxChanged(QModelIndex, QModelIndex);
     void onCurrentTaxChanged(BaseTaxNode *);
+public slots:
+    void onNodeVisibilityChanged(BaseTaxNode*,bool);
 };
 
 #endif // TAXLISTWIDGET_H
