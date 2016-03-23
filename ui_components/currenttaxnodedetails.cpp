@@ -20,10 +20,22 @@ CurrentTaxNodeDetails::~CurrentTaxNodeDetails()
 //=========================================================================
 void CurrentTaxNodeDetails::onCurrentNodeChanged(BaseTaxNode *node)
 {
-    ui->lId->setText(QString::number(node->getId()));
+    qint32 id = node->getId();
+    ui->lId->setText(QString::number(id));
     ui->lName->setText(node->getText());
     QStringList sl;
     BaseTaxNode *p = node->parent;
+
+    if ( id > 1 )
+    {
+        QString ncbiLink = QString("<a href=\"http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=%1\">Open in NCBI</a>")
+                .arg(node->getId());
+        ui->lNcbi->setText(ncbiLink);
+    }
+    else
+    {
+        ui->lNcbi->setText("");
+    }
 
     while ( p != NULL )
     {
