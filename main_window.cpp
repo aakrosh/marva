@@ -4,6 +4,8 @@
 #include "map_loader_thread.h"
 #include "graph_node.h"
 #include "ui_components/taxlistwidget.h"
+#include "ui_components/leftpanel.h"
+#include "ui_components/currenttaxnodedetails.h"
 #include "taxnodesignalsender.h"
 
 #include <QFileDialog>
@@ -68,15 +70,16 @@ MainWindow::MainWindow(QWidget *parent) :
 {
   mainWindow = this;
   generateDefaultNodes();
-  TaxListWidget *tlw = new TaxListWidget(this);
+  leftPanel = new LeftPanel(this);
+  taxListWidget = leftPanel->taxList();
   TreeLoaderThread *tlThread = new TreeLoaderThread(this, &taxMap, true);
   connect(tlThread, SIGNAL(resultReady(void *)), this, SLOT(treeIsLoaded(void *)));
-  connect(tlThread, SIGNAL(resultReady(void *)), tlw, SLOT(refresh()));
+  connect(tlThread, SIGNAL(resultReady(void *)), taxListWidget, SLOT(refresh()));
   connect(tlThread, SIGNAL(finished()), tlThread, SLOT(deleteLater()));
   tlThread->start();
 
   ui->setupUi(this);
-  ui->taxListDockWidget->setWidget(tlw);
+  ui->taxListDockWidget->setWidget(leftPanel);
   activeGraphView = new GraphView(this, taxTree);
   centralWidget()->layout()->addWidget(activeGraphView);
   statusList = new StatusListPanel(this);
@@ -84,13 +87,16 @@ MainWindow::MainWindow(QWidget *parent) :
   centralWidget()->layout()->addWidget(statusList);
   statusList->setMaximumHeight(0);
 
-  connect(tlw, SIGNAL(currentTaxChanged(BaseTaxNode*)), activeGraphView, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
-  connect(activeGraphView, SIGNAL(currentNodeChanged(BaseTaxNode*)), tlw, SLOT(onCurrentTaxChanged(BaseTaxNode*)));
   activeGraphView->setFocus();
+
   TaxNodeSignalSender *tnss = getTaxNodeSignalSender(NULL);
-  connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), tlw, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
+  connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), activeGraphView, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
+  connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), taxListWidget, SLOT(onCurrentTaxChanged(BaseTaxNode*)));
+  connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), leftPanel->curNodeDetails(), SLOT(onCurrentNodeChanged(BaseTaxNode*)));
+  connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), taxListWidget, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
   connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), activeGraphView, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
 
+  activeGraphView->setCurrentNode(taxTree);
 }
 
 //=========================================================================
@@ -116,17 +122,17 @@ void MainWindow::open_tab_blast_file()
     activeGraphView->scene()->clear();
     activeGraphView->root = NULL;
     BlastDataTreeLoader *bdtl = new BlastDataTreeLoader(this, fileName, tabular);
-    TaxListWidget *tlw = (TaxListWidget *)ui->taxListDockWidget->widget();
-    tlw->setTaxDataProvider(new BlastTaxDataProvider(bdtl->blastNodeMap));
-    tlw->reset();
+    taxListWidget->setTaxDataProvider(new BlastTaxDataProvider(bdtl->blastNodeMap));
+    taxListWidget->reset();
     ui->taxListDockWidget->setVisible(true);
     activeGraphView->blastNodeMap = bdtl->blastNodeMap;
 
     connect(bdtl, SIGNAL(progress(void *)), activeGraphView, SLOT(blastLoadingProgress(void *)));
-    connect(bdtl, SIGNAL(progress(void *)), tlw, SLOT(refreshAll()));
+    connect(bdtl, SIGNAL(progress(void *)), taxListWidget, SLOT(refreshAll()));
     connect(bdtl, SIGNAL(resultReady(void *)), activeGraphView, SLOT(blastIsLoaded(void *)));
-    connect(bdtl, SIGNAL(resultReady(void *)), tlw, SLOT(refreshAll()));
+    connect(bdtl, SIGNAL(resultReady(void *)), taxListWidget, SLOT(refreshAll()));
     connect(bdtl, SIGNAL(finished()), bdtl, SLOT(deleteLater()));
+
     bdtl->start();
 }
 
@@ -139,9 +145,9 @@ void MainWindow::treeIsLoaded(void *obj)
 
     MapLoaderThread *mlThread = new MapLoaderThread(this, true, activeGraphView, &taxMap);
     connect(mlThread, SIGNAL(progress(void *)), this, SLOT(updateLoadedNames()));
-    connect(mlThread, SIGNAL(progress(void *)), ui->taxListDockWidget->widget(), SLOT(refreshValues()));
+    connect(mlThread, SIGNAL(progress(void *)), taxListWidget, SLOT(refreshValues()));
     connect(mlThread, SIGNAL(resultReady(void *)), this, SLOT(mapIsLoaded()));
-    connect(mlThread, SIGNAL(resultReady(void *)), ui->taxListDockWidget->widget(), SLOT(refresh()));
+    connect(mlThread, SIGNAL(resultReady(void *)), taxListWidget, SLOT(refresh()));
     connect(mlThread, SIGNAL(finished()), mlThread, SLOT(deleteLater()));
     mlThread->start();
 

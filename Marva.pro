@@ -21,10 +21,14 @@ HEADERS += edge.h graphwidget.h \
     ui_components/statuslistpanel.h \
     threadsafelist.h \
     ui_components/taxlistwidget.h \
-    taxnodesignalsender.h
+    taxnodesignalsender.h \
+    ui_components/leftpanel.h \
+    ui_components/currenttaxnodedetails.h
 FORMS += \
     main_window.ui \
-    ui_components/taxlistwidget.ui
+    ui_components/taxlistwidget.ui \
+    ui_components/leftpanel.ui \
+    ui_components/currenttaxnodedetails.ui
 SOURCES += edge.cpp graphwidget.cpp \
     blast_record.cpp \
     blast_data.cpp \
@@ -38,4 +42,6 @@ SOURCES += edge.cpp graphwidget.cpp \
     ui_components/statuslistpanel.cpp \
     main.cpp \
     ui_components/taxlistwidget.cpp \
-    taxnodesignalsender.cpp
+    taxnodesignalsender.cpp \
+    ui_components/leftpanel.cpp \
+    ui_components/currenttaxnodedetails.cpp

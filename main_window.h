@@ -13,6 +13,8 @@ class MainWindow;
 extern TaxMap taxMap;
 extern TaxNode *taxTree;
 class MapLoaderThread;
+class TaxListWidget;
+class LeftPanel;
 
 class MainWindow : public QMainWindow
 {
@@ -28,6 +30,8 @@ protected:
 private:
     Ui::MainWindow *ui;
     QList<LoaderThread*> activeLoaderThreads;
+    LeftPanel *leftPanel;
+    TaxListWidget *taxListWidget;
 private slots:
     void mapIsLoaded();
     void updateLoadedNames();

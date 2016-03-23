@@ -33,6 +33,11 @@ void TaxNodeSignalSender::GnodeRemoved()
     emit gnodeRemoved(node);
 }
 
+void TaxNodeSignalSender::makeCurrent()
+{
+    emit makeCurrent(node);
+}
+
 
 TaxNodeSignalSender *getTaxNodeSignalSender(BaseTaxNode *n)
 {

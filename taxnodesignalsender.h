@@ -17,11 +17,13 @@ public:
     void CollapsedChanged(bool collapsed);
     void GnodeCreated();
     void GnodeRemoved();
+    void makeCurrent();
 signals:
     visibilityChanged(BaseTaxNode *n, bool visible);
     collapsedChanged(BaseTaxNode *n, bool collapsed);
     gnodeCreated(BaseTaxNode *n);
     gnodeRemoved(BaseTaxNode *n);
+    makeCurrent(BaseTaxNode *n);
 public slots:
 };
 

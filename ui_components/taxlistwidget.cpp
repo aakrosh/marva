@@ -62,7 +62,9 @@ void TaxListWidget::refreshValues()
 //=========================================================================
 void TaxListWidget::taxChanged(QModelIndex index, QModelIndex)
 {
-    emit currentTaxChanged(model->taxDataProvider->taxNode(index.row()));
+      TaxNodeSignalSender *tnss = getTaxNodeSignalSender(model->taxDataProvider->taxNode(index.row()));
+      tnss->makeCurrent();
+ //   emit currentTaxChanged(model->taxDataProvider->taxNode(index.row()));
 }
 
 //=========================================================================

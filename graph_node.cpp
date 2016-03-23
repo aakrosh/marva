@@ -348,7 +348,7 @@ int BlastGraphNode::size() const
     BlastNodeMap::iterator it = view->blastNodeMap->find(tax_node->getId());
     if ( it == view->blastNodeMap->end() )
         return 0;
-    return it.value()->count;
+    return it.value()->reads;
 }
 
 //=========================================================================

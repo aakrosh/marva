@@ -12,6 +12,7 @@
 #include "map_loader_thread.h"
 #include "tree_loader_thread.h"
 #include "blast_data.h"
+#include "taxnodesignalsender.h"
 
 #define RIGHT_NODE_MARGIN   200
 #define MIN_DX 70
@@ -41,8 +42,8 @@ GraphView::GraphView(QWidget *parent, TaxNode *taxTree)
     : QGraphicsView(parent),
       root(taxTree),
       create_nodes(true),
-      curNode(taxTree),
-      treeDepth(0)
+      treeDepth(0),
+      curNode(NULL)
 {
     QGraphicsScene *scene = new QGraphicsScene(this);
     scene->setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -58,6 +59,7 @@ GraphView::GraphView(QWidget *parent, TaxNode *taxTree)
     set_vert_interval(30);
     reset();
     markAllNodesDirty();
+    setCurrentNode(taxTree);
     nodePopupMenu = new QMenu();
     hideNodeAction = new QAction("Hide node", this);
     nodePopupMenu->addAction(hideNodeAction);
@@ -491,8 +493,10 @@ void GraphView::setCurrentNode(BaseTaxNode *node)
 {
     if ( curNode == node )
         return;
-    onCurrentNodeChanged(node);
-    emit currentNodeChanged(node);
+    TaxNodeSignalSender *tnss = getTaxNodeSignalSender(node);
+    tnss->makeCurrent();
+//    onCurrentNodeChanged(node);
+    //emit currentNodeChanged(node);
 }
 
 //=========================================================================
@@ -527,9 +531,12 @@ void GraphView::onCurrentNodeChanged(BaseTaxNode *node)
     expandPathTo(node);
     BaseTaxNode *oldNode = curNode;
     curNode = node;
-    GraphNode *oldGNode = oldNode->getGnode();
-    if ( oldGNode != NULL )
-        oldGNode->update();
+    if ( oldNode != NULL)
+    {
+        GraphNode *oldGNode = oldNode->getGnode();
+        if ( oldGNode != NULL )
+            oldGNode->update();
+    }
     GraphNode *gnode = curNode->getGnode();
     if ( gnode == NULL )
         return;

@@ -5,7 +5,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QApplication>
-#include <QMessageBox>
+#include <QDebug>
 
 QList<LoaderThread *> activeThreads;
 
@@ -44,7 +44,7 @@ void LoaderThread::run()
         file.setFileName(QString(QApplication::applicationDirPath()).append(fileName));
     if( !file.open(QIODevice::ReadOnly|QIODevice::Text) )
     {
-        QMessageBox::information(0,"error",file.errorString());
+        qDebug() << "Cannot open input file " << fileName;
         return;
     }
     QTextStream in(&file);

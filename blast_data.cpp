@@ -56,7 +56,7 @@ void BlastDataTreeLoader::processLine(QString &line)
             }
             else
             {
-                bit.value()->count++;
+                bit.value()->reads++;
                 GraphNode *gn = bit.value()->getGnode();
                 if ( gn != NULL )
                     gn->markDirty(DIRTY_NAME);
@@ -71,7 +71,7 @@ void BlastDataTreeLoader::processLine(QString &line)
 }
 
 //=========================================================================
-BlastTaxNode::BlastTaxNode(TaxNode *refNode, int _count, BlastNodeMap *blastNodeMap):BaseTaxNode(false), count(_count), tNode(refNode)
+BlastTaxNode::BlastTaxNode(TaxNode *refNode, int _count, BlastNodeMap *blastNodeMap):BaseTaxNode(false), reads(_count), tNode(refNode)
 {
     blastNodeMap->insert(refNode->getId(), this);
     visible = true;
@@ -147,7 +147,7 @@ BaseTaxNode *BlastTaxDataProvider::taxNode(quint32 index)
 //=========================================================================
 quint32 BlastTaxDataProvider::reads(quint32 index)
 {
-    return taxnodes.at(index)->count;
+    return taxnodes.at(index)->reads;
 }
 
 //=========================================================================

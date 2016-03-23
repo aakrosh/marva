@@ -26,7 +26,7 @@ typedef QMap<qint32, BlastTaxNode *> BlastNodeMap;
 class BlastTaxNode : public BaseTaxNode
 {
 public:
-    quint32 count;
+    quint32 reads;
     TaxNode *tNode;
     BlastTaxNode(TaxNode *refNode, int _count, BlastNodeMap *map);
     virtual ~BlastTaxNode(){}
