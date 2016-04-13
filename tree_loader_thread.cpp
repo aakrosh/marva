@@ -1,11 +1,12 @@
 #include "tree_loader_thread.h"
 #include "graph_node.h"
+#include "taxdataprovider.h"
 
 //=========================================================================
-TreeLoaderThread::TreeLoaderThread(QObject *parent, TaxMap *_taxMap, bool _merge) :
+TreeLoaderThread::TreeLoaderThread(QObject *parent, GlobalTaxMapDataProvider *gProvider, bool _merge) :
     LoaderThread(parent, "/data/ncbi.tre", "loading taxonomy tree"),
     merge(_merge),
-    taxMap(_taxMap)
+    dataProvider(gProvider)
 {
 }
 
@@ -25,10 +26,10 @@ TaxNode *TreeLoaderThread::parse(QString &s, TaxNode *parent, int *pos)
         while (  s[*pos].isDigit() )
             (*pos)++;
         qint32 tid = s.mid(pstart, *pos-pstart).toInt();
-        if ( taxMap->contains(tid) )
-            return taxMap->value(tid);
+        if ( dataProvider->taxMap->contains(tid) )
+            return dataProvider->taxMap->value(tid);
         TaxNode *newNode = (TaxNode *)parent->addChildById(tid);
-        taxMap->insert(newNode->id, newNode);
+        dataProvider->taxMap->insert(newNode->id, newNode);
         return newNode;
     }
     else if ( s[(*pos)] == '(' )
@@ -50,9 +51,9 @@ TaxNode *TreeLoaderThread::parse(QString &s, TaxNode *parent, int *pos)
         while (  s[*pos].isDigit() )
             (*pos)++;
         qint32 tid = s.mid(pstart, *pos-pstart).toInt();
-        if ( taxMap->contains(tid) )
+        if ( dataProvider->taxMap->contains(tid) )
         {
-            TaxNode *tn = taxMap->value(tid);
+            TaxNode *tn = dataProvider->taxMap->value(tid);
             for (ChildrenList::ConstIterator it = n->children.constBegin(); it != n->children.constEnd(); it++ )
             {
                 if ( !tn->children.contains(*it) )
@@ -68,7 +69,7 @@ TaxNode *TreeLoaderThread::parse(QString &s, TaxNode *parent, int *pos)
         else
         {
             n->id = tid;
-            taxMap->insert(tid, n);
+            dataProvider->taxMap->insert(tid, n);
         }
         return n;
     }

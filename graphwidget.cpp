@@ -13,6 +13,7 @@
 #include "tree_loader_thread.h"
 #include "blast_data.h"
 #include "taxnodesignalsender.h"
+#include "taxdataprovider.h"
 
 #define RIGHT_NODE_MARGIN   200
 #define MIN_DX 70
@@ -41,6 +42,8 @@ void GraphView::markAllNodesDirty()
 GraphView::GraphView(QWidget *parent, TaxNode *taxTree)
     : QGraphicsView(parent),
       root(taxTree),
+      taxDataProvider(NULL),
+      persistant(false),
       create_nodes(true),
       treeDepth(0),
       curNode(NULL)
@@ -64,11 +67,23 @@ GraphView::GraphView(QWidget *parent, TaxNode *taxTree)
     hideNodeAction = new QAction("Hide node", this);
     nodePopupMenu->addAction(hideNodeAction);
     connect(hideNodeAction, SIGNAL(triggered()), this, SLOT(hideCurrent()));
+    setAttribute(Qt::WA_DeleteOnClose);
+}
+
+//=========================================================================
+GraphView::~GraphView()
+{
+    if ( taxDataProvider->type == BLAST_DATA_PROVIDER ) // Shows blast content
+    {
+
+    }
 }
 
 //=========================================================================
 void GraphView::updateXCoord()
 {
+    if ( treeDepth == 0 )
+        return;
     quint32 max_w = this->sceneRect().width()-RIGHT_NODE_MARGIN;
     qreal dx = max_w/treeDepth;
     if ( dx < MIN_DX )
@@ -191,6 +206,111 @@ void GraphView::goRight()
 }
 
 //=========================================================================
+void GraphView::hideNodes(quint32 oldT, quint32 newT)
+{
+    class NodeHider : public TaxNodeVisitor
+    {
+        quint32 oldT;
+        quint32 newT;
+        bool has_visible;
+    public:
+        NodeHider(GraphView *gv, quint32 _oldT, quint32 _newT):
+            TaxNodeVisitor(LeavesToRoot, false, gv, false, true),
+            oldT(_oldT),
+            newT(_newT)
+        {
+
+        }
+        virtual void Action(BaseTaxNode *node)
+        {
+            BlastTaxNode *bnode = dynamic_cast<BlastTaxNode *>(node);
+            if ( bnode->reads == 0 )
+            {
+                if ( !has_visible )
+                    bnode->setVisible(false);
+            }
+            else if ( bnode->reads >= oldT && bnode->reads < newT )
+               bnode->setVisible(false);
+        }
+        virtual void afterVisitChildren(BaseTaxNode *node)
+        {
+            QList<BaseTaxNode *> &list = node->children;
+            has_visible = false;
+            for ( TaxNodeIterator it = list.begin(); it < list.end(); it++ )
+            {
+                if ( (*it)->visible() )
+                {
+                    has_visible = true;
+                    break;
+                }
+            }
+        }
+    };
+    NodeHider nh(this, oldT, newT); // Mark nodes as non-visible
+    nh.Visit(root);
+
+    class GraphNodeHider : public TaxNodeVisitor
+    {
+    public:
+        GraphNodeHider(GraphView *gv):TaxNodeVisitor(RootToLeaves, false, gv, false, false) {}
+        virtual void Action(BaseTaxNode *node)
+        {
+            if ( !node->visible() )
+                graphView->hideNode(node, false);
+        }
+    };
+    GraphNodeHider gh(this); // remove invisible graph nodes
+    gh.Visit(root);
+    resetNodesCoordinates();
+}
+
+//=========================================================================
+void GraphView::unhideNodes(quint32 oldT, quint32 newT)
+{
+    class NodeUnHider : public TaxNodeVisitor
+    {
+        quint32 oldT;
+        quint32 newT;
+        bool has_visible;
+    public:
+        NodeUnHider(GraphView *gv, quint32 _oldT, quint32 _newT):
+            TaxNodeVisitor(LeavesToRoot, false, gv, false, true),
+            oldT(_oldT),
+            newT(_newT)
+        {
+
+        }
+        virtual void Action(BaseTaxNode *node)
+        {
+            BlastTaxNode *bnode = dynamic_cast<BlastTaxNode *>(node);
+            if ( bnode->reads == 0 )
+            {
+                if ( has_visible )
+                    bnode->setVisible(true);
+            }
+            else if ( bnode->reads > newT && bnode->reads <= oldT )
+               bnode->setVisible(true);
+        }
+        virtual void afterVisitChildren(BaseTaxNode *node)
+        {
+            QList<BaseTaxNode *> &list = node->children;
+            has_visible = false;
+            for ( TaxNodeIterator it = list.begin(); it < list.end(); it++ )
+            {
+                if ( (*it)->visible() )
+                {
+                    has_visible = true;
+                    break;
+                }
+            }
+        }
+    };
+    NodeUnHider nh(this, oldT, newT);
+    nh.Visit(root);
+    createMissedGraphNodes();
+}
+
+//=========================================================================
 void GraphView::resizeEvent(QResizeEvent *e)
 {
     QRectF r = sceneRect();
@@ -223,7 +343,7 @@ void GraphView::CreateGraphNode(BaseTaxNode *node)
 //=========================================================================
 void GraphView::AddNodeToScene(BaseTaxNode *node)
 {
-    if ( !node->visible )
+    if ( node == NULL || !node->visible() )
         return;
     if ( node->getGnode() == NULL )
     {
@@ -269,10 +389,26 @@ void GraphView::reset()
 {
     dirtyList.clear();
     scene()->clear();
-    AddNodeToScene(root);
-    if ( !root->isCollapsed() )
-        resetNodesCoordinates();
+    if ( root != NULL )
+    {
+        AddNodeToScene(root);
+        if ( !root->isCollapsed() )
+            resetNodesCoordinates();
+    }
     adjustAllEdges();
+}
+
+//=========================================================================
+void GraphView::onTreeChanged()
+{
+    updateDirtyNodes(DIRTY_CHILD);
+    createMissedGraphNodes();
+}
+
+//=========================================================================
+void GraphView::onNodeNamesChanged()
+{
+    updateDirtyNodes(DIRTY_NAME);
 }
 
 #ifndef QT_NO_WHEELEVENT
@@ -417,6 +553,8 @@ void GraphView::resetNodesCoordinates()
             }
             if ( n > 0 )
                 y = sum_y / n;
+            else
+                y = max_node_y;
             max_node_y += graphView->get_vert_interval()/4;
         }
     };
@@ -474,7 +612,7 @@ void GraphView::createMissedGraphNodes()
         GNodesCreator(GraphView *gv) : TaxNodeVisitor(RootToLeaves, false, gv), nodesCreated(0){}
         virtual void Action(BaseTaxNode *node)
         {
-            if ( node->getGnode() == NULL && node->visible )
+            if ( node->getGnode() == NULL && node->visible() )
             {
                 graphView->CreateGraphNode(node);
                 graphView->AddNodeToScene(node);
@@ -495,8 +633,6 @@ void GraphView::setCurrentNode(BaseTaxNode *node)
         return;
     TaxNodeSignalSender *tnss = getTaxNodeSignalSender(node);
     tnss->makeCurrent();
-//    onCurrentNodeChanged(node);
-    //emit currentNodeChanged(node);
 }
 
 //=========================================================================
@@ -545,11 +681,10 @@ void GraphView::onCurrentNodeChanged(BaseTaxNode *node)
 }
 
 //=========================================================================
-void GraphView::hideNode(BaseTaxNode *node)
+void GraphView::hideNode(BaseTaxNode *node, bool resetCoordinates)
 {
     if ( node == NULL )
         return;
-    node->visible = false;
     GraphNode *gnode = node->getGnode();
     if ( gnode == NULL || !scene()->items().contains(gnode) )
         return;
@@ -569,7 +704,8 @@ void GraphView::hideNode(BaseTaxNode *node)
     };
     NodeRemover nr(this);
     nr.Visit(node);
-    resetNodesCoordinates();
+    if ( resetCoordinates )
+        resetNodesCoordinates();
 }
 
 //=========================================================================
@@ -578,21 +714,44 @@ void GraphView::showNode(BaseTaxNode *node)
     GraphNode *gnode = node->getGnode();
     if ( gnode == NULL || !scene()->items().contains(gnode) )
     {
-        if ( node->parent != NULL )
+        BaseTaxNode *pnode = node->parent;
+        if ( pnode != NULL )
         {
-            GraphNode *pgnode = node->parent->getGnode();
-            if ( pgnode == NULL || !scene()->items().contains(pgnode) )
-                return;
+            GraphNode *pgnode = pnode->getGnode();
+            if ( pgnode == NULL  || !scene()->items().contains(pgnode) )
+                pnode->setVisible(true, true);
         }
-        AddNodeToScene(node);
-        resetNodesCoordinates();
+        if ( pnode == NULL || !pnode->isCollapsed() )
+        {
+            AddNodeToScene(node);
+            resetNodesCoordinates();
+        }
     }
 }
 
 //=========================================================================
 void GraphView::hideCurrent()
 {
-    hideNode(curNode);
+    curNode->setVisible(false);
+    BaseTaxNode *p = curNode->parent;
+    while ( p != NULL )
+    {
+        bool has_visible_ch = false;
+        ChildrenList &list = p->children;
+        for ( TaxNodeIterator it = list.begin(); it < list.end(); it++ )
+        {
+            if ( (*it)->visible() )
+            {
+                has_visible_ch = true;
+                break;
+            }
+        }
+        if ( has_visible_ch )
+            break;
+        else
+            p->setVisible(false);
+        p = p->parent;
+    }
 }
 
 //=========================================================================
@@ -602,6 +761,22 @@ void GraphView::onNodeVisibilityChanged(BaseTaxNode *node, bool node_visible)
         showNode(node);
     else
         hideNode(node);
+}
+
+//=========================================================================
+void GraphView::onReadsThresholdChanged(quint32 oldT, quint32 newT)
+{
+    getTaxNodeSignalSender(NULL)->sendSignals = false;
+    //disconnect(getTaxNodeSignalSender(NULL), SIGNAL(visibilityChanged(BaseTaxNode *,visible)), this, SLOT(onNodeVisibilityChanged(BaseTaxNode *,visible)));
+    if ( oldT == newT )
+        return;
+    if ( oldT < newT )
+        hideNodes(oldT, newT);
+    else
+        unhideNodes(oldT, newT);
+    //connect(getTaxNodeSignalSender(NULL), SIGNAL(visibilityChanged(BaseTaxNode *,visible)), this, SLOT(onNodeVisibilityChanged(BaseTaxNode *,visible)));
+    getTaxNodeSignalSender(NULL)->sendSignals = true;
+    getTaxNodeSignalSender(NULL)->bigChangesHappened();
 }
 
 //=========================================================================

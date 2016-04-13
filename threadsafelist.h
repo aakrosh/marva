@@ -1,13 +1,16 @@
 #ifndef THREDSAFELIST_H
 #define THREDSAFELIST_H
 
+#include "common.h"
+
 #include <QMutex>
 #include <QList>
 
 template <class T>
+// TODO: Change to ReadWriteLock!!!!
 class ThreadSafeList : public QList<T>
 {
-    QMutex	m_mutex;
+    QReadWriteLock	lock;
 public:
     virtual void Add(T t);
     virtual void Delete(T t);
@@ -21,13 +24,16 @@ class ThreadSafeListLocker
 {
     ThreadSafeList<T> *tslist;
 public:
-    ThreadSafeListLocker(ThreadSafeList<T> *list): tslist(list)
+    ThreadSafeListLocker(ThreadSafeList<T> *list, bool write = false): tslist(list)
     {
-        tslist->m_mutex.lock();
+        if ( write )
+            tslist->lock.lockForWrite();
+        else
+            tslist->lock.lockForRead();
     }
     ~ThreadSafeListLocker()
     {
-        tslist->m_mutex.unlock();
+        tslist->lock.unlock();
     }
 };
 
@@ -35,18 +41,16 @@ public:
 template <class T>
 void ThreadSafeList<T>::Add(T t)
 {
-    m_mutex.lock();
+    QReadWriteLocker locker(&lock, true);
     this->append(t);
-    m_mutex.unlock();
 }
 
 //=========================================================================
 template <class T>
 void ThreadSafeList<T>::Delete(T t)
 {
-    m_mutex.lock();
+    QReadWriteLocker locker(&lock, true);
     this->removeOne(t);
-    m_mutex.unlock();
 }
 
 #endif // THREDSAFELIST_H

@@ -4,7 +4,7 @@
 #include "taxnodesignalsender.h"
 
 //=========================================================================
-BaseTaxNode::BaseTaxNode(bool _collapsed): collapsed(_collapsed), gnode(NULL), parent(NULL), visible(true)
+BaseTaxNode::BaseTaxNode(bool _collapsed): collapsed(_collapsed), gnode(NULL), is_visible(true), parent(NULL)
 {
 
 }
@@ -62,4 +62,13 @@ void BaseTaxNode::mergeWith(BaseTaxNode *other, GraphView *gview)
     }
     if ( gnode != NULL && changed )
         gnode->markDirty(DIRTY_CHILD, &gview->dirtyList);
+}
+
+//=========================================================================
+void BaseTaxNode::setVisible(bool v, bool force)
+{
+    if ( is_visible == v && !force)
+        return;
+    is_visible = v;
+    getTaxNodeSignalSender(this)->VisibilityChanged(v);
 }

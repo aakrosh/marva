@@ -6,7 +6,9 @@
 #include "ui_components/taxlistwidget.h"
 #include "ui_components/leftpanel.h"
 #include "ui_components/currenttaxnodedetails.h"
+#include "ui_components/labeleddoublespinbox.h"
 #include "taxnodesignalsender.h"
+#include "taxdataprovider.h"
 
 #include <QFileDialog>
 #include <QDebug>
@@ -64,28 +66,55 @@ void generateDefaultNodes()
 }
 
 //=========================================================================
+void MainWindow::addGraphView(GraphView *gv, QString label)
+{
+    ui->tabWidget->addTab(gv, label);
+    ui->tabWidget->setCurrentWidget(gv);
+}
+
+//=========================================================================
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow),
+    activeGraphView(NULL),
+    taxonomyTreeView(NULL)
 {
   mainWindow = this;
   generateDefaultNodes();
+  globalTaxDataProvider = new GlobalTaxMapDataProvider(this, &taxMap);
   leftPanel = new LeftPanel(this);
   taxListWidget = leftPanel->taxList();
-  TreeLoaderThread *tlThread = new TreeLoaderThread(this, &taxMap, true);
+  taxListWidget->setTaxDataProvider(globalTaxDataProvider);
+
+  connect(globalTaxDataProvider, SIGNAL(dataChanged()), taxListWidget, SLOT(refresh()));
+
+  TreeLoaderThread *tlThread = new TreeLoaderThread(this, globalTaxDataProvider, true);
+  connect(tlThread, SIGNAL(resultReady(void *)), globalTaxDataProvider, SLOT(onTreeLoaded()));
   connect(tlThread, SIGNAL(resultReady(void *)), this, SLOT(treeIsLoaded(void *)));
-  connect(tlThread, SIGNAL(resultReady(void *)), taxListWidget, SLOT(refresh()));
   connect(tlThread, SIGNAL(finished()), tlThread, SLOT(deleteLater()));
   tlThread->start();
 
   ui->setupUi(this);
   ui->taxListDockWidget->setWidget(leftPanel);
-  activeGraphView = new GraphView(this, taxTree);
-  centralWidget()->layout()->addWidget(activeGraphView);
+
+  readsSB = new LabeledDoubleSpinBox(NULL);
+  this->ui->toolBar->addWidget(readsSB);
+  readsSB->setLabel("Min reads");
+  readsSB->setValue(0);
+  readsSB->setToolTip("Minimum reads threshold to show");
+  readsSB->setVisible(false);
+
+  connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(onCurrentTabCnaged(int)));
+
+  openTaxonomyTreeView();
+  connect(globalTaxDataProvider, SIGNAL(dataChanged()), taxonomyTreeView, SLOT(onTreeChanged()));
+
   statusList = new StatusListPanel(this);
   statusList->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   centralWidget()->layout()->addWidget(statusList);
   statusList->setMaximumHeight(0);
+  ui->action_Tab_separated_BLAST_file->setEnabled(false);
+  connect(ui->tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeGraphView(int)));
 
   activeGraphView->setFocus();
 
@@ -95,8 +124,14 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), leftPanel->curNodeDetails(), SLOT(onCurrentNodeChanged(BaseTaxNode*)));
   connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), taxListWidget, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
   connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), activeGraphView, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
+  connect(tnss, SIGNAL(bigChangesHappened()), taxListWidget, SLOT(resetView()));
+  connect(tnss, SIGNAL(bigChangesHappened()), activeGraphView, SLOT(reset()));
 
   activeGraphView->setCurrentNode(taxTree);
+
+  connectGraphView(NULL, activeGraphView);
+
+  connect(ui->actionTaxonomyTree, SIGNAL(triggered(bool)), this, SLOT(openTaxonomyTreeView()));
 }
 
 //=========================================================================
@@ -113,27 +148,68 @@ void MainWindow::closeEvent(QCloseEvent *event)
 }
 
 //=========================================================================
+void MainWindow::connectGraphView(GraphView *oldGV, GraphView *newGV)
+{
+    TaxNodeSignalSender *tnss = getTaxNodeSignalSender(NULL);
+    if ( oldGV != NULL )
+    {
+        tnss->disconnect(oldGV);
+        readsSB->disconnect(oldGV);
+    }
+    connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), newGV, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
+    connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), newGV, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
+    connect(tnss, SIGNAL(bigChangesHappened()), newGV, SLOT(reset()));
+
+    connect(readsSB, SIGNAL(valueChanged(quint32,quint32)), newGV, SLOT(onReadsThresholdChanged(quint32,quint32)));
+}
+
+//=========================================================================
 void MainWindow::open_tab_blast_file()
 {
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open tab-separated BLAST file"));
     if ( fileName.isEmpty() )
         return;
-    activeGraphView->dirtyList.clear();
-    activeGraphView->scene()->clear();
-    activeGraphView->root = NULL;
-    BlastDataTreeLoader *bdtl = new BlastDataTreeLoader(this, fileName, tabular);
-    taxListWidget->setTaxDataProvider(new BlastTaxDataProvider(bdtl->blastNodeMap));
+    GraphView *blastView = new GraphView(this, NULL);
+    BlastTaxDataProvider *blastTaxDataProvider = new BlastTaxDataProvider(blastView);
+    BlastDataTreeLoader *bdtl = new BlastDataTreeLoader(this, fileName, blastTaxDataProvider, tabular);
+
+    blastView->dirtyList.clear();
+    blastView->scene()->clear();
+    blastView->root = NULL;
+    blastView->taxDataProvider = blastTaxDataProvider;
+    taxListWidget->setTaxDataProvider(blastTaxDataProvider);
     taxListWidget->reset();
     ui->taxListDockWidget->setVisible(true);
-    activeGraphView->blastNodeMap = bdtl->blastNodeMap;
+    addGraphView(blastView, QFileInfo(fileName).fileName());
+    readsSB->setVisible(true);
+    readsSB->setReadOnly(true);
 
-    connect(bdtl, SIGNAL(progress(void *)), activeGraphView, SLOT(blastLoadingProgress(void *)));
-    connect(bdtl, SIGNAL(progress(void *)), taxListWidget, SLOT(refreshAll()));
-    connect(bdtl, SIGNAL(resultReady(void *)), activeGraphView, SLOT(blastIsLoaded(void *)));
+    connect(bdtl, SIGNAL(progress(void *)), this, SLOT(blastLoadingProgress(void *)));
     connect(bdtl, SIGNAL(resultReady(void *)), taxListWidget, SLOT(refreshAll()));
+    connect(bdtl, SIGNAL(resultReady(void *)), this, SLOT(blastIsLoaded(void *)));
+    connect(bdtl, SIGNAL(resultReady(void *)), blastView, SLOT(blastIsLoaded(void *)));
     connect(bdtl, SIGNAL(finished()), bdtl, SLOT(deleteLater()));
 
     bdtl->start();
+}
+
+//=========================================================================
+GraphView *MainWindow::openTaxonomyTreeView()
+{
+    if ( taxonomyTreeView == NULL )
+    {
+        taxonomyTreeView = new GraphView(this, taxTree);
+        taxonomyTreeView->persistant = true;
+        taxonomyTreeView->taxDataProvider = globalTaxDataProvider;
+    }
+    setActiveGraphView(taxonomyTreeView);
+
+    int i = ui->tabWidget->indexOf(taxonomyTreeView);
+    if ( i >= 0 )
+        ui->tabWidget->setCurrentIndex(i);
+    else
+        addGraphView(taxonomyTreeView, "Taxonomy tree");
+    return taxonomyTreeView;
 }
 
 //=========================================================================
@@ -142,23 +218,31 @@ void MainWindow::treeIsLoaded(void *obj)
     TaxNode *tree = (TaxNode *)obj;
     qDebug() << "Tree Loading is finished";
     taxTree->mergeWith(tree, activeGraphView);
+    ui->action_Tab_separated_BLAST_file->setEnabled(true);
 
-    MapLoaderThread *mlThread = new MapLoaderThread(this, true, activeGraphView, &taxMap);
+    disconnect(globalTaxDataProvider, SIGNAL(dataChanged()), taxonomyTreeView, SLOT(onTreeChanged()));
+    connect(globalTaxDataProvider, SIGNAL(dataChanged()), taxonomyTreeView, SLOT(onNodeNamesChanged()));
+
+    MapLoaderThread *mlThread = new MapLoaderThread(this, true, globalTaxDataProvider);
+
     connect(mlThread, SIGNAL(progress(void *)), this, SLOT(updateLoadedNames()));
     connect(mlThread, SIGNAL(progress(void *)), taxListWidget, SLOT(refreshValues()));
-    connect(mlThread, SIGNAL(resultReady(void *)), this, SLOT(mapIsLoaded()));
+    connect(mlThread, SIGNAL(progress(void*)), globalTaxDataProvider, SLOT(onMapChanged()));
+
+    connect(mlThread, SIGNAL(resultReady(void*)), globalTaxDataProvider, SLOT(onMapChanged()));
     connect(mlThread, SIGNAL(resultReady(void *)), taxListWidget, SLOT(refresh()));
+
     connect(mlThread, SIGNAL(finished()), mlThread, SLOT(deleteLater()));
     mlThread->start();
 
-    activeGraphView->updateDirtyNodes(DIRTY_CHILD);
-    activeGraphView->createMissedGraphNodes();
 }
 
 //=========================================================================
 void MainWindow::updateLoadedNames()
 {
     activeGraphView->updateDirtyNodes(DIRTY_NAME);
+    BaseTaxNode *node = activeGraphView->currentNode();
+    leftPanel->curNodeDetails()->onCurrentNodeChanged(node);
 }
 
 //=========================================================================
@@ -167,4 +251,46 @@ void MainWindow::mapIsLoaded()
     qDebug() << "Map Loading is finished";
     // Handle end of mapLoading
     activeGraphView->updateDirtyNodes(DIRTY_NAME);
+}
+
+//=========================================================================
+void MainWindow::blastLoadingProgress(void *)
+{
+    readsSB->setMaxValue(activeGraphView->taxDataProvider->getMaxReads());
+    readsSB->setValue(0);
+}
+
+//=========================================================================
+void MainWindow::closeGraphView(int i)
+{
+    QWidget *view = ui->tabWidget->widget(i);
+    view->close();
+    ui->tabWidget->removeTab(i);
+}
+
+//=========================================================================
+void MainWindow::setActiveGraphView(GraphView *newGV)
+{
+    if ( activeGraphView == newGV )
+        return;
+    GraphView *oldGV = activeGraphView;
+    activeGraphView = newGV;
+    connectGraphView(oldGV, newGV);
+    taxListWidget->setTaxDataProvider(newGV->taxDataProvider);
+    emit activeGraphViewChanged(oldGV, newGV);
+}
+
+//=========================================================================
+void MainWindow::onCurrentTabCnaged(int)
+{
+    GraphView *gv = dynamic_cast<GraphView *>(ui->tabWidget->currentWidget());
+    if ( gv != NULL )
+        setActiveGraphView(gv);
+}
+
+//=========================================================================
+void MainWindow::blastIsLoaded(void *)
+{
+    blastLoadingProgress(NULL);
+    readsSB->setReadOnly(false);
 }

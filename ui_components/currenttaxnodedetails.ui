@@ -42,13 +42,6 @@
          <property name="text">
           <string/>
          </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="lNcbi">
-         <property name="text">
-          <string>&lt;a href=&quot;http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&amp;id=7215&quot;&gt;Open in NCBI&lt;/a&gt;</string>
-         </property>
          <property name="openExternalLinks">
           <bool>true</bool>
          </property>

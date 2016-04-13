@@ -3,8 +3,11 @@
 #include "tax_map.h"
 #include "main_window.h"
 #include "taxnodesignalsender.h"
+#include "taxdataprovider.h"
 
 #include <QPaintEvent>
+#include <QtConcurrent/QtConcurrent>
+#include <functional>
 
 //=========================================================================
 TaxListWidget::TaxListWidget(QWidget *parent) :
@@ -15,6 +18,7 @@ TaxListWidget::TaxListWidget(QWidget *parent) :
     ui->setupUi(this);
     model = new TaxListTableModel(this);
     ui->tableView->setModel(model);
+    ui->tableView->installEventFilter(this);
     connect(ui->tableView->selectionModel(), SIGNAL(currentRowChanged(QModelIndex, QModelIndex)), this, SLOT(taxChanged(QModelIndex, QModelIndex)));
     refresh();
 }
@@ -26,8 +30,46 @@ TaxListWidget::~TaxListWidget()
 }
 
 //=========================================================================
+bool TaxListWidget::eventFilter(QObject *object, QEvent *event)
+{
+    if (object == ui->tableView && event->type() == QEvent::KeyPress)
+    {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        if (keyEvent->key() == Qt::Key_Space)
+        {
+            QModelIndexList sel = ui->tableView->selectionModel()->selectedRows(0);
+            if ( sel.count() == 0 )
+                return false;
+            bool checked = sel.at(0).data(Qt::CheckStateRole) != Qt::Checked;
+            Qt::CheckState cs =  checked ? Qt::Checked : Qt::Unchecked;
+            int sel_count =  sel.count();
+            bool with_reset = sel_count > 100;
+            if ( with_reset )
+                getTaxNodeSignalSender(NULL)->sendSignals = false;
+            for ( int i = 0 ; i < sel_count; i++ )
+                model->setData(sel.at(i), cs, Qt::CheckStateRole);
+            if ( with_reset )
+            {
+                getTaxNodeSignalSender(NULL)->sendSignals = true;
+                QtConcurrent::run(std::bind([] (QModelIndexList& ) {}, std::move(sel)));
+                getTaxNodeSignalSender(NULL)->BigChangesHappened();
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+void TaxListWidget::resetView()
+{
+    reset();
+}
+
+//=========================================================================
 void TaxListWidget::reset()
 {
+    if ( model == NULL || model->taxDataProvider == NULL )
+        return;
     oldRowCount = model->taxDataProvider->count();
     model->beginResetModel();
     model->endResetModel();
@@ -36,10 +78,10 @@ void TaxListWidget::reset()
 //=========================================================================
 void TaxListWidget::refresh()
 {
-    if ( model->taxDataProvider == NULL )
-        model->setTaxDataProvider(new GlobalTaxMapDataProvider(), false);
+   /* if ( model->taxDataProvider == NULL )
+        model->setTaxDataProvider(, false);
     else
-        model->setTaxDataProvider(NULL, false);
+        model->setTaxDataProvider(NULL, false);*/
 
     reset();
     return;
@@ -64,7 +106,6 @@ void TaxListWidget::taxChanged(QModelIndex index, QModelIndex)
 {
       TaxNodeSignalSender *tnss = getTaxNodeSignalSender(model->taxDataProvider->taxNode(index.row()));
       tnss->makeCurrent();
- //   emit currentTaxChanged(model->taxDataProvider->taxNode(index.row()));
 }
 
 //=========================================================================
@@ -90,16 +131,21 @@ void TaxListWidget::onNodeVisibilityChanged(BaseTaxNode *node, bool visible)
     if ( index < 0 )
         return;
     model->taxDataProvider->setCheckedState(index, visible ? Qt::Checked : Qt::Unchecked);
+    QModelIndex cell = model->index(index, 0);
+    model->dataChanged(cell, cell);
 }
 
 //=========================================================================
 TaxListTableModel::TaxListTableModel(QObject *parent):
     QAbstractItemModel(parent),
     taxDataProvider(NULL)
-//    listTaxMap(&taxMap)
 {
-    //taxnodes = listTaxMap->values();
-    //ids = listTaxMap->keys();
+}
+
+//=========================================================================
+TaxListTableModel::~TaxListTableModel()
+{
+    delete taxDataProvider;
 }
 
 //=========================================================================
@@ -137,7 +183,6 @@ QVariant TaxListTableModel::data(const QModelIndex &index, int role) const
         qint32 i = index.row();
         if ( !cache.contains(i) )
         {
-//            cache.addRecord(i, taxnodes[i]->getText(), ids[i], 0);
             BaseTaxNode *n = taxDataProvider->taxNode(i);
             if ( n == NULL )
                 return QVariant();
@@ -167,15 +212,16 @@ QVariant TaxListTableModel::data(const QModelIndex &index, int role) const
 }
 
 //=========================================================================
-bool TaxListTableModel::setData(const QModelIndex & index, const QVariant &value, int role)
+bool TaxListTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if ( role == Qt::CheckStateRole && index.column() == 0 )
     {
         taxDataProvider->setCheckedState(index.row(), value);
-        getTaxNodeSignalSender(taxDataProvider->taxNode(index.row()))->VisibilityChanged(value==Qt::Checked);
+        return true;
     }
-    return true;
+    return false;
 }
+
 //=========================================================================
 QVariant TaxListTableModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
@@ -193,9 +239,12 @@ QVariant TaxListTableModel::headerData(int section, Qt::Orientation orientation,
 }
 
 //=========================================================================
-void TaxListTableModel::sort(int /*column*/, Qt::SortOrder /*order*/)
+void TaxListTableModel::sort(int column, Qt::SortOrder order)
 {
-    // view->sort(column, order);
+    emit layoutAboutToBeChanged();
+    taxDataProvider->sort(column, order);
+    clearCache();
+    emit layoutChanged();
 }
 
 //=========================================================================
@@ -258,65 +307,4 @@ void TaxListCache::clear()
 {
     QMap<int, TaxListCacheData *>::clear();
     ids.clear();
-}
-
-//=========================================================================
-GlobalTaxMapDataProvider::GlobalTaxMapDataProvider()
-{
-    updateCache(false);
-}
-
-//=========================================================================
-quint32 GlobalTaxMapDataProvider::count()
-{
-    return ids.count();
-}
-
-//=========================================================================
-qint32 GlobalTaxMapDataProvider::id(quint32 index)
-{
-    return ids.at(index);
-}
-
-//=========================================================================
-BaseTaxNode *GlobalTaxMapDataProvider::taxNode(quint32 index)
-{
-    return (BaseTaxNode *)taxnodes.at(index);
-}
-
-//=========================================================================
-quint32 GlobalTaxMapDataProvider::reads(quint32)
-{
-    return 0;
-}
-
-//=========================================================================
-quint32 GlobalTaxMapDataProvider::indexOf(qint32 id)
-{
-    return ids.indexOf(id);
-}
-
-//=========================================================================
-void GlobalTaxMapDataProvider::updateCache(bool values_only)
-{
-    taxnodes = taxMap.values();
-    if ( !values_only )
-        ids = taxMap.keys();
-}
-
-//=========================================================================
-QVariant GlobalTaxMapDataProvider::checkState(int index)
-{
-    if ( index < (int)count() )
-        return taxnodes.at(index)->visible ? Qt::Checked : Qt::Unchecked;
-    else
-        return TaxDataProvider::checkState(index);
-}
-
-//=========================================================================
-void GlobalTaxMapDataProvider::setCheckedState(int index, QVariant value)
-{
-    bool visible = value == Qt::Checked;
-    if ( visible != taxnodes.at(index)->visible )
-        taxnodes.at(index)->visible = visible;
 }

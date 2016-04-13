@@ -4,17 +4,17 @@
 #include "graphwidget.h"
 #include "loader_thread.h"
 
+class GlobalTaxMapDataProvider;
 
 class MapLoaderThread : public LoaderThread
 {
     Q_OBJECT
 private:
     bool merge;
-    GraphView *graph;
-    TaxMap *map;
+    GlobalTaxMapDataProvider *globalTaxDataProvider;
     bool must_stop;
 public:
-    MapLoaderThread(QObject *parent, bool merge, GraphView *gw, TaxMap *map);
+    MapLoaderThread(QObject *parent, bool merge, GlobalTaxMapDataProvider *_globalTaxDataProvider);
 protected:
     virtual void processLine(QString &line);
 };

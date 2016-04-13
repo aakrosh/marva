@@ -30,6 +30,25 @@
     <property name="bottomMargin">
      <number>0</number>
     </property>
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="tabPosition">
+       <enum>QTabWidget::North</enum>
+      </property>
+      <property name="currentIndex">
+       <number>-1</number>
+      </property>
+      <property name="elideMode">
+       <enum>Qt::ElideRight</enum>
+      </property>
+      <property name="tabsClosable">
+       <bool>true</bool>
+      </property>
+      <property name="movable">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -56,7 +75,14 @@
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
+   <widget class="QMenu" name="menuViews">
+    <property name="title">
+     <string>Views</string>
+    </property>
+    <addaction name="actionTaxonomyTree"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuViews"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -69,6 +95,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="action_Tab_separated_BLAST_file"/>
   </widget>
   <widget class="QDockWidget" name="taxListDockWidget">
    <attribute name="dockWidgetArea">
@@ -98,6 +125,14 @@
    </property>
    <property name="toolTip">
     <string>Open tab-separated BLAST file</string>
+   </property>
+  </action>
+  <action name="actionTaxonomyTree">
+   <property name="text">
+    <string>Taxonomy tree</string>
+   </property>
+   <property name="toolTip">
+    <string>Open taxonomy tree</string>
    </property>
   </action>
  </widget>

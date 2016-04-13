@@ -51,6 +51,7 @@ class TreeLoaderThread;
 class TaxColorSrc;
 class BlastData;
 class QMenu;
+class TaxDataProvider;
 
 class DirtyGNodesList: public ThreadSafeList<GraphNode *>
 {
@@ -64,15 +65,16 @@ class GraphView : public QGraphicsView
 
 public:
     GraphView(QWidget *parent, TaxNode *taxTree);
-
+    ~GraphView();
     int max_node_y;
-    BaseTaxNode *root;
     TaxMap *tax_map;
-    BlastNodeMap *blastNodeMap;
+    BaseTaxNode *root;
+    //BlastNodeMap *blastNodeMap;
+    TaxDataProvider *taxDataProvider;
     QMenu *nodePopupMenu;
     QAction *hideNodeAction;
+    bool persistant;
 
-    void reset();
     void adjust_scene_boundaries();
     inline void set_vert_interval(int interval) { vert_interval = interval; }
     inline int get_vert_interval() const { return vert_interval; }
@@ -91,7 +93,7 @@ public:
 
     DirtyGNodesList dirtyList;
 
-    void hideNode(BaseTaxNode *node);
+    void hideNode(BaseTaxNode *node, bool resetCoordinates=true);
     void showNode(BaseTaxNode *node);
 
 protected:
@@ -103,8 +105,8 @@ private:
     int hor_interval;
     int vert_interval;
     bool create_nodes;
-    BaseTaxNode *curNode;
     int treeDepth;
+    BaseTaxNode *curNode;
 
     void shrink_vertically(int s=4);
     void expand_vertically(int s=4);
@@ -116,6 +118,9 @@ private:
     void goLeft();
     void goRight();
 
+    void hideNodes(quint32 oldT, quint32 newT);
+    void unhideNodes(quint32 oldT, quint32 newT);
+
 signals:
     currentNodeChanged(BaseTaxNode *);
 private slots:
@@ -125,6 +130,10 @@ private slots:
     void hideCurrent();
 public slots:
     void onNodeVisibilityChanged(BaseTaxNode*,bool);
+    void onReadsThresholdChanged(quint32 oldT, quint32 newT);
+    void reset();
+    void onTreeChanged();
+    void onNodeNamesChanged();
 };
 
 #endif // GRAPHWIDGET_H

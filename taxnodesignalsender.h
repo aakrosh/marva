@@ -11,6 +11,8 @@ class TaxNodeSignalSender : public QObject
 
     BaseTaxNode *node;
 public:
+    bool sendSignals;
+
     explicit TaxNodeSignalSender(QObject *parent = 0);
     void setNode(BaseTaxNode *_node);
     void VisibilityChanged(bool visible);
@@ -18,12 +20,14 @@ public:
     void GnodeCreated();
     void GnodeRemoved();
     void makeCurrent();
+    void BigChangesHappened();
 signals:
     visibilityChanged(BaseTaxNode *n, bool visible);
     collapsedChanged(BaseTaxNode *n, bool collapsed);
     gnodeCreated(BaseTaxNode *n);
     gnodeRemoved(BaseTaxNode *n);
     makeCurrent(BaseTaxNode *n);
+    bigChangesHappened();
 public slots:
 };
 

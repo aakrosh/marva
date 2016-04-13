@@ -3,6 +3,7 @@
 #include "graph_node.h"
 #include "graphwidget.h"
 #include "tax_map.h"
+#include "taxdataprovider.h"
 
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
@@ -289,15 +290,8 @@ BlastGraphNode::BlastGraphNode(GraphView *graphWidget, BlastTaxNode *node) :
 QPainterPath BlastGraphNode::shape() const
 {
     QPainterPath path = GraphNode::shape();
-    int s = size()/10;
-    if ( s > 10 )
-    {
-        if ( s > 1000 )
-            s = 24;
-        else if ( s > 10 )
-            s = 15;
-        path.addEllipse(QPointF(0, 0), s, s);
-    }
+    int s = size();
+    path.addEllipse(QPointF(0, 0), s, s);
     return path;
 }
 
@@ -314,30 +308,7 @@ void BlastGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *op
         gradient.setColorAt(1, col.lighter(150));
         painter->setPen(Qt::NoPen);
         painter->setBrush(gradient);
-        s /= 10;
-        if ( s <= MAX_NODE_SIZE )
-        {
-            painter->drawEllipse(QPointF(0, 0), s, s);
-        }
-        else
-        {
-            int d = 100;
-            qreal f = 10;
-            qreal w = 3.;
-            painter->drawEllipse(QPointF(0, 0), f, f);
-            QPen pen(col);
-            painter->setBrush(Qt::transparent);
-            while ( s >= MAX_NODE_SIZE )
-            {
-                s /= d;
-                //d *= 10;
-                pen.setWidth(w);
-                w *= 0.8;
-                f *= 1.5;
-                painter->setPen(pen);
-                painter->drawEllipse(QPointF(0, 0), f, f);
-            }
-        }
+        painter->drawEllipse(QPointF(0, 0), s, s);
     }
     GraphNode::paint(painter, option, widget);
 }
@@ -345,10 +316,13 @@ void BlastGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *op
 //=========================================================================
 int BlastGraphNode::size() const
 {
-    BlastNodeMap::iterator it = view->blastNodeMap->find(tax_node->getId());
-    if ( it == view->blastNodeMap->end() )
+    quint32 maxReads = view->taxDataProvider->getMaxReads();
+    if ( maxReads == 0 )
         return 0;
-    return it.value()->reads;
+    quint32 reads = view->taxDataProvider->readsById(tax_node->getId());
+    if ( reads == 0 )
+        return 0;
+    return reads*30/maxReads;
 }
 
 //=========================================================================

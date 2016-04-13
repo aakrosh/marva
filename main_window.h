@@ -15,6 +15,8 @@ extern TaxNode *taxTree;
 class MapLoaderThread;
 class TaxListWidget;
 class LeftPanel;
+class LabeledDoubleSpinBox;
+class GlobalTaxMapDataProvider;
 
 class MainWindow : public QMainWindow
 {
@@ -23,20 +25,36 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
-    GraphView *activeGraphView;
     StatusListPanel *statusList;
+    LabeledDoubleSpinBox *readsSB;
+    GlobalTaxMapDataProvider *globalTaxDataProvider;
+    void addGraphView(GraphView *gv, QString label);
+
+    void setActiveGraphView(GraphView *gv);
+
 protected:
     virtual void closeEvent(QCloseEvent *event);
 private:
+
+    void connectGraphView(GraphView *oldGV, GraphView *newGV);
     Ui::MainWindow *ui;
+    GraphView *activeGraphView;
+    GraphView *taxonomyTreeView;
     QList<LoaderThread*> activeLoaderThreads;
     LeftPanel *leftPanel;
     TaxListWidget *taxListWidget;
+signals:
+    activeGraphViewChanged(GraphView *oldGV, GraphView *newGV);
 private slots:
     void mapIsLoaded();
     void updateLoadedNames();
     void open_tab_blast_file();
+    GraphView *openTaxonomyTreeView();
     void treeIsLoaded(void *obj);
+    void blastIsLoaded(void *obj);
+    void blastLoadingProgress(void *obj);
+    void closeGraphView(int);
+    void onCurrentTabCnaged(int);
 };
 extern MainWindow *mainWindow;
 

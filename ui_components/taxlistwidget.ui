@@ -38,7 +38,10 @@
       <bool>false</bool>
      </property>
      <property name="alternatingRowColors">
-      <bool>false</bool>
+      <bool>true</bool>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::ExtendedSelection</enum>
      </property>
      <property name="selectionBehavior">
       <enum>QAbstractItemView::SelectRows</enum>
@@ -48,6 +51,9 @@
      </property>
      <property name="gridStyle">
       <enum>Qt::DotLine</enum>
+     </property>
+     <property name="sortingEnabled">
+      <bool>true</bool>
      </property>
      <property name="wordWrap">
       <bool>false</bool>

@@ -3,7 +3,8 @@
 TaxNodeSignalSender taxNodeSignalSender;
 
 TaxNodeSignalSender::TaxNodeSignalSender(QObject *parent)
-    : QObject(parent)
+    : QObject(parent),
+      sendSignals(true)
 {
 
 }
@@ -15,27 +16,38 @@ void TaxNodeSignalSender::setNode(BaseTaxNode *_node)
 
 void TaxNodeSignalSender::VisibilityChanged(bool visible)
 {
-    emit visibilityChanged(node, visible);
+    if ( sendSignals )
+        emit visibilityChanged(node, visible);
 }
 
 void TaxNodeSignalSender::CollapsedChanged(bool collapsed)
 {
-    emit collapsedChanged(node, collapsed);
+    if ( sendSignals )
+        emit collapsedChanged(node, collapsed);
 }
 
 void TaxNodeSignalSender::GnodeCreated()
 {
-    emit gnodeCreated(node);
+    if ( sendSignals )
+        emit gnodeCreated(node);
 }
 
 void TaxNodeSignalSender::GnodeRemoved()
 {
-    emit gnodeRemoved(node);
+    if ( sendSignals )
+       emit gnodeRemoved(node);
 }
 
 void TaxNodeSignalSender::makeCurrent()
 {
-    emit makeCurrent(node);
+    if ( sendSignals )
+        emit makeCurrent(node);
+}
+
+void TaxNodeSignalSender::BigChangesHappened()
+{
+    if ( sendSignals )
+        emit bigChangesHappened();
 }
 
 

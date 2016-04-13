@@ -6,7 +6,7 @@ TEMPLATE = app
 TARGET = Marva
 QT += widgets core gui
 INCLUDEPATH += .
-
+QMAKE_CXXFLAGS += -std=c++11
 # Input
 HEADERS += edge.h graphwidget.h \
     blast_record.h \
@@ -23,12 +23,16 @@ HEADERS += edge.h graphwidget.h \
     ui_components/taxlistwidget.h \
     taxnodesignalsender.h \
     ui_components/leftpanel.h \
-    ui_components/currenttaxnodedetails.h
+    ui_components/currenttaxnodedetails.h \
+    ui_components/labeleddoublespinbox.h \
+    common.h \
+    taxdataprovider.h
 FORMS += \
     main_window.ui \
     ui_components/taxlistwidget.ui \
     ui_components/leftpanel.ui \
-    ui_components/currenttaxnodedetails.ui
+    ui_components/currenttaxnodedetails.ui \
+    ui_components/labeleddoublespinbox.ui
 SOURCES += edge.cpp graphwidget.cpp \
     blast_record.cpp \
     blast_data.cpp \
@@ -44,4 +48,6 @@ SOURCES += edge.cpp graphwidget.cpp \
     ui_components/taxlistwidget.cpp \
     taxnodesignalsender.cpp \
     ui_components/leftpanel.cpp \
-    ui_components/currenttaxnodedetails.cpp
+    ui_components/currenttaxnodedetails.cpp \
+    ui_components/labeleddoublespinbox.cpp \
+    taxdataprovider.cpp

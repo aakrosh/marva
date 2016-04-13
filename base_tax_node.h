@@ -21,10 +21,10 @@ class BaseTaxNode
 protected:
     bool collapsed;
     GraphNode *gnode;
+    bool is_visible;
 public:
     ChildrenList children;
     BaseTaxNode *parent;
-    bool visible;
 
     BaseTaxNode(bool collapsed);
     virtual ~BaseTaxNode(){}
@@ -42,6 +42,8 @@ public:
     virtual int getLevel() = 0;
     virtual void setLevel(int level) = 0;
     virtual QString getText() = 0;
+    virtual void setVisible(bool v, bool force=false);
+    virtual bool visible() { return is_visible; }
 
     friend class GraphNode;
 };

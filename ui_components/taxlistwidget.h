@@ -8,10 +8,10 @@
 #include <QGraphicsView>
 
 #include <QDebug>
-#include <QList>
 
 class TaxNode;
 class BaseTaxNode;
+class TaxDataProvider;
 
 namespace Ui {
     class TaxListWidget;
@@ -37,37 +37,14 @@ public:
     virtual void clear();
 };
 
-extern TaxMap taxMap;
-class GlobalTaxMapDataProvider : public TaxDataProvider
-{
-    QList<TaxNode *> taxnodes;
-    QList<int> ids;
-public:
-    GlobalTaxMapDataProvider();
-    virtual quint32 count();
-    virtual qint32 id(quint32 index);
-    virtual BaseTaxNode *taxNode(quint32 index);
-    virtual quint32 reads(quint32 /*index*/);
-    virtual quint32 indexOf(qint32 id);
-    virtual void updateCache(bool values_only);
-    virtual QVariant checkState(int index);
-    virtual void setCheckedState(int index, QVariant value);
-};
-
 class TaxListTableModel : public QAbstractItemModel
 {
 private:
-  //TaxMap *listTaxMap;
   TaxDataProvider *taxDataProvider;
-  //QList<TaxNode *> taxnodes;
-  //QList<int> ids;
 
 public:
   TaxListTableModel(QObject *parent);
-  ~TaxListTableModel()
-  {
-      delete taxDataProvider;
-  }
+  ~TaxListTableModel();
   QModelIndex index(int row, int column, const QModelIndex &/*parent*/ = QModelIndex()) const;
   QModelIndex parent(const QModelIndex &) const;
   int rowCount(const QModelIndex &parent = QModelIndex()) const ;
@@ -77,7 +54,6 @@ public:
   QVariant headerData(int section, Qt::Orientation orientation, int role) const;
   void sort(int column, Qt::SortOrder order);
   void emitDataChangedSignal(const QModelIndex &start, const QModelIndex &end);
-//  void setTaxMap(TaxMap *taxMap, bool refreshValuesOnly);
   void setTaxDataProvider(TaxDataProvider *td, bool refreshValuesOnly);
   Qt::ItemFlags flags(const QModelIndex &index) const;
   void clearCache();
@@ -93,10 +69,9 @@ class TaxListWidget : public QWidget
 public:
     explicit TaxListWidget(QWidget *parent = 0);
     ~TaxListWidget();
-//    inline void setTaxMap(TaxMap *map) { model->listTaxMap = map; }
-    inline void setTaxDataProvider(TaxDataProvider *tdp) { model->taxDataProvider = tdp; }
+    inline void setTaxDataProvider(TaxDataProvider *tdp) { model->taxDataProvider = tdp; reset(); }
     void reset();
-
+    virtual bool eventFilter(QObject *object, QEvent *event);
 private:
     Ui::TaxListWidget *ui;
     int oldRowCount;
@@ -105,6 +80,7 @@ signals:
     void currentTaxChanged(BaseTaxNode *);
 
 private slots:
+    void resetView();
     void refresh();
     void refreshAll();
     void refreshValues();
