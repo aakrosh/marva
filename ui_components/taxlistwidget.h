@@ -69,7 +69,7 @@ class TaxListWidget : public QWidget
 public:
     explicit TaxListWidget(QWidget *parent = 0);
     ~TaxListWidget();
-    inline void setTaxDataProvider(TaxDataProvider *tdp) { model->taxDataProvider = tdp; reset(); }
+    void setTaxDataProvider(TaxDataProvider *tdp);
     void reset();
     virtual bool eventFilter(QObject *object, QEvent *event);
 private:

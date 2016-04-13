@@ -29,6 +29,12 @@ TaxListWidget::~TaxListWidget()
     delete ui;
 }
 
+void TaxListWidget::setTaxDataProvider(TaxDataProvider *tdp)
+{
+    model->taxDataProvider = tdp;
+    reset();
+}
+
 //=========================================================================
 bool TaxListWidget::eventFilter(QObject *object, QEvent *event)
 {
@@ -72,6 +78,7 @@ void TaxListWidget::reset()
         return;
     oldRowCount = model->taxDataProvider->count();
     model->beginResetModel();
+    model->clearCache();
     model->endResetModel();
 }
 
