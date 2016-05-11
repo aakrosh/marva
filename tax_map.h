@@ -9,7 +9,7 @@
 #include <QVariant>
 
 class QString;
-class GraphNode;
+class TaxTreeGraphNode;
 class GraphView;
 
 class TaxNode : public BaseTaxNode
@@ -23,7 +23,7 @@ public:
     virtual int getLevel() { return level; }
     virtual void setLevel(int _level) { level = _level; }
     virtual QString getText() { return text; }
-    virtual GraphNode *createGnode(GraphView *gv);
+    virtual TaxTreeGraphNode *createGnode(GraphView *gv);
 
 protected:
 private:
@@ -35,7 +35,7 @@ private:
     friend class TaxNodeVisitor;
     friend class TreeLoaderThread;
     friend class TaxMap;
-    friend class GraphNode;
+    friend class TaxTreeGraphNode;
 };
 
 typedef QList<BaseTaxNode *>::iterator TaxNodeIterator;

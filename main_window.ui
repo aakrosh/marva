@@ -80,6 +80,7 @@
      <string>Views</string>
     </property>
     <addaction name="actionTaxonomyTree"/>
+    <addaction name="actionCreateChart"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuViews"/>
@@ -133,6 +134,11 @@
    </property>
    <property name="toolTip">
     <string>Open taxonomy tree</string>
+   </property>
+  </action>
+  <action name="actionCreateChart">
+   <property name="text">
+    <string>Create chart</string>
    </property>
   </action>
  </widget>

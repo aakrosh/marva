@@ -1,6 +1,6 @@
 #include "base_tax_node.h"
 #include "graph_node.h"
-#include "graphwidget.h"
+#include "graphview.h"
 #include "taxnodesignalsender.h"
 
 //=========================================================================

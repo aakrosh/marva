@@ -8,7 +8,7 @@ QT += widgets core gui
 INCLUDEPATH += .
 QMAKE_CXXFLAGS += -std=c++11
 # Input
-HEADERS += edge.h graphwidget.h \
+HEADERS += edge.h \
     blast_record.h \
     blast_data.h \
     main_window.h \
@@ -26,14 +26,17 @@ HEADERS += edge.h graphwidget.h \
     ui_components/currenttaxnodedetails.h \
     ui_components/labeleddoublespinbox.h \
     common.h \
-    taxdataprovider.h
+    taxdataprovider.h \
+    chartview.h \
+    datagraphicsview.h \
+    graphview.h
 FORMS += \
     main_window.ui \
     ui_components/taxlistwidget.ui \
     ui_components/leftpanel.ui \
     ui_components/currenttaxnodedetails.ui \
     ui_components/labeleddoublespinbox.ui
-SOURCES += edge.cpp graphwidget.cpp \
+SOURCES += edge.cpp \
     blast_record.cpp \
     blast_data.cpp \
     main_window.cpp \
@@ -50,4 +53,7 @@ SOURCES += edge.cpp graphwidget.cpp \
     ui_components/leftpanel.cpp \
     ui_components/currenttaxnodedetails.cpp \
     ui_components/labeleddoublespinbox.cpp \
-    taxdataprovider.cpp
+    taxdataprovider.cpp \
+    chartview.cpp \
+    datagraphicsview.cpp \
+    graphview.cpp

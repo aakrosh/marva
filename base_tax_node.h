@@ -7,7 +7,7 @@
 #include <QString>
 
 class GraphView;
-class GraphNode;
+class TaxTreeGraphNode;
 
 class BaseTaxNode;
 
@@ -20,9 +20,9 @@ class BaseTaxNode
 {
 protected:
     bool collapsed;
-    GraphNode *gnode;
-    bool is_visible;
 public:
+    TaxTreeGraphNode *gnode;
+    bool is_visible;
     ChildrenList children;
     BaseTaxNode *parent;
 
@@ -34,8 +34,8 @@ public:
     virtual void mergeWith(BaseTaxNode *other, GraphView *gview);
 
     virtual void removeGnode() { gnode = NULL; }
-    virtual GraphNode *getGnode() { return gnode; }
-    virtual GraphNode *createGnode(GraphView *gv) = 0;
+    virtual TaxTreeGraphNode *getGnode() { return gnode; }
+    virtual TaxTreeGraphNode *createGnode(GraphView *gv) = 0;
     // Abstract methods
     virtual QString getName() = 0;
     virtual qint32 getId() = 0;
@@ -45,6 +45,7 @@ public:
     virtual void setVisible(bool v, bool force=false);
     virtual bool visible() { return is_visible; }
 
+    friend class TaxTreeGraphNode;
     friend class GraphNode;
 };
 

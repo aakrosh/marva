@@ -1,7 +1,7 @@
 #ifndef TREE_LOADER_THREAD_H
 #define TREE_LOADER_THREAD_H
 
-#include "graphwidget.h"
+#include "graphview.h"
 #include "tax_map.h"
 #include "loader_thread.h"
 

@@ -50,7 +50,7 @@
 static const double Pi = 3.14159265358979323846264338327950288419717;
 
 //=========================================================================
-Edge::Edge(GraphNode *sourceNode, GraphNode *destNode)
+Edge::Edge(TaxTreeGraphNode *sourceNode, TaxTreeGraphNode *destNode)
     : arrowSize(10)
 {
     setAcceptedMouseButtons(0);
@@ -61,13 +61,13 @@ Edge::Edge(GraphNode *sourceNode, GraphNode *destNode)
 }
 
 //=========================================================================
-GraphNode *Edge::sourceNode() const
+TaxTreeGraphNode *Edge::sourceNode() const
 {
     return source;
 }
 
 //=========================================================================
-GraphNode *Edge::destNode() const
+TaxTreeGraphNode *Edge::destNode() const
 {
     return dest;
 }

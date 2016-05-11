@@ -43,17 +43,17 @@
 
 #include <QGraphicsItem>
 
-class GraphNode;
+class TaxTreeGraphNode;
 
 #define LINE_BREAK_X 20
 
 class Edge : public QGraphicsItem
 {
 public:
-    Edge(GraphNode *sourceNode, GraphNode *destNode);
+    Edge(TaxTreeGraphNode *sourceNode, TaxTreeGraphNode *destNode);
 
-    GraphNode *sourceNode() const;
-    GraphNode *destNode() const;
+    TaxTreeGraphNode *sourceNode() const;
+    TaxTreeGraphNode *destNode() const;
 
     void adjust();
 
@@ -65,7 +65,7 @@ protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
 
 private:
-    GraphNode *source, *dest;
+    TaxTreeGraphNode *source, *dest;
 
     QPointF points[4];
     qreal arrowSize;

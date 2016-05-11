@@ -2,9 +2,10 @@
 #define MAIN_WINDOW_H
 
 #include <QMainWindow>
-#include "graphwidget.h"
+#include "graphview.h"
 #include "blast_data.h"
 #include "ui_components/statuslistpanel.h"
+#include "chartview.h"
 
 namespace Ui {
 class MainWindow;
@@ -28,33 +29,37 @@ public:
     StatusListPanel *statusList;
     LabeledDoubleSpinBox *readsSB;
     GlobalTaxMapDataProvider *globalTaxDataProvider;
-    void addGraphView(GraphView *gv, QString label);
+    void addGraphView(QWidget *gv, QString label);
 
-    void setActiveGraphView(GraphView *gv);
+    void setActiveGraphView(DataGraphicsView *gv);
 
 protected:
     virtual void closeEvent(QCloseEvent *event);
 private:
 
-    void connectGraphView(GraphView *oldGV, GraphView *newGV);
+    void connectGraphView(DataGraphicsView *oldGV, DataGraphicsView *newGV);
+    void updateAllDirtyNames();
     Ui::MainWindow *ui;
-    GraphView *activeGraphView;
+    DataGraphicsView *activeGraphView;
     GraphView *taxonomyTreeView;
     QList<LoaderThread*> activeLoaderThreads;
     LeftPanel *leftPanel;
     TaxListWidget *taxListWidget;
 signals:
-    activeGraphViewChanged(GraphView *oldGV, GraphView *newGV);
+    activeGraphViewChanged(DataGraphicsView *oldGV, DataGraphicsView *newGV);
 private slots:
     void mapIsLoaded();
     void updateLoadedNames();
     void open_tab_blast_file();
     GraphView *openTaxonomyTreeView();
+    BlastTaxDataProviders *getAllBlastDataProviders();
+    ChartView *createChartView();
     void treeIsLoaded(void *obj);
     void blastIsLoaded(void *obj);
     void blastLoadingProgress(void *obj);
     void closeGraphView(int);
     void onCurrentTabCnaged(int);
+    void activeGraphViewDestroyed();
 };
 extern MainWindow *mainWindow;
 

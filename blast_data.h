@@ -21,9 +21,7 @@ class TaxColorSrc : public TaxColorMap
 public:
     virtual quint32 getColor(qint32 tax_id);
 };
-//extern TaxColorSrc colorSrc;
 class BlastTaxNode;
-//typedef QMap<qint32, BlastTaxNode *> BlastNodeMap;
 
 class BlastNodeMap : public QMap<qint32, BlastTaxNode *>
 {
@@ -45,8 +43,9 @@ public:
     virtual qint32 getId() { return tNode->getId(); }
     virtual int getLevel() { return tNode->getLevel(); }
     virtual void setLevel(int) { } //The level of tNode is already set and could not be modified
-    virtual GraphNode *createGnode(GraphView *gv);
+    virtual TaxTreeGraphNode *createGnode(GraphView *gv);
     virtual QString getText() { return tNode->getText(); }
+    BlastTaxNode *clone();
 };
 
 class BlastDataTreeLoader: public LoaderThread
@@ -58,7 +57,6 @@ private:
 public:
     BlastDataTreeLoader(QObject *parent, QString fileName, BlastTaxDataProvider *dp, BlastFileType _type);
     ~BlastDataTreeLoader();
-    //BlastNodeMap *blastNodeMap;
 protected:
     virtual void processLine(QString &line);
 

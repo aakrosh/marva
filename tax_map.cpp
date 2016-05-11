@@ -1,6 +1,6 @@
 #include "tax_map.h"
 #include "graph_node.h"
-#include "graphwidget.h"
+#include "graphview.h"
 #include "edge.h"
 
 #include <QString>
@@ -118,8 +118,8 @@ TaxNode *TaxNode::TaxNode::addChildById(quint32 chId)
 }
 
 //=========================================================================
-GraphNode *TaxNode::createGnode(GraphView *gv)
+TaxTreeGraphNode *TaxNode::createGnode(GraphView *gv)
 {
-    gnode = new GraphNode(gv, this);
+    gnode = new TaxTreeGraphNode(gv, this);
     return gnode;
 }

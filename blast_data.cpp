@@ -3,10 +3,10 @@
 #include "graph_node.h"
 #include "taxdataprovider.h"
 
-#include <QFile>
 #include <QTextStream>
 #include <QMessageBox>
 #include <QDebug>
+#include <QFileInfo>
 #include <exception>
 using namespace std;
 
@@ -19,9 +19,10 @@ BlastDataTreeLoader::BlastDataTreeLoader(QObject *parent, QString fileName, Blas
     type(_type),
     root(NULL),
     dataProvider(dp)
-{
-
+{    
+    dp->name = QFileInfo(fileName).fileName();
 }
+
 
 //=========================================================================
 BlastDataTreeLoader::~BlastDataTreeLoader()
@@ -58,9 +59,8 @@ void BlastDataTreeLoader::processLine(QString &line)
             else
             {
                 quint32 r = ++bit.value()->reads;
-                if ( dataProvider->blastNodeMap->max_reads < r )
-                    dataProvider->blastNodeMap->max_reads = r;
-                GraphNode *gn = bit.value()->getGnode();
+                if ( dataProvider->blastNodeMap->max_reads < r )                    dataProvider->blastNodeMap->max_reads = r;
+                TaxTreeGraphNode *gn = bit.value()->getGnode();
                 if ( gn != NULL )
                     gn->markDirty(DIRTY_NAME);
             }
@@ -76,7 +76,18 @@ void BlastDataTreeLoader::processLine(QString &line)
 //=========================================================================
 BlastTaxNode::BlastTaxNode(TaxNode *refNode, int _count, BlastNodeMap *blastNodeMap):BaseTaxNode(false), reads(_count), tNode(refNode)
 {
-    blastNodeMap->insert(refNode->getId(), this);
+    if ( blastNodeMap != NULL )
+        blastNodeMap->insert(refNode->getId(), this);
+}
+
+//=========================================================================
+BlastTaxNode *BlastTaxNode::clone()
+{
+    BlastTaxNode *n = new BlastTaxNode(tNode, reads, NULL);
+    n->collapsed = collapsed;
+    n->gnode = NULL;
+    n->is_visible = is_visible;
+    return n;
 }
 
 //=========================================================================
@@ -98,11 +109,12 @@ BlastTaxNode *BlastTaxNode::createPathToNode(BlastNodeMap *blastNodeMap)
 
 #include "graph_node.h"
 //=========================================================================
-GraphNode *BlastTaxNode::createGnode(GraphView *gv)
+TaxTreeGraphNode *BlastTaxNode::createGnode(GraphView *gv)
 {
     gnode = new BlastGraphNode(gv, this);
     return gnode;
 }
+
 
 //=========================================================================
 quint32 TaxColorSrc::getColor(qint32 tax_id)

@@ -41,6 +41,7 @@ public:
     virtual qint32 id(quint32 index);
     virtual BaseTaxNode *taxNode(quint32 index);
     virtual quint32 reads(quint32 index);
+    virtual QString text(quint32 index);
     virtual quint32 readsById(quint32 id);
     virtual quint32 indexOf(qint32 id);
     virtual void updateCache(bool /*ids_only*/) {}
@@ -77,6 +78,7 @@ class BlastTaxDataProvider : public TaxDataProvider
     QReadWriteLock lock;
     BlastNodeMap *blastNodeMap;
 public:
+    QString name;
     BlastTaxDataProvider(QObject *parent);
     virtual quint32 reads(quint32 index);
     virtual quint32 readsById(quint32 id);
@@ -91,5 +93,7 @@ public slots:
 
     friend class BlastDataTreeLoader;
 };
+
+typedef QList<BlastTaxDataProvider*> BlastTaxDataProviders;
 
 #endif // TAXDATAPROVIDER_H

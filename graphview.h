@@ -45,21 +45,22 @@
 #include "tax_map.h"
 #include "threadsafelist.h"
 #include "blast_data.h"
+#include "datagraphicsview.h"
 
-class GraphNode;
+class TaxTreeGraphNode;
 class TreeLoaderThread;
 class TaxColorSrc;
 class BlastData;
 class QMenu;
 class TaxDataProvider;
 
-class DirtyGNodesList: public ThreadSafeList<GraphNode *>
+class DirtyGNodesList: public ThreadSafeList<TaxTreeGraphNode *>
 {
 public:
-    virtual void Add(GraphNode *node);
+    virtual void Add(TaxTreeGraphNode *node);
 };
 
-class GraphView : public QGraphicsView
+class GraphView : public DataGraphicsView
 {
     Q_OBJECT
 
@@ -69,8 +70,6 @@ public:
     int max_node_y;
     TaxMap *tax_map;
     BaseTaxNode *root;
-    //BlastNodeMap *blastNodeMap;
-    TaxDataProvider *taxDataProvider;
     QMenu *nodePopupMenu;
     QAction *hideNodeAction;
     bool persistant;
@@ -88,8 +87,6 @@ public:
     void markAllNodesDirty();
     void updateDirtyNodes(quint32 flag);
     void createMissedGraphNodes();
-    void setCurrentNode(BaseTaxNode *);
-    inline BaseTaxNode *currentNode() { return curNode; }
 
     DirtyGNodesList dirtyList;
 
@@ -106,7 +103,6 @@ private:
     int vert_interval;
     bool create_nodes;
     int treeDepth;
-    BaseTaxNode *curNode;
 
     void shrink_vertically(int s=4);
     void expand_vertically(int s=4);
@@ -126,14 +122,23 @@ signals:
 private slots:
     void blastLoadingProgress(void *bdata);
     void blastIsLoaded(void *bdata);
-    void onCurrentNodeChanged(BaseTaxNode *);
     void hideCurrent();
+protected slots:
+    virtual void onCurrentNodeChanged(BaseTaxNode *);
 public slots:
-    void onNodeVisibilityChanged(BaseTaxNode*,bool);
-    void onReadsThresholdChanged(quint32 oldT, quint32 newT);
-    void reset();
-    void onTreeChanged();
-    void onNodeNamesChanged();
+    virtual void onNodeVisibilityChanged(BaseTaxNode*,bool);
+    virtual void reset();
+    virtual void onReadsThresholdChanged(quint32 oldT, quint32 newT);
+    virtual void onTreeChanged();
+    virtual void onNodeNamesChanged();
+};
+
+class BlastGraphView : public GraphView
+{
+public:
+    BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidget *parent, TaxNode *taxTree);
+    inline BlastTaxDataProvider *blastTaxDataProvider() { return (BlastTaxDataProvider *)taxDataProvider; }
+
 };
 
 #endif // GRAPHWIDGET_H

@@ -1,10 +1,11 @@
 
 #include "edge.h"
 #include "graph_node.h"
-#include "graphwidget.h"
+#include "graphview.h"
 #include "tax_map.h"
 #include "taxdataprovider.h"
-
+#include "taxnodesignalsender.h"
+#include "chartview.h"
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 #include <QPainter>
@@ -15,19 +16,17 @@
 
 #define NODE_CIRCLE_SIZE  8
 #define HALF_PLUS_SIZE 3
-#define MAX_NODE_SIZE  10
+#define MAX_NODE_RADIUS  30
+
 
 //=========================================================================
-GraphNode::GraphNode(GraphView *graphWidget, BaseTaxNode *node)
-    :
+GraphNode::GraphNode(DataGraphicsView *view, BaseTaxNode *node):
       tax_node(node),
       edge(NULL),
-      view(graphWidget)
+      view(view)
 {
     setFlag(ItemSendsGeometryChanges);
     setCacheMode(DeviceCoordinateCache);
-    dirty = 0;
-    node->gnode = this;
     updateToolTip();
 }
 
@@ -43,13 +42,41 @@ GraphNode::~GraphNode()
     tax_node->removeGnode();
 }
 
+
+//=========================================================================
+void GraphNode::updateToolTip()
+{
+    setToolTip(tax_node->getText().append("\nid = %1").arg(tax_node->getId()));
+}
+
 //=========================================================================
 void GraphNode::addEdge(Edge *_edge)
 {
-    //edgeList << edge;
     edge = _edge;
     edge->adjust();
 }
+
+//=========================================================================
+TaxTreeGraphNode::TaxTreeGraphNode(GraphView *gView, BaseTaxNode *node):
+    GraphNode(gView, node),
+    dirty(0)
+{
+    node->gnode = this;
+}
+
+//=========================================================================
+void GraphNode::adjustAdges()
+{
+    if ( edge != NULL )
+        edge->adjust();
+}
+
+//=========================================================================
+quint32 GraphNode::color()
+{
+    return taxColorSrc.getColor(tax_node->getId());
+}
+
 
 //=========================================================================
 QRectF GraphNode::boundingRect() const
@@ -58,7 +85,13 @@ QRectF GraphNode::boundingRect() const
 }
 
 //=========================================================================
-QPainterPath GraphNode::shape() const
+TaxTreeGraphNode::~TaxTreeGraphNode()
+{
+
+}
+
+//=========================================================================
+QPainterPath TaxTreeGraphNode::shape() const
 {
     QPainterPath path;
     path.addEllipse(QPointF(0, 0), NODE_CIRCLE_SIZE, NODE_CIRCLE_SIZE);
@@ -76,7 +109,7 @@ QPainterPath GraphNode::shape() const
 }
 
 //=========================================================================
-void GraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
+void TaxTreeGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 {
     QColor mainColor = tax_node == view->currentNode() ? Qt::red : Qt::black;
     painter->setBrush(Qt::transparent);
@@ -104,19 +137,10 @@ void GraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidg
 }
 
 //=========================================================================
-void GraphNode::adjustAdges()
-{
-    if ( tax_node->isCollapsed() )
-        return;
-    if ( edge != NULL )
-        edge->adjust();
-}
-
-//=========================================================================
-void GraphNode::markDirty(qint32 dirty_flags, DirtyGNodesList *dirtyList)
+void TaxTreeGraphNode::markDirty(qint32 dirty_flags, DirtyGNodesList *dirtyList)
 {
     if ( dirtyList == NULL )
-        dirtyList = &view->dirtyList;
+        dirtyList = &((GraphView *)view)->dirtyList;
     if ( (dirty & dirty_flags) == dirty_flags )
         return;
     dirty |= dirty_flags;
@@ -124,14 +148,14 @@ void GraphNode::markDirty(qint32 dirty_flags, DirtyGNodesList *dirtyList)
 }
 
 //=========================================================================
-void GraphNode::clearDirtyFlag(qint32 dirty_flag)
+void TaxTreeGraphNode::clearDirtyFlag(qint32 dirty_flag)
 {
     dirty &= ~dirty_flag;
     updateToolTip();
 }
 
 //=========================================================================
-QVariant GraphNode::itemChange(GraphicsItemChange change, const QVariant &value)
+QVariant TaxTreeGraphNode::itemChange(GraphicsItemChange change, const QVariant &value)
 {
     switch (change)
     {
@@ -146,9 +170,10 @@ QVariant GraphNode::itemChange(GraphicsItemChange change, const QVariant &value)
 }
 
 //=========================================================================
-void GraphNode::mousePressEvent(QGraphicsSceneMouseEvent *event)
+void TaxTreeGraphNode::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-  view->setCurrentNode(tax_node);
+  TaxNodeSignalSender *tnss = getTaxNodeSignalSender(tax_node);
+  tnss->makeCurrent();
   if ( QRectF(-NODE_CIRCLE_SIZE, -NODE_CIRCLE_SIZE, 2*NODE_CIRCLE_SIZE, 2*NODE_CIRCLE_SIZE).contains(event->pos()) )
     tax_node->setCollapsed(!tax_node->isCollapsed(), true);
   update();
@@ -156,20 +181,20 @@ void GraphNode::mousePressEvent(QGraphicsSceneMouseEvent *event)
 }
 
 //=========================================================================
-void GraphNode::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
+void TaxTreeGraphNode::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
   update();
   QGraphicsItem::mouseReleaseEvent(event);
 }
 
 //=========================================================================
-void GraphNode::contextMenuEvent(QGraphicsSceneContextMenuEvent *event)
+void TaxTreeGraphNode::contextMenuEvent(QGraphicsSceneContextMenuEvent *event)
 {
-    view->nodePopupMenu->popup(event->screenPos());
+    ((GraphView *)view)->nodePopupMenu->popup(event->screenPos());
 }
 
 //=========================================================================
-void GraphNode::addToScene(QGraphicsScene *scene)
+void TaxTreeGraphNode::addToScene(QGraphicsScene *scene)
 {
   if ( !tax_node->isCollapsed() )
   {
@@ -184,7 +209,7 @@ void GraphNode::addToScene(QGraphicsScene *scene)
 }
 
 //=========================================================================
-void GraphNode::setAsRoot(QGraphicsScene *scene)
+void TaxTreeGraphNode::setAsRoot(QGraphicsScene *scene)
 {
   foreach(QGraphicsItem *i, scene->items())
     scene->removeItem(i);
@@ -192,15 +217,7 @@ void GraphNode::setAsRoot(QGraphicsScene *scene)
 }
 
 //=========================================================================
-void GraphNode::move(int dy)
-{
-     QPointF p = pos();
-     p.setY(p.y()+dy);
-     setPos(p);
-}
-
-//=========================================================================
-void GraphNode::deleteChildrenNodes()
+void TaxTreeGraphNode::deleteChildrenNodes()
 {
     class GNodeDestroyer : public TaxNodeVisitor
     {
@@ -212,7 +229,7 @@ void GraphNode::deleteChildrenNodes()
         {
             if ( excl == node )
                 return;
-            GraphNode *gnode = node->getGnode();
+            TaxTreeGraphNode *gnode = node->getGnode();
             if ( gnode != NULL )
             {
                 graphView->dirtyList.Delete(gnode);
@@ -221,19 +238,14 @@ void GraphNode::deleteChildrenNodes()
             }
         }
     };
-    GNodeDestroyer gNodeDestroyer(view, tax_node);
+    GNodeDestroyer gNodeDestroyer(((GraphView *)view), tax_node);
     gNodeDestroyer.Visit(tax_node);
 }
 
 //=========================================================================
-void GraphNode::updateToolTip()
+void TaxTreeGraphNode::onNodeCollapsed(bool collapsed)
 {
-    setToolTip(tax_node->getText().append("\nid = %1").arg(tax_node->getId()));
-}
-
-//=========================================================================
-void GraphNode::onNodeCollapsed(bool collapsed)
-{
+    GraphView *gview = ((GraphView *)view);
     QPointF p_old = view->mapFromScene(pos());
     if ( collapsed )
     {
@@ -241,38 +253,38 @@ void GraphNode::onNodeCollapsed(bool collapsed)
         tax_node->setCollapsed(false, false);
         deleteChildrenNodes();
         tax_node->setCollapsed(true, false);
-        view->resetNodesCoordinates();
+        gview->resetNodesCoordinates();
     }
     else
     {
-        view->createMissedGraphNodes();    
+        gview->createMissedGraphNodes();
     }
-    view->adjust_scene_boundaries();
+    gview->adjust_scene_boundaries();
     QPointF p_new = view->mapFromScene(pos());
     view->verticalScrollBar()->setValue(view->verticalScrollBar()->value()+p_new.y()-p_old.y());
     view->update();
 }
 
 //=========================================================================
-QString GraphNode::text()
+QString TaxTreeGraphNode::text()
 {
     QString txt = tax_node->getText();
     if ( txt.isEmpty() )
     {
-        markDirty(DIRTY_NAME, &view->dirtyList);
+        markDirty(DIRTY_NAME, &((GraphView *)view)->dirtyList);
         return (QString("%0").arg(tax_node->getId()));
     }
     return QString(txt).append("(%0)").arg(tax_node->getId());
 }
 
 //=========================================================================
-QString GraphNode::get_const_text() const
+QString TaxTreeGraphNode::get_const_text() const
 {
     return QString(tax_node->getText()).append("(%0)").arg(tax_node->getId());
 }
 
 //=========================================================================
-bool GraphNode::isGreyedOut()
+bool TaxTreeGraphNode::isGreyedOut()
 {
     return tax_node->getId() <= 0;
 }
@@ -281,7 +293,7 @@ bool GraphNode::isGreyedOut()
 //*************************************************************************
 //=========================================================================
 BlastGraphNode::BlastGraphNode(GraphView *graphWidget, BlastTaxNode *node) :
-    GraphNode(graphWidget, node)
+    TaxTreeGraphNode(graphWidget, node)
 {
 
 }
@@ -289,7 +301,7 @@ BlastGraphNode::BlastGraphNode(GraphView *graphWidget, BlastTaxNode *node) :
 //=========================================================================
 QPainterPath BlastGraphNode::shape() const
 {
-    QPainterPath path = GraphNode::shape();
+    QPainterPath path = TaxTreeGraphNode::shape();
     int s = size();
     path.addEllipse(QPointF(0, 0), s, s);
     return path;
@@ -310,29 +322,101 @@ void BlastGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *op
         painter->setBrush(gradient);
         painter->drawEllipse(QPointF(0, 0), s, s);
     }
-    GraphNode::paint(painter, option, widget);
+    TaxTreeGraphNode::paint(painter, option, widget);
 }
 
 //=========================================================================
 int BlastGraphNode::size() const
 {
-    quint32 maxReads = view->taxDataProvider->getMaxReads();
+    quint32 maxReads = ((GraphView *)view)->taxDataProvider->getMaxReads();
     if ( maxReads == 0 )
         return 0;
-    quint32 reads = view->taxDataProvider->readsById(tax_node->getId());
+    quint32 reads = ((GraphView *)view)->taxDataProvider->readsById(tax_node->getId());
     if ( reads == 0 )
         return 0;
-    return reads*30/maxReads;
-}
-
-//=========================================================================
-quint32 BlastGraphNode::color()
-{
-    return taxColorSrc.getColor(tax_node->getId());
+    return reads*MAX_NODE_RADIUS/maxReads;
 }
 
 //=========================================================================
 void BlastGraphNode::updateToolTip()
 {
-    setToolTip(tax_node->getText().append("\nid = %0\nreads=%1").arg(tax_node->getId()).arg(size()));
+    quint32 reads = ((GraphView *)view)->taxDataProvider->readsById(tax_node->getId());
+    setToolTip(tax_node->getText().append("\nid = %0\nreads=%1").arg(tax_node->getId()).arg(reads));
+}
+
+//=========================================================================
+//*************************************************************************
+//=========================================================================
+ChartGraphNode::ChartGraphNode(DataGraphicsView *view, BaseTaxNode *node):
+    GraphNode(view, node),
+    maxNodeRadius(MAX_NODE_RADIUS)
+{
+
+}
+
+//=========================================================================
+QPainterPath ChartGraphNode::shape() const
+{
+    QPainterPath path;
+    int s = qMax(size(), 10);
+    path.addEllipse(QPointF(0, 0), s, s);
+    return path;
+}
+
+//=========================================================================
+void ChartGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
+{
+    int s = size();
+    if ( s > 0 )
+    {
+        QRadialGradient gradient(QPointF(0 ,0 ), s);
+        QColor col = color();
+        col.setAlpha(64);
+        gradient.setColorAt(0, col.darker(150));
+        gradient.setColorAt(1, col.lighter(150));
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(gradient);
+        painter->drawEllipse(QPointF(0, 0), s, s);
+    }
+    BaseTaxNode *cNode = view->currentNode();
+    if ( cNode == NULL )
+        return;
+    if ( tax_node->getId() == cNode->getId() )
+    {
+        painter->setPen(Qt::red);
+        painter->drawEllipse(QPointF(0, 0), s, s);
+    }
+}
+
+//=========================================================================
+void ChartGraphNode::setMaxNodeSize(quint32 size)
+{
+    maxNodeRadius = size/2;
+}
+
+//=========================================================================
+int ChartGraphNode::size() const
+{
+    return ((qreal)reads())/((ChartView *)view)->dataProvider()->getMaxReads()*maxNodeRadius;
+}
+
+//=========================================================================
+quint32 ChartGraphNode::reads() const
+{
+    return ((BlastTaxNode *)tax_node)->reads;
+}
+
+//=========================================================================
+void ChartGraphNode::updateToolTip()
+{
+    setToolTip(tax_node->getText().append("\nid = %0\nreads=%1").arg(tax_node->getId()).arg(reads()));
+}
+
+//=========================================================================
+void ChartGraphNode::mousePressEvent(QGraphicsSceneMouseEvent *event)
+{
+    TaxNodeSignalSender *tnss = getTaxNodeSignalSender(tax_node);
+    tnss->makeCurrent();
+    update();
+    QGraphicsItem::mousePressEvent(event);
 }

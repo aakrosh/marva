@@ -33,6 +33,13 @@ quint32 TaxDataProvider::reads(quint32)
     return 0;
 }
 
+//=========================================================================
+QString TaxDataProvider::text(quint32 index)
+{
+    return taxNode(index)->getText();
+}
+
+//=========================================================================
 quint32 TaxDataProvider::readsById(quint32)
 {
     return 0;
@@ -189,9 +196,11 @@ void BlastTaxDataProvider::updateCache(bool values_only)
         idTaxNodeList.reserve(blastNodeMap->size());
     }
     int i = 0;
+    if ( idTaxNodeList.size() < blastNodeMap->size() )
+        idTaxNodeList.reserve(blastNodeMap->size());
     for ( BlastNodeMap::iterator mit = blastNodeMap->begin(); mit != blastNodeMap->end(); ++mit )
     {
-        if ( values_only )
+        if ( values_only && i < idTaxNodeList.size() )
         {
             idTaxNodeList[i++].node = mit.value();
         }

@@ -1,7 +1,7 @@
 #ifndef MAP_LOADER_MAP_H
 #define MAP_LOADER_MAP_H
 
-#include "graphwidget.h"
+#include "graphview.h"
 #include "loader_thread.h"
 
 class GlobalTaxMapDataProvider;

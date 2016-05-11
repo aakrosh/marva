@@ -70,7 +70,6 @@ public:
     explicit TaxListWidget(QWidget *parent = 0);
     ~TaxListWidget();
     void setTaxDataProvider(TaxDataProvider *tdp);
-    void reset();
     virtual bool eventFilter(QObject *object, QEvent *event);
 private:
     Ui::TaxListWidget *ui;
@@ -87,6 +86,7 @@ private slots:
     void taxChanged(QModelIndex, QModelIndex);
     void onCurrentTaxChanged(BaseTaxNode *);
 public slots:
+    void reset();
     void onNodeVisibilityChanged(BaseTaxNode*,bool);
 };
 

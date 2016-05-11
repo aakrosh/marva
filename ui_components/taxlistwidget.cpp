@@ -8,7 +8,7 @@
 #include <QPaintEvent>
 #include <QtConcurrent/QtConcurrent>
 #include <functional>
-
+#include <qDebug>
 //=========================================================================
 TaxListWidget::TaxListWidget(QWidget *parent) :
     QWidget(parent),
@@ -77,20 +77,38 @@ void TaxListWidget::reset()
     if ( model == NULL || model->taxDataProvider == NULL )
         return;
     oldRowCount = model->taxDataProvider->count();
+    QModelIndexList sel = ui->tableView->selectionModel()->selectedRows(0);
+    QList<int> rows;
+    foreach(QModelIndex index, sel)
+        rows.append(index.row());
+    QtConcurrent::run(std::bind([] (QModelIndexList& ) {}, std::move(sel)));
+
     model->beginResetModel();
     model->clearCache();
     model->endResetModel();
+
+    ui->tableView->setSelectionMode(QAbstractItemView::MultiSelection);
+    if ( rows.count() == ui->tableView->model()->rowCount() )
+        ui->tableView->selectAll();
+    else
+    {
+        foreach(int row, rows)
+            ui->tableView->selectRow(row);
+    }
+    ui->tableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
 }
 
 //=========================================================================
 void TaxListWidget::refresh()
 {
-   /* if ( model->taxDataProvider == NULL )
-        model->setTaxDataProvider(, false);
-    else
-        model->setTaxDataProvider(NULL, false);*/
+    if ( model == NULL || model->taxDataProvider == NULL )
+        return;
+    QModelIndex i1 = ui->tableView->indexAt(ui->tableView->rect().topLeft());
+    QModelIndex i2 = ui->tableView->indexAt(ui->tableView->rect().bottomRight());
+    model->taxDataProvider->updateCache(true);
+    model->clearCache();
+    model->dataChanged(i1, i2);
 
-    reset();
     return;
 }
 
@@ -189,12 +207,7 @@ QVariant TaxListTableModel::data(const QModelIndex &index, int role) const
     {
         qint32 i = index.row();
         if ( !cache.contains(i) )
-        {
-            BaseTaxNode *n = taxDataProvider->taxNode(i);
-            if ( n == NULL )
-                return QVariant();
-            cache.addRecord(i, n->getText(), taxDataProvider->id(i), taxDataProvider->reads(i));
-        }
+            cache.addRecord(i, taxDataProvider->text(i), taxDataProvider->id(i), taxDataProvider->reads(i));
         TaxListCacheData *data = cache.value(i);
         switch( index.column() )
         {

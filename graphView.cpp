@@ -6,7 +6,7 @@
 #include <QMenu>
 #include <QAction>
 
-#include "graphwidget.h"
+#include "graphview.h"
 #include "edge.h"
 #include "graph_node.h"
 #include "map_loader_thread.h"
@@ -14,6 +14,7 @@
 #include "blast_data.h"
 #include "taxnodesignalsender.h"
 #include "taxdataprovider.h"
+#include "taxnodesignalsender.h"
 
 #define RIGHT_NODE_MARGIN   200
 #define MIN_DX 70
@@ -27,7 +28,7 @@ void GraphView::markAllNodesDirty()
         DirtyMarker(GraphView *gv) : TaxNodeVisitor(LeavesToRoot, false, gv){}
         virtual void Action(BaseTaxNode *node)
         {
-            GraphNode *gnode = node->getGnode();
+            TaxTreeGraphNode *gnode = node->getGnode();
             if ( gnode == NULL )
                 return;
             gnode->markDirty(DIRTY_ALL, &graphView->dirtyList);
@@ -40,14 +41,13 @@ void GraphView::markAllNodesDirty()
 
 //=========================================================================
 GraphView::GraphView(QWidget *parent, TaxNode *taxTree)
-    : QGraphicsView(parent),
+    : DataGraphicsView(NULL, parent),
       root(taxTree),
-      taxDataProvider(NULL),
       persistant(false),
       create_nodes(true),
-      treeDepth(0),
-      curNode(NULL)
+      treeDepth(0)
 {
+    curNode = NULL;
     QGraphicsScene *scene = new QGraphicsScene(this);
     scene->setItemIndexMethod(QGraphicsScene::NoIndex);
     setScene(scene);
@@ -145,10 +145,10 @@ void GraphView::goUp()
         gi = scene()->itemAt(p, transform());
         y -= h;
     }
-    while ( ( gi == NULL || gi->type() != GraphNode::Type ) && y > 0 );
-    if ( gi != NULL && gi->type() == GraphNode::Type )
+    while ( ( gi == NULL || gi->type() != TaxTreeGraphNode::Type ) && y > 0 );
+    if ( gi != NULL && gi->type() == TaxTreeGraphNode::Type )
     {
-        setCurrentNode(((GraphNode *)gi)->tax_node);
+        setCurrentNode(((TaxTreeGraphNode *)gi)->tax_node);
         return;
     }
 
@@ -176,10 +176,10 @@ void GraphView::goDown()
         gi = scene()->itemAt(p, transform());
         y += h;
     }
-    while ( ( gi == NULL || gi->type() != GraphNode::Type ) && y < scene()->itemsBoundingRect().height() );
-    if ( gi != NULL && gi->type() == GraphNode::Type )
+    while ( ( gi == NULL || gi->type() != TaxTreeGraphNode::Type ) && y < scene()->itemsBoundingRect().height() );
+    if ( gi != NULL && gi->type() == TaxTreeGraphNode::Type )
     {
-        setCurrentNode(((GraphNode *)gi)->tax_node);
+        setCurrentNode(((TaxTreeGraphNode *)gi)->tax_node);
         return;
     }
     int ind = curNode->parent->children.indexOf(curNode)+1;
@@ -352,7 +352,7 @@ void GraphView::AddNodeToScene(BaseTaxNode *node)
         else
             return;
     }
-    GraphNode *gnode = node->getGnode();
+    TaxTreeGraphNode *gnode = node->getGnode();
     scene()->addItem(gnode);
     Edge *e = gnode->edge;
     if ( e == NULL && node->parent != NULL )
@@ -533,9 +533,9 @@ void GraphView::resetNodesCoordinates()
             }
             node->getGnode()->setY(y);
         }
-        virtual void beforeVisitChildren(BaseTaxNode *node)
+        virtual void beforeVisitChildren(BaseTaxNode *)
         {
-            max_node_y += node->getGnode()->view->get_vert_interval()/4;
+            max_node_y += graphView->get_vert_interval()/4;
         }
         virtual void afterVisitChildren(BaseTaxNode *node)
         {
@@ -544,7 +544,7 @@ void GraphView::resetNodesCoordinates()
             int n = 0;
             for ( TaxNodeIterator it = list.begin(); it < list.end(); it++ )
             {
-                GraphNode *gnode = (*it)->getGnode();
+                TaxTreeGraphNode *gnode = (*it)->getGnode();
                 if ( gnode != NULL )
                 {
                     sum_y += gnode->y();
@@ -592,7 +592,7 @@ void GraphView::updateDirtyNodes(quint32 flag)
 {
     for (DirtyGNodesList::iterator it = dirtyList.begin(); it < dirtyList.end(); it++ )
     {
-        GraphNode *n = *it;
+        TaxTreeGraphNode *n = *it;
         if ( (n->dirty & flag) == 0 )
             continue;
         n->update();
@@ -624,15 +624,6 @@ void GraphView::createMissedGraphNodes()
     gnCreator.Visit(root);
     if ( gnCreator.nodesCreated > 0 )        
         resetNodesCoordinates();
-}
-
-//=========================================================================
-void GraphView::setCurrentNode(BaseTaxNode *node)
-{
-    if ( curNode == node )
-        return;
-    TaxNodeSignalSender *tnss = getTaxNodeSignalSender(node);
-    tnss->makeCurrent();
 }
 
 //=========================================================================
@@ -669,11 +660,11 @@ void GraphView::onCurrentNodeChanged(BaseTaxNode *node)
     curNode = node;
     if ( oldNode != NULL)
     {
-        GraphNode *oldGNode = oldNode->getGnode();
+        TaxTreeGraphNode *oldGNode = oldNode->getGnode();
         if ( oldGNode != NULL )
             oldGNode->update();
     }
-    GraphNode *gnode = curNode->getGnode();
+    TaxTreeGraphNode *gnode = curNode->getGnode();
     if ( gnode == NULL )
         return;
     gnode->update();
@@ -685,7 +676,7 @@ void GraphView::hideNode(BaseTaxNode *node, bool resetCoordinates)
 {
     if ( node == NULL )
         return;
-    GraphNode *gnode = node->getGnode();
+    TaxTreeGraphNode *gnode = node->getGnode();
     if ( gnode == NULL || !scene()->items().contains(gnode) )
         return;
     class NodeRemover : public TaxNodeVisitor
@@ -694,7 +685,7 @@ void GraphView::hideNode(BaseTaxNode *node, bool resetCoordinates)
         NodeRemover(GraphView *gv):TaxNodeVisitor(RootToLeaves, false, gv, false, false){}
         virtual void Action(BaseTaxNode *node)
         {
-            GraphNode *gnode = node->getGnode();
+            TaxTreeGraphNode *gnode = node->getGnode();
             if ( gnode != NULL )
             {
                 graphView->dirtyList.Delete(gnode);
@@ -711,13 +702,13 @@ void GraphView::hideNode(BaseTaxNode *node, bool resetCoordinates)
 //=========================================================================
 void GraphView::showNode(BaseTaxNode *node)
 {
-    GraphNode *gnode = node->getGnode();
+    TaxTreeGraphNode *gnode = node->getGnode();
     if ( gnode == NULL || !scene()->items().contains(gnode) )
     {
         BaseTaxNode *pnode = node->parent;
         if ( pnode != NULL )
         {
-            GraphNode *pgnode = pnode->getGnode();
+            TaxTreeGraphNode *pgnode = pnode->getGnode();
             if ( pgnode == NULL  || !scene()->items().contains(pgnode) )
                 pnode->setVisible(true, true);
         }
@@ -767,22 +758,30 @@ void GraphView::onNodeVisibilityChanged(BaseTaxNode *node, bool node_visible)
 void GraphView::onReadsThresholdChanged(quint32 oldT, quint32 newT)
 {
     getTaxNodeSignalSender(NULL)->sendSignals = false;
-    //disconnect(getTaxNodeSignalSender(NULL), SIGNAL(visibilityChanged(BaseTaxNode *,visible)), this, SLOT(onNodeVisibilityChanged(BaseTaxNode *,visible)));
     if ( oldT == newT )
         return;
     if ( oldT < newT )
         hideNodes(oldT, newT);
     else
         unhideNodes(oldT, newT);
-    //connect(getTaxNodeSignalSender(NULL), SIGNAL(visibilityChanged(BaseTaxNode *,visible)), this, SLOT(onNodeVisibilityChanged(BaseTaxNode *,visible)));
     getTaxNodeSignalSender(NULL)->sendSignals = true;
     getTaxNodeSignalSender(NULL)->bigChangesHappened();
 }
 
 //=========================================================================
-void DirtyGNodesList::Add(GraphNode *node)
+void DirtyGNodesList::Add(TaxTreeGraphNode *node)
 {
     if ( contains(node) )
         return;
     ThreadSafeList::Add(node);
+}
+
+//=========================================================================
+//*************************************************************************
+//=========================================================================
+BlastGraphView::BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidget *parent, TaxNode *taxTree):
+    GraphView(parent, taxTree)
+{
+    taxDataProvider = (TaxDataProvider*)blastTaxDataProvider;
+    taxDataProvider->setParent(this);
 }

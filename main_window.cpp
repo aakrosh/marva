@@ -11,7 +11,6 @@
 #include "taxdataprovider.h"
 
 #include <QFileDialog>
-#include <QDebug>
 
 TaxMap taxMap;
 TaxNode *taxTree;
@@ -66,7 +65,7 @@ void generateDefaultNodes()
 }
 
 //=========================================================================
-void MainWindow::addGraphView(GraphView *gv, QString label)
+void MainWindow::addGraphView(QWidget *gv, QString label)
 {
     ui->tabWidget->addTab(gv, label);
     ui->tabWidget->setCurrentWidget(gv);
@@ -91,6 +90,7 @@ MainWindow::MainWindow(QWidget *parent) :
   TreeLoaderThread *tlThread = new TreeLoaderThread(this, globalTaxDataProvider, true);
   connect(tlThread, SIGNAL(resultReady(void *)), globalTaxDataProvider, SLOT(onTreeLoaded()));
   connect(tlThread, SIGNAL(resultReady(void *)), this, SLOT(treeIsLoaded(void *)));
+  connect(tlThread, SIGNAL(resultReady(void *)), taxListWidget, SLOT(reset()));
   connect(tlThread, SIGNAL(finished()), tlThread, SLOT(deleteLater()));
   tlThread->start();
 
@@ -106,7 +106,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(onCurrentTabCnaged(int)));
 
-  openTaxonomyTreeView();
+  GraphView *taxTreeView = openTaxonomyTreeView();
   connect(globalTaxDataProvider, SIGNAL(dataChanged()), taxonomyTreeView, SLOT(onTreeChanged()));
 
   statusList = new StatusListPanel(this);
@@ -116,22 +116,24 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->action_Tab_separated_BLAST_file->setEnabled(false);
   connect(ui->tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeGraphView(int)));
 
-  activeGraphView->setFocus();
+  taxTreeView->setFocus();
 
   TaxNodeSignalSender *tnss = getTaxNodeSignalSender(NULL);
-  connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), activeGraphView, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
+  connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), taxTreeView, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
   connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), taxListWidget, SLOT(onCurrentTaxChanged(BaseTaxNode*)));
   connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), leftPanel->curNodeDetails(), SLOT(onCurrentNodeChanged(BaseTaxNode*)));
   connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), taxListWidget, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
-  connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), activeGraphView, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
+  connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), taxTreeView, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
   connect(tnss, SIGNAL(bigChangesHappened()), taxListWidget, SLOT(resetView()));
-  connect(tnss, SIGNAL(bigChangesHappened()), activeGraphView, SLOT(reset()));
+  connect(tnss, SIGNAL(bigChangesHappened()), taxTreeView, SLOT(reset()));
 
-  activeGraphView->setCurrentNode(taxTree);
+  taxTreeView->setCurrentNode(taxTree);
 
-  connectGraphView(NULL, activeGraphView);
+  connectGraphView(NULL, taxTreeView);
 
   connect(ui->actionTaxonomyTree, SIGNAL(triggered(bool)), this, SLOT(openTaxonomyTreeView()));
+  connect(ui->actionCreateChart, SIGNAL(triggered(bool)), this, SLOT(createChartView()));
+
 }
 
 //=========================================================================
@@ -148,7 +150,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 }
 
 //=========================================================================
-void MainWindow::connectGraphView(GraphView *oldGV, GraphView *newGV)
+void MainWindow::connectGraphView(DataGraphicsView *oldGV, DataGraphicsView *newGV)
 {
     TaxNodeSignalSender *tnss = getTaxNodeSignalSender(NULL);
     if ( oldGV != NULL )
@@ -159,6 +161,7 @@ void MainWindow::connectGraphView(GraphView *oldGV, GraphView *newGV)
     connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), newGV, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
     connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), newGV, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
     connect(tnss, SIGNAL(bigChangesHappened()), newGV, SLOT(reset()));
+    connect(newGV, SIGNAL(destroyed(QObject*)), this, SLOT(activeGraphViewDestroyed()));
 
     connect(readsSB, SIGNAL(valueChanged(quint32,quint32)), newGV, SLOT(onReadsThresholdChanged(quint32,quint32)));
 }
@@ -169,18 +172,17 @@ void MainWindow::open_tab_blast_file()
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open tab-separated BLAST file"));
     if ( fileName.isEmpty() )
         return;
-    GraphView *blastView = new GraphView(this, NULL);
-    BlastTaxDataProvider *blastTaxDataProvider = new BlastTaxDataProvider(blastView);
+    BlastTaxDataProvider *blastTaxDataProvider = new BlastTaxDataProvider(NULL);
+    GraphView *blastView = new BlastGraphView(blastTaxDataProvider, this, NULL);
     BlastDataTreeLoader *bdtl = new BlastDataTreeLoader(this, fileName, blastTaxDataProvider, tabular);
 
     blastView->dirtyList.clear();
     blastView->scene()->clear();
     blastView->root = NULL;
-    blastView->taxDataProvider = blastTaxDataProvider;
     taxListWidget->setTaxDataProvider(blastTaxDataProvider);
     taxListWidget->reset();
     ui->taxListDockWidget->setVisible(true);
-    addGraphView(blastView, QFileInfo(fileName).fileName());
+    addGraphView(blastView, blastTaxDataProvider->name);
     readsSB->setVisible(true);
     readsSB->setReadOnly(true);
 
@@ -213,11 +215,36 @@ GraphView *MainWindow::openTaxonomyTreeView()
 }
 
 //=========================================================================
+BlastTaxDataProviders *MainWindow::getAllBlastDataProviders()
+{
+    BlastTaxDataProviders *res = new BlastTaxDataProviders();
+    for ( int i = 0; i < ui->tabWidget->count(); i++ )
+    {
+        DataGraphicsView *qgv = (DataGraphicsView *)ui->tabWidget->widget(i);
+        BlastGraphView *gv = dynamic_cast<BlastGraphView *>(qgv);
+        if ( gv != NULL )
+        {
+            if ( gv->taxDataProvider->metaObject() == &BlastTaxDataProvider::staticMetaObject )
+                res->append((BlastTaxDataProvider *)gv->taxDataProvider);
+        }
+    }
+    return res;
+}
+
+//=========================================================================
+ChartView *MainWindow::createChartView()
+{
+    ChartView *cv = new ChartView(getAllBlastDataProviders(), this);
+    addGraphView(cv, "Chart");
+    return cv;
+}
+
+//=========================================================================
 void MainWindow::treeIsLoaded(void *obj)
 {
     TaxNode *tree = (TaxNode *)obj;
     qDebug() << "Tree Loading is finished";
-    taxTree->mergeWith(tree, activeGraphView);
+    taxTree->mergeWith(tree, taxonomyTreeView);
     ui->action_Tab_separated_BLAST_file->setEnabled(true);
 
     disconnect(globalTaxDataProvider, SIGNAL(dataChanged()), taxonomyTreeView, SLOT(onTreeChanged()));
@@ -238,9 +265,21 @@ void MainWindow::treeIsLoaded(void *obj)
 }
 
 //=========================================================================
+void MainWindow::updateAllDirtyNames()
+{
+    for ( int i = 0; i < ui->tabWidget->count(); i++ )
+    {
+        DataGraphicsView *qgv = (DataGraphicsView *)ui->tabWidget->widget(i);
+        GraphView *gv = dynamic_cast<GraphView *>(qgv);
+        if ( gv != NULL )
+            gv->updateDirtyNodes(DIRTY_NAME);
+    }
+}
+
+//=========================================================================
 void MainWindow::updateLoadedNames()
 {
-    activeGraphView->updateDirtyNodes(DIRTY_NAME);
+    updateAllDirtyNames();
     BaseTaxNode *node = activeGraphView->currentNode();
     leftPanel->curNodeDetails()->onCurrentNodeChanged(node);
 }
@@ -248,9 +287,7 @@ void MainWindow::updateLoadedNames()
 //=========================================================================
 void MainWindow::mapIsLoaded()
 {
-    qDebug() << "Map Loading is finished";
-    // Handle end of mapLoading
-    activeGraphView->updateDirtyNodes(DIRTY_NAME);
+    updateAllDirtyNames();
 }
 
 //=========================================================================
@@ -269,11 +306,11 @@ void MainWindow::closeGraphView(int i)
 }
 
 //=========================================================================
-void MainWindow::setActiveGraphView(GraphView *newGV)
+void MainWindow::setActiveGraphView(DataGraphicsView *newGV)
 {
     if ( activeGraphView == newGV )
         return;
-    GraphView *oldGV = activeGraphView;
+    DataGraphicsView *oldGV = activeGraphView;
     activeGraphView = newGV;
     connectGraphView(oldGV, newGV);
     taxListWidget->setTaxDataProvider(newGV->taxDataProvider);
@@ -283,9 +320,15 @@ void MainWindow::setActiveGraphView(GraphView *newGV)
 //=========================================================================
 void MainWindow::onCurrentTabCnaged(int)
 {
-    GraphView *gv = dynamic_cast<GraphView *>(ui->tabWidget->currentWidget());
+    DataGraphicsView *gv = dynamic_cast<DataGraphicsView *>(ui->tabWidget->currentWidget());
     if ( gv != NULL )
         setActiveGraphView(gv);
+}
+
+//=========================================================================
+void MainWindow::activeGraphViewDestroyed()
+{
+//    activeGraphView = NULL;
 }
 
 //=========================================================================

@@ -58,38 +58,54 @@ QT_END_NAMESPACE
 class GraphNodeVisitor;
 class BaseTaxNode;
 class DirtyGNodesList;
+class DataGraphicsView;
 
 #define DIRTY_NAME  0x1
 #define DIRTY_CHILD 0x2
 #define DIRTY_ALL   DIRTY_NAME|DIRTY_CHILD
+#define GRAPHICS_NODE_TYPE  UserType+1
 
 extern TaxColorSrc taxColorSrc;
 
 class GraphNode : public QGraphicsItem
 {
 public:
-    GraphNode(GraphView *graphWidget, BaseTaxNode *node);
+    GraphNode(DataGraphicsView *view, BaseTaxNode *node);
     ~GraphNode();
+
+    enum { Type = GRAPHICS_NODE_TYPE };
+    int type() const Q_DECL_OVERRIDE { return Type; }
+
+    virtual void addEdge(Edge *edge);
+    void adjustAdges();
+    virtual QRectF boundingRect() const Q_DECL_OVERRIDE;
+    virtual QPainterPath shape() const Q_DECL_OVERRIDE = 0;
+    virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE = 0;
+    quint32 color();
 
     BaseTaxNode *tax_node;
     Edge *edge;
 
-    void addEdge(Edge *edge);
+protected:
+    virtual void updateToolTip();
+    DataGraphicsView *view;
 
-    enum { Type = UserType + 1 };
-    int type() const Q_DECL_OVERRIDE { return Type; }
+};
 
-    QRectF boundingRect() const Q_DECL_OVERRIDE;
+class TaxTreeGraphNode : public GraphNode
+{
+public:
+    TaxTreeGraphNode(GraphView *gView, BaseTaxNode *node);
+    ~TaxTreeGraphNode();
+
     QPainterPath shape() const Q_DECL_OVERRIDE;
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
-    void setAsRoot(QGraphicsScene *scene);
-    void assignNodeYCoordinate(int *levels, int *y);
+    virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
+    virtual void setAsRoot(QGraphicsScene *scene);
 
     QString text();
     QString get_const_text() const;
     bool isGreyedOut();
     void onNodeCollapsed(bool b);
-    void adjustAdges();
     void markDirty(qint32 dirty_flags, DirtyGNodesList *dirtyList=NULL);
     void clearDirtyFlag(qint32 dirty_flag);
 
@@ -99,26 +115,40 @@ protected:
     virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
     virtual void contextMenuEvent(QGraphicsSceneContextMenuEvent *event) Q_DECL_OVERRIDE;
     void addToScene(QGraphicsScene *scene);
-    void move(int dy);
     void deleteChildrenNodes();
-    virtual void updateToolTip();
-    GraphView *view;
     qint32 dirty;
 
 friend class TreeLoaderThread;
 friend class GraphView;
 };
 
-class BlastGraphNode: public GraphNode
+class BlastGraphNode: public TaxTreeGraphNode
 {
 public:
     BlastGraphNode(GraphView *graphWidget, BlastTaxNode *node);
     QPainterPath shape() const Q_DECL_OVERRIDE;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
     int size() const;
-    quint32 color();
 protected:
     virtual void updateToolTip();
+};
+
+class ChartGraphNode: public GraphNode
+{
+public:
+    ChartGraphNode(DataGraphicsView *view, BaseTaxNode *node);
+    ~ChartGraphNode(){}
+    QPainterPath shape() const Q_DECL_OVERRIDE;
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
+    void setMaxNodeSize(quint32 size);
+    virtual void updateToolTip();
+protected:
+    int size() const;
+    quint32 reads() const;
+    virtual void mousePressEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
+
+private:
+    quint32 maxNodeRadius;
 };
 
 #endif // NODE_H
