@@ -461,13 +461,17 @@ void GraphView::keyPressEvent(QKeyEvent *event)
             if ( (event->modifiers() & Qt::ControlModifier) == Qt::ControlModifier )
                 shrink_vertically();
             else
-                curNode->setCollapsed(true, true);
+            {
+                if ( curNode != NULL )
+                    curNode->setCollapsed(true, true);
+            }
             return;
         case Qt::Key_Plus:
             if ( (event->modifiers() & Qt::ControlModifier) == Qt::ControlModifier )
                 expand_vertically();
             else
-                curNode->setCollapsed(false, true);
+                if ( curNode != NULL )
+                    curNode->setCollapsed(false, true);
             return;
     }
     QGraphicsView::keyPressEvent(event);
@@ -783,5 +787,12 @@ BlastGraphView::BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidg
     GraphView(parent, taxTree)
 {
     taxDataProvider = (TaxDataProvider*)blastTaxDataProvider;
-    taxDataProvider->setParent(this);
+    blastTaxDataProvider->setParent(NULL);
+    blastTaxDataProvider->addParent();
+}
+
+BlastGraphView::~BlastGraphView()
+{
+    blastTaxDataProvider()->removeParent();
+    emit blast_view_closed();
 }

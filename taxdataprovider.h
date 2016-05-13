@@ -36,7 +36,7 @@ protected:
     IdTaxNodeList idTaxNodeList;
 public:
     TaxDataProvider(QObject *parent, TaxDataProviderType type = UNKNOWN);
-    virtual ~TaxDataProvider(){}
+    virtual ~TaxDataProvider();
     virtual quint32 count();
     virtual qint32 id(quint32 index);
     virtual BaseTaxNode *taxNode(quint32 index);
@@ -77,15 +77,19 @@ class BlastTaxDataProvider : public TaxDataProvider
     Q_OBJECT
     QReadWriteLock lock;
     BlastNodeMap *blastNodeMap;
+    quint32 parent_count;
 public:
     QString name;
     BlastTaxDataProvider(QObject *parent);
+    ~BlastTaxDataProvider();
     virtual quint32 reads(quint32 index);
     virtual quint32 readsById(quint32 id);
     virtual void updateCache(bool values_only);
     virtual QColor color(int index);
     virtual void sort(int column, Qt::SortOrder order);
     virtual quint32 getMaxReads();
+    virtual void addParent();
+    virtual void removeParent();
 
 public slots:
     void onBlastProgress(void *);

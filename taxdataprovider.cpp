@@ -4,7 +4,14 @@
 #include <QObject>
 
 //=========================================================================
-TaxDataProvider::TaxDataProvider(QObject *parent, TaxDataProviderType _type) : QObject(parent), type(_type)
+TaxDataProvider::TaxDataProvider(QObject *parent, TaxDataProviderType _type)
+    : QObject(parent),
+      type(_type)
+{
+
+}
+
+TaxDataProvider::~TaxDataProvider()
 {
 
 }
@@ -103,6 +110,7 @@ void TaxDataProvider::sort(int column, Qt::SortOrder order)
 //=========================================================================
 quint32 TaxDataProvider::getMaxReads() { return 0; }
 
+
 //=========================================================================
 void TaxDataProvider::onDataLoaded()
 {
@@ -153,11 +161,31 @@ void GlobalTaxMapDataProvider::onMapChanged()
 
 //=========================================================================
 BlastTaxDataProvider::BlastTaxDataProvider(QObject *parent):
-    TaxDataProvider(parent, BLAST_DATA_PROVIDER)
+    TaxDataProvider(NULL, BLAST_DATA_PROVIDER),
+    parent_count(0)
 {
     blastNodeMap = new BlastNodeMap();
+    if ( parent != NULL )
+        addParent();
 }
 
+//=========================================================================
+BlastTaxDataProvider::~BlastTaxDataProvider()
+{
+
+}
+
+//=========================================================================
+void BlastTaxDataProvider::addParent()
+{
+    ++parent_count;
+}
+
+void BlastTaxDataProvider::removeParent()
+{
+    if ( --parent_count == 0 )
+        deleteLater();
+}
 
 //=========================================================================
 quint32 BlastTaxDataProvider::reads(quint32 index)
@@ -201,13 +229,9 @@ void BlastTaxDataProvider::updateCache(bool values_only)
     for ( BlastNodeMap::iterator mit = blastNodeMap->begin(); mit != blastNodeMap->end(); ++mit )
     {
         if ( values_only && i < idTaxNodeList.size() )
-        {
             idTaxNodeList[i++].node = mit.value();
-        }
         else
-        {
             idTaxNodeList.append(IdTaxNodePair(mit.value(), mit.key()));
-        }
     }
 }
 

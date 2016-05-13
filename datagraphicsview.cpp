@@ -7,7 +7,7 @@ DataGraphicsView::DataGraphicsView(TaxDataProvider *_dataProvider, QWidget *pare
     curNode(NULL),
     taxDataProvider(_dataProvider)
 {
-
+    setAttribute(Qt::WA_DeleteOnClose);
 }
 
 //=========================================================================

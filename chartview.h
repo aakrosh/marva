@@ -26,7 +26,7 @@ class ChartDataProvider : public TaxDataProvider
 
 public:
     ChartDataProvider(BlastTaxDataProviders *_providers, QObject *parent);
-    ~ChartDataProvider();
+    virtual ~ChartDataProvider();
     virtual quint32 count();
     virtual QString text(quint32 index);
     virtual qint32 id(quint32 index);

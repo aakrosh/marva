@@ -12,6 +12,7 @@ protected:
 public:
     TaxDataProvider *taxDataProvider;
     DataGraphicsView(TaxDataProvider *_dataProvider, QWidget *parent = 0);
+    virtual ~DataGraphicsView(){}
     virtual void setCurrentNode(BaseTaxNode *);
     inline BaseTaxNode *currentNode() { return curNode; }
 protected slots:

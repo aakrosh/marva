@@ -105,7 +105,14 @@ void TaxListWidget::refresh()
         return;
     QModelIndex i1 = ui->tableView->indexAt(ui->tableView->rect().topLeft());
     QModelIndex i2 = ui->tableView->indexAt(ui->tableView->rect().bottomRight());
+    quint32 old_count = model->taxDataProvider->count();
     model->taxDataProvider->updateCache(true);
+    quint32 new_count = model->taxDataProvider->count();
+    if ( old_count < new_count )
+    {
+        model->beginInsertRows(QModelIndex(), old_count, new_count-1);
+        model->endInsertRows();
+    }
     model->clearCache();
     model->dataChanged(i1, i2);
 

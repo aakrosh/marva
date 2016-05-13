@@ -59,7 +59,8 @@ void BlastDataTreeLoader::processLine(QString &line)
             else
             {
                 quint32 r = ++bit.value()->reads;
-                if ( dataProvider->blastNodeMap->max_reads < r )                    dataProvider->blastNodeMap->max_reads = r;
+                if ( dataProvider->blastNodeMap->max_reads < r )
+                    dataProvider->blastNodeMap->max_reads = r;
                 TaxTreeGraphNode *gn = bit.value()->getGnode();
                 if ( gn != NULL )
                     gn->markDirty(DIRTY_NAME);
@@ -71,6 +72,13 @@ void BlastDataTreeLoader::processLine(QString &line)
             throw("Unknow file format");
         }
     }
+}
+
+//=========================================================================
+void BlastDataTreeLoader::finishProcessing()
+{
+    dataProvider->updateCache(false);
+    LoaderThread::finishProcessing();
 }
 
 //=========================================================================

@@ -59,6 +59,7 @@ public:
     ~BlastDataTreeLoader();
 protected:
     virtual void processLine(QString &line);
+    virtual void finishProcessing();
 
 };
 

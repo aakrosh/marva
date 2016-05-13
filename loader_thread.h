@@ -28,6 +28,7 @@ signals:
 private slots:
     void addToList();
     void removeFromList();
+    void stop_thread();
 };
 
 #endif // LOADERTHREAD_H

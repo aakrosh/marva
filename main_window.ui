@@ -148,7 +148,7 @@
    <sender>action_Tab_separated_BLAST_file</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>open_tab_blast_file()</slot>
+   <slot>open_tab_blast_files()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -178,6 +178,6 @@
   </connection>
  </connections>
  <slots>
-  <slot>open_tab_blast_file()</slot>
+  <slot>open_tab_blast_files()</slot>
  </slots>
 </ui>

@@ -89,3 +89,9 @@ void LoaderThread::removeFromList()
     statusListItem=NULL;
 }
 
+//=========================================================================
+void LoaderThread::stop_thread()
+{
+    Stop();
+}
+

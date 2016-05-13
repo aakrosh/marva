@@ -66,7 +66,7 @@ class GraphView : public DataGraphicsView
 
 public:
     GraphView(QWidget *parent, TaxNode *taxTree);
-    ~GraphView();
+    virtual ~GraphView();
     int max_node_y;
     TaxMap *tax_map;
     BaseTaxNode *root;
@@ -135,10 +135,13 @@ public slots:
 
 class BlastGraphView : public GraphView
 {
+    Q_OBJECT
 public:
     BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidget *parent, TaxNode *taxTree);
+    ~BlastGraphView();
     inline BlastTaxDataProvider *blastTaxDataProvider() { return (BlastTaxDataProvider *)taxDataProvider; }
-
+signals:
+    blast_view_closed();
 };
 
 #endif // GRAPHWIDGET_H

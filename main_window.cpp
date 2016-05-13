@@ -167,14 +167,28 @@ void MainWindow::connectGraphView(DataGraphicsView *oldGV, DataGraphicsView *new
 }
 
 //=========================================================================
-void MainWindow::open_tab_blast_file()
+void MainWindow::open_tab_blast_files()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open tab-separated BLAST file"));
-    if ( fileName.isEmpty() )
+    QFileDialog dialog(this);
+    dialog.setFileMode(QFileDialog::ExistingFiles);
+    QStringList fileNames;
+    if (dialog.exec())
+        fileNames = dialog.selectedFiles();
+    if ( fileNames.isEmpty() )
         return;
+
+    foreach (QString fileName, fileNames)
+        open_tab_blast_file(fileName);
+}
+
+//=========================================================================
+void MainWindow::open_tab_blast_file(QString fileName)
+{
     BlastTaxDataProvider *blastTaxDataProvider = new BlastTaxDataProvider(NULL);
-    GraphView *blastView = new BlastGraphView(blastTaxDataProvider, this, NULL);
+    BlastGraphView *blastView = new BlastGraphView(blastTaxDataProvider, this, NULL);
     BlastDataTreeLoader *bdtl = new BlastDataTreeLoader(this, fileName, blastTaxDataProvider, tabular);
+
+    connect(blastView, SIGNAL(blast_view_closed()), bdtl, SLOT(stop_thread()));
 
     blastView->dirtyList.clear();
     blastView->scene()->clear();
@@ -187,6 +201,8 @@ void MainWindow::open_tab_blast_file()
     readsSB->setReadOnly(true);
 
     connect(bdtl, SIGNAL(progress(void *)), this, SLOT(blastLoadingProgress(void *)));
+    connect(bdtl, SIGNAL(progress(void *)), blastView, SLOT(blastLoadingProgress(void *)));
+    connect(bdtl, SIGNAL(progress(void *)), taxListWidget, SLOT(refresh()));
     connect(bdtl, SIGNAL(resultReady(void *)), taxListWidget, SLOT(refreshAll()));
     connect(bdtl, SIGNAL(resultReady(void *)), this, SLOT(blastIsLoaded(void *)));
     connect(bdtl, SIGNAL(resultReady(void *)), blastView, SLOT(blastIsLoaded(void *)));

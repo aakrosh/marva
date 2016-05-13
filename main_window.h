@@ -50,7 +50,8 @@ signals:
 private slots:
     void mapIsLoaded();
     void updateLoadedNames();
-    void open_tab_blast_file();
+    void open_tab_blast_file(QString fileName);
+    void open_tab_blast_files();
     GraphView *openTaxonomyTreeView();
     BlastTaxDataProviders *getAllBlastDataProviders();
     ChartView *createChartView();

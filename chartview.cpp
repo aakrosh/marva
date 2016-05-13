@@ -311,12 +311,16 @@ ChartDataProvider::ChartDataProvider(BlastTaxDataProviders *_providers, QObject 
     : TaxDataProvider(parent),
       providers(_providers)
 {
+    for ( int i = 0; i < providers->size(); i++ )
+        providers->at(i)->addParent();
     updateCache(false);
 }
 
 //=========================================================================
 ChartDataProvider::~ChartDataProvider()
 {
+    foreach(BlastTaxDataProvider *p, *providers)
+        p->removeParent();
     for ( int i = 0; i < data.count(); i++ )
     {
         BlastTaxNodes &nodes = data[i].tax_nodes;
