@@ -14,8 +14,8 @@ LoaderThread::LoaderThread(QObject *parent, QString _fileName, const char *_capt
     : QThread(parent),
     fileName(_fileName),
     progressCounter(_progressCounter),
-    caption(_caption),
     statusListItem(NULL),
+    caption(_caption),
     result(resultObj),
     must_stop(false)
 {
@@ -86,7 +86,7 @@ void LoaderThread::removeFromList()
 {
     activeThreads.removeOne(this);
     mainWindow->statusList->RemoveItem(statusListItem);
-    statusListItem=NULL;
+    statusListItem = NULL;
 }
 
 //=========================================================================

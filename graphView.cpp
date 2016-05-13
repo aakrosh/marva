@@ -597,7 +597,7 @@ void GraphView::updateDirtyNodes(quint32 flag)
     for (DirtyGNodesList::iterator it = dirtyList.begin(); it < dirtyList.end(); it++ )
     {
         TaxTreeGraphNode *n = *it;
-        if ( (n->dirty & flag) == 0 )
+        if ( n == NULL || (n->dirty & flag) == 0 )
             continue;
         n->update();
         n->clearDirtyFlag(flag);

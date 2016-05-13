@@ -15,12 +15,13 @@ TaxColorSrc taxColorSrc;
 
 //=========================================================================
 BlastDataTreeLoader::BlastDataTreeLoader(QObject *parent, QString fileName, BlastTaxDataProvider *dp, BlastFileType _type) :
-    LoaderThread(parent, fileName, "Loading blast file", root),
+    LoaderThread(parent, fileName, NULL, root),
     type(_type),
     root(NULL),
     dataProvider(dp)
-{    
+{
     dp->name = QFileInfo(fileName).fileName();
+    caption = QString("Importing blast file: ").append(dp->name);
 }
 
 

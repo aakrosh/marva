@@ -12,7 +12,9 @@ QListWidgetItem *StatusListPanel::AddItem(QString &text)
     QListWidgetItem *item = new QListWidgetItem(text, this);
     addItem(item);
     int h = this->sizeHintForRow(0);
-    setMaximumHeight(size().height()+h);
+    int cur_height = size().height();
+    setMaximumHeight(cur_height+h);
+    resize(sizeHint().width(), cur_height+h);
     return item;
 }
 
@@ -20,6 +22,7 @@ QListWidgetItem *StatusListPanel::AddItem(QString &text)
 void StatusListPanel::RemoveItem(QListWidgetItem *item)
 {
     int h = this->sizeHintForRow(0);
-    setMaximumHeight(size().height()-h);
+    int cur_height = size().height();
+    setMaximumHeight(cur_height-h);
     delete item;
 }

@@ -10,13 +10,13 @@ class LoaderThread : public QThread
 private:
     QString fileName;
     int progressCounter;
-    QString caption;
     QListWidgetItem *statusListItem;
 public:
     LoaderThread(QObject *parent, QString fileName, const char *caption, void *resultObj = NULL, int progressCounter=1000);
     void Stop();
     static void StopRunningThreads();
 protected:
+    QString caption;
     void *result;
     bool must_stop;
     virtual void run();
