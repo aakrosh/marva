@@ -50,7 +50,7 @@
 #define HOR_INTERVAL  150
 
 class Edge;
-class GraphView;
+class TreeGraphView;
 QT_BEGIN_NAMESPACE
 class QGraphicsSceneMouseEvent;
 QT_END_NAMESPACE
@@ -76,26 +76,24 @@ public:
     enum { Type = GRAPHICS_NODE_TYPE };
     int type() const Q_DECL_OVERRIDE { return Type; }
 
-    virtual void addEdge(Edge *edge);
-    void adjustAdges();
     virtual QRectF boundingRect() const Q_DECL_OVERRIDE;
     virtual QPainterPath shape() const Q_DECL_OVERRIDE = 0;
     virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE = 0;
     quint32 color();
-
-    BaseTaxNode *tax_node;
-    Edge *edge;
+    inline BaseTaxNode *getTaxNode() { return tax_node; }
 
 protected:
     virtual void updateToolTip();
     DataGraphicsView *view;
-
+    BaseTaxNode *tax_node;
 };
+
+class TreeTaxNode;
 
 class TaxTreeGraphNode : public GraphNode
 {
 public:
-    TaxTreeGraphNode(GraphView *gView, BaseTaxNode *node);
+    TaxTreeGraphNode(TreeGraphView *gView, TreeTaxNode *node);
     ~TaxTreeGraphNode();
 
     QPainterPath shape() const Q_DECL_OVERRIDE;
@@ -109,6 +107,13 @@ public:
     void markDirty(qint32 dirty_flags, DirtyGNodesList *dirtyList=NULL);
     void clearDirtyFlag(qint32 dirty_flag);
 
+    inline TreeTaxNode *getTaxNode() const { return (TreeTaxNode *)tax_node; }
+
+    virtual void addEdge(Edge *edge);
+    void adjustAdges();
+
+    Edge *edge;
+
 protected:
     virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value) Q_DECL_OVERRIDE;
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
@@ -119,16 +124,17 @@ protected:
     qint32 dirty;
 
 friend class TreeLoaderThread;
-friend class GraphView;
+friend class TreeGraphView;
 };
 
 class BlastGraphNode: public TaxTreeGraphNode
 {
 public:
-    BlastGraphNode(GraphView *graphWidget, BlastTaxNode *node);
+    BlastGraphNode(TreeGraphView *graphWidget, BlastTaxNode *node);
     QPainterPath shape() const Q_DECL_OVERRIDE;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
     int size() const;
+    inline BlastTaxNode *getTaxNode() { return (BlastTaxNode *)tax_node; }
 protected:
     virtual void updateToolTip();
 };
@@ -142,6 +148,7 @@ public:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
     void setMaxNodeSize(quint32 size);
     virtual void updateToolTip();
+    inline BaseTaxNode *getTaxNode() { return (BaseTaxNode *)tax_node; }
 protected:
     int size() const;
     quint32 reads() const;

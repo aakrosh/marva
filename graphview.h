@@ -60,18 +60,19 @@ public:
     virtual void Add(TaxTreeGraphNode *node);
 };
 
-class GraphView : public DataGraphicsView
+class TreeGraphView : public DataGraphicsView
 {
     Q_OBJECT
 
 public:
-    GraphView(QWidget *parent, TaxNode *taxTree);
-    virtual ~GraphView();
+    TreeGraphView(QWidget *parent, TaxNode *taxTree);
+    virtual ~TreeGraphView();
     int max_node_y;
     TaxMap *tax_map;
-    BaseTaxNode *root;
+    TreeTaxNode *root;
     QMenu *nodePopupMenu;
     QAction *hideNodeAction;
+    quint32 reads_threshold;
     bool persistant;
 
     void adjust_scene_boundaries();
@@ -81,17 +82,20 @@ public:
     void resetNodesCoordinates();
     void generateTestNodes();
     void generateDefaultNodes();
-    void AddNodeToScene(BaseTaxNode *node);
-    void CreateGraphNode(BaseTaxNode *node);
+    void AddNodeToScene(TreeTaxNode *node);
+    void CreateGraphNode(TreeTaxNode *node);
     void adjustAllEdges();
     void markAllNodesDirty();
     void updateDirtyNodes(quint32 flag);
     void createMissedGraphNodes();
+//    inline TaxTreeGraphNode *getTaxTreeGNode() { return (TaxTreeGraphNode *) getGnode(); }
 
     DirtyGNodesList dirtyList;
 
-    void hideNode(BaseTaxNode *node, bool resetCoordinates=true);
-    void showNode(BaseTaxNode *node);
+    void hideNode(TreeTaxNode *node, bool resetCoordinates=true);
+    void showNode(TreeTaxNode *node);
+
+    inline TreeTaxNode *getCurNode() { return (TreeTaxNode*) curNode; }
 
 protected:
 #ifndef QT_NO_WHEELEVENT
@@ -108,7 +112,7 @@ private:
     void expand_vertically(int s=4);
     void updateYCoord(qreal factor);
     void updateXCoord();
-    void expandPathTo(BaseTaxNode *node);
+    void expandPathTo(TreeTaxNode *node);
     void goUp();
     void goDown();
     void goLeft();
@@ -126,14 +130,14 @@ private slots:
 protected slots:
     virtual void onCurrentNodeChanged(BaseTaxNode *);
 public slots:
-    virtual void onNodeVisibilityChanged(BaseTaxNode*,bool);
+    virtual void onNodeVisibilityChanged(BaseTaxNode *, bool);
     virtual void reset();
     virtual void onReadsThresholdChanged(quint32 oldT, quint32 newT);
     virtual void onTreeChanged();
     virtual void onNodeNamesChanged();
 };
 
-class BlastGraphView : public GraphView
+class BlastGraphView : public TreeGraphView
 {
     Q_OBJECT
 public:

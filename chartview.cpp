@@ -1,7 +1,7 @@
 #include "chartview.h"
 #include "graph_node.h"
 #include "taxnodesignalsender.h"
-
+#include "ui_components/bubblechartproperties.h"
 #include <math.h>
 
 #include <QKeyEvent>
@@ -10,6 +10,8 @@
 #include <QTextDocument>
 #include <QGraphicsItem>
 #include <QGraphicsSceneMouseEvent>
+#include <QMenu>
+
 
 #define MAX_NODE_SIZE 60
 #define MAX_CHART_TAXES 20
@@ -22,11 +24,15 @@ void ChartView::setChartRectSize(int w, int h)
 
 //=========================================================================
 ChartView::ChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
-    : DataGraphicsView(NULL, parent)
+    : DataGraphicsView(NULL, parent),
+      maxNodeSize(MAX_NODE_SIZE)
 {
     setWindowTitle(tr("Gene chart"));
 
     taxDataProvider = new ChartDataProvider(_dataProviders, this);
+
+    connect((ChartDataProvider *)taxDataProvider, SIGNAL(taxVisibilityChanged(quint32)), this, SLOT(onTaxVisibilityChanged(quint32)));
+    connect((ChartDataProvider *)taxDataProvider, SIGNAL(cacheUpdated()), this, SLOT(onDataChanged()));
 
     QGraphicsScene *s = new QGraphicsScene(this);
     s->setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -35,16 +41,26 @@ ChartView::ChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
     setRenderHint(QPainter::Antialiasing);
     setTransformationAnchor(AnchorUnderMouse);
     setMinimumSize(400, 200);
+    setAlignment(Qt::AlignCenter);
     setScene(s);
 
     PrepareScene();
     setChartRectSize(800, 800);
+    setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(this, SIGNAL(customContextMenuRequested(const QPoint&)),
+        this, SLOT(showContextMenu(const QPoint&)));
+
+    propertiesAction = popupMenu.addAction("Properties");
+
+    connect(propertiesAction, SIGNAL(triggered(bool)), this, SLOT(showPropertiesDialog()));
+
     showChart();
 }
 
 //=========================================================================
 ChartView::~ChartView()
 {
+    scene()->clear();
 }
 
 //=========================================================================
@@ -70,12 +86,12 @@ void ChartView::onCurrentNodeChanged(BaseTaxNode *node)
             ChartGraphNode *n = (ChartGraphNode *)item;
             if ( oldCurNode != NULL )
             {
-                if ( n->tax_node->getId() == oldCurNode->getId() )
+                if ( n->getTaxNode()->getId() == oldCurNode->getId() )
                     n->update();
             }
             if ( curNode != NULL )
             {
-                if ( n->tax_node->getId() == curNode->getId() )
+                if ( n->getTaxNode()->getId() == curNode->getId() )
                     n->update();
             }
         }
@@ -97,45 +113,118 @@ void ChartView::onCurrentNodeChanged(BaseTaxNode *node)
 }
 
 //=========================================================================
+void ChartView::onTaxVisibilityChanged(quint32 index)
+{
+    ChartDataProvider *chartDataProvider = dataProvider();
+    const BlastTaxNodes &btns = chartDataProvider->data.at(index).tax_nodes;
+    for ( int i = 0; i < btns.size(); i++ )
+    {
+        BlastTaxNode *node = btns.at(i);
+        if ( node == NULL )
+            continue;
+        if ( chartDataProvider->data.at(index).checked )
+        {
+            ChartGraphNode *gnode = new ChartGraphNode(this, node);
+            node->gnode = gnode;
+            gnode->updateToolTip();
+            scene()->addItem(gnode);
+        }
+        else
+        {
+            ChartGraphNode *gnode = (ChartGraphNode *) node->getGnode();//getGNode(node);
+            if ( gnode != NULL )
+                delete gnode;
+        }
+    }
+    verticalLegend[index]->setVisible(chartDataProvider->data.at(index).checked);
+    showChart();
+}
+
+//=========================================================================
+void ChartView::onDataChanged()
+{
+    for ( int j = 0; j < verticalLegend.size(); j++)
+    {
+        if ( !verticalLegend[j]->toPlainText().isEmpty() )
+            continue;
+        const BlastTaxNodes &btns = dataProvider()->data.at(j).tax_nodes;
+        for ( int i = 0 ; i < btns.size(); i++ )
+        {
+            if ( btns[i] == NULL )
+                continue;
+            QString txt = btns[i]->getText();
+            QString stxt = txt;
+            if ( stxt.length() > 30 )
+            {
+                stxt.truncate(27);
+                stxt.append("...");
+            }
+            verticalLegend[j]->setPlainText(stxt);
+            verticalLegend[j]->setToolTip(txt);
+            QPointF pos = verticalLegend[j]->pos();
+            pos.setX(pos.x() - verticalLegend[j]->boundingRect().width());
+            verticalLegend[j]->setPos(pos);
+            verticalLegend[j]->update();
+            break;
+        }
+    }
+}
+
+//=========================================================================
+void ChartView::showContextMenu(const QPoint &pos)
+{
+    QPoint globalPos = mapToGlobal(pos);
+    popupMenu.exec(globalPos);
+}
+
+//=========================================================================
+void ChartView::changeMaxBubbleSize(int value)
+{
+    maxNodeSize = value;
+    showChart();
+}
+
+//=========================================================================
 void ChartView::showChart()
 {
-    QFontMetrics fm(header->font());
-    header->setPos(chartRect.width()/2-fm.width("Chart header")/2, -36);
     if ( dataProvider()->data.size() == 0 )
         return;
-    qint32 sheight = (int)this->sceneRect().height()*0.8;
-    qint32 swidth = (int)this->sceneRect().height()*0.8;
-    qint32 tsize = dataProvider()->data.size();
-    quint32 maxNodeSize = qMin(MAX_NODE_SIZE, sheight/tsize);
-    quint32 columnWidth = qMin(MAX_NODE_SIZE, swidth/dataProvider()->providers->count());
-    chartRectGI->setRect(chartRect.x(), chartRect.y(), dataProvider()->providers->count()*columnWidth, dataProvider()->data.count()*maxNodeSize);
-    for ( int i = 0; i < dataProvider()->providers->size(); i++ )
+    quint32 sheight = (int)this->sceneRect().height()*0.8;
+    quint32 swidth = (int)this->sceneRect().height()*0.8;
+    quint32 tsize = dataProvider()->data.size();
+    quint32 maxBubbleSize = qMin(maxNodeSize, sheight/tsize);
+    quint32 columnWidth = qMin(maxNodeSize, swidth/dataProvider()->providers->count());
+    ChartDataProvider *chartDataProvider = dataProvider();
+    int rnum = 0;
+    for ( int j = 0; j < chartDataProvider->data.count(); j++)
+    {
+        const BlastTaxNodes &btns = chartDataProvider->data.at(j).tax_nodes;
+        if ( !chartDataProvider->data.at(j).checked )
+            continue;
+        for ( int i = 0; i < btns.size(); i++ )
+        {
+            qreal x1 = i*columnWidth;
+            BlastTaxNode *node = btns.at(i);
+            if ( node == NULL )
+                continue;
+            ChartGraphNode *gnode = (ChartGraphNode*)node->getGnode();
+            Q_ASSERT_X(gnode != NULL, "showChart", "GraphNode must be created here");
+            gnode->setMaxNodeSize(maxNodeSize);
+            gnode->setPos(chartRect.x()+x1+columnWidth/2, chartRect.y()+(rnum)*maxBubbleSize+maxBubbleSize/2);
+        }
+        verticalLegend[j]->setPos(chartRect.x()-verticalLegend[j]->boundingRect().width(), rnum*maxBubbleSize);
+        ++rnum;
+    }
+    quint32 rectHeight = rnum*maxBubbleSize + maxBubbleSize/2;
+    chartRectGI->setRect(chartRect.x(), chartRect.y(), dataProvider()->providers->count()*columnWidth, rectHeight);
+    header->setPos(0, 10-MARGIN);
+    header->setTextWidth(dataProvider()->providers->count()*columnWidth);
+    for ( int i = 0; i < chartDataProvider->providers->size(); i++ )
     {
         qreal x1 = i*columnWidth;
-        BlastTaxDataProvider *p = dataProvider()->providers->at(i);
-        grid.at(i)->setRect(chartRect.x()+x1, chartRect.y(), columnWidth, dataProvider()->data.count()*maxNodeSize);
-        for ( int j = 0; j < dataProvider()->data.count(); j++)
-        {
-                int id = dataProvider()->data[j].id;
-                const BlastTaxNodes &btns = dataProvider()->data.at(j).tax_nodes;
-                qint32 index = p->indexOf(id);
-                if ( index >= 0 )
-                {
-                    quint32 reads = p->reads(index);
-                    if ( reads == 0 )
-                        continue;
-                    BlastTaxNode *node = btns.at(i);
-                    if ( node == NULL )
-                        continue;
-                    ChartGraphNode *gnode = getGNode(node);
-                    if ( gnode != NULL )
-                        gnode->setPos(chartRect.x()+x1+columnWidth/2, chartRect.y()+j*maxNodeSize+maxNodeSize/2);
-                }
-        }
-        horizontalLegend.at(i)->setPos(chartRect.x()+x1+columnWidth/2, chartRect.y()+dataProvider()->data.count()*maxNodeSize+5);
+        grid.at(i)->setRect(chartRect.x()+x1, chartRect.y(), columnWidth, rectHeight);
+        horizontalLegend.at(i)->setPos(chartRect.x()+x1+columnWidth/2, chartRect.y()+rectHeight+5);
     }
-    for ( int j = 0; j < verticalLegend.count(); j++)
-        verticalLegend[j]->setPos(chartRect.x()-verticalLegend[j]->boundingRect().width(), j*maxNodeSize);
 }
 
 //=========================================================================
@@ -147,18 +236,19 @@ void ChartView::setHeader(QString fileName)
     fileName = fileName.left(idx);
     header = scene()->addText(fileName);
     header->document()->setDefaultTextOption(QTextOption(Qt::AlignCenter | Qt::AlignVCenter));
+    header->setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsFocusable | QGraphicsItem::ItemIsMovable);
+    header->setTextInteractionFlags(Qt::TextEditorInteraction);
     QFont font;
     font.setPixelSize(25);
     font.setBold(true);
     header->setFont(font);
-    QFontMetrics fm(font);
-    header->setPos(chartRect.width()/2-fm.width(fileName)/2, -36);
 }
 
 //=========================================================================
 void ChartView::PrepareScene()
 {
-    QPen peng(Qt::darkGray);
+    QPen peng(Qt::black);
+    peng.setWidth(1.5);
     QBrush brushg(Qt::transparent);
     chartRectGI = scene()->addRect(chartRect, peng, brushg);
     setHeader(/*chartData.header*/ "Chart header");
@@ -166,6 +256,7 @@ void ChartView::PrepareScene()
     if ( dp->data.size() == 0 )
         return;
     QPen pen(Qt::lightGray);
+    pen.setWidth(0.2);
     QBrush brush(Qt::transparent);
     qint32 swidth = (int)this->sceneRect().height()*0.8;
     quint32 columnWidth = qMin(MAX_NODE_SIZE, swidth/dp->providers->count());
@@ -174,25 +265,25 @@ void ChartView::PrepareScene()
     {
         qreal x1 = i*columnWidth;
         grid.append(scene()->addRect(chartRect.x()+x1, chartRect.y(), columnWidth, chartRect.height(), pen, brush));
-        BlastTaxDataProvider *p = dp->providers->at(i);
         for ( int j = 0; j < dp->data.count(); j++)
         {
-                int id = dataProvider()->data[j].id;
                 const BlastTaxNodes &btns = dp->data.at(j).tax_nodes;
-                qint32 index = p->indexOf(id);
-                if ( index >= 0 )
+                BlastTaxNode *node = btns.at(i);
+                if ( node != NULL )
                 {
-                    quint32 reads = p->reads(index);
-                    if ( reads == 0 )
-                        continue;
-                    BlastTaxNode *node = btns.at(i);
                     if ( node == NULL )
                         continue;
+                    quint32 reads = node->reads;
+                    if ( reads == 0 )
+                        continue;
                     ChartGraphNode *gnode = new ChartGraphNode(this, node);
+                    node->gnode = gnode;
                     gnode->updateToolTip();
                     scene()->addItem(gnode);
                 }
         }
+        // Create horizontal axe labels
+        BlastTaxDataProvider *p = dp->providers->at(i);
         QString stxt = p->name;
         if ( stxt.length() > 30 )
         {
@@ -235,7 +326,7 @@ ChartGraphNode *ChartView::getGNode(BlastTaxNode *node)
         if ( item->type() == GraphNode::Type )
         {
             ChartGraphNode *n = (ChartGraphNode *)item;
-            if ( n->tax_node == node )
+            if ( n->getTaxNode() == node )
                 return n;
         }
     }
@@ -266,6 +357,15 @@ void ChartView::goDown()
         return;
     TaxNodeSignalSender *tnss = getTaxNodeSignalSender(dataProvider()->taxNode(index));
     tnss->makeCurrent();
+}
+
+//=========================================================================
+void ChartView::showPropertiesDialog()
+{
+    BubbleChartProperties *propertiesDialog = new BubbleChartProperties(this);
+    connect(propertiesDialog, SIGNAL(maxBubbleSizeChanged(int)), this, SLOT(changeMaxBubbleSize(int)));
+    propertiesDialog->setValues(maxNodeSize, maxNodeSize*2);
+    propertiesDialog->exec();
 }
 
 //=========================================================================
@@ -383,52 +483,57 @@ bool readsLessThan(const IdBlastTaxNodesPair &x1, const IdBlastTaxNodesPair &x2)
     return x1.reads() < x2.reads();
 }
 
-void ChartDataProvider::updateCache(bool)
+//=========================================================================
+void ChartDataProvider::updateCache(bool ids_only)
 {
-    maxreads = 0;
-    for ( int i = 0; i < providers->size(); i++ )
+    if ( !ids_only )
     {
-        BlastTaxDataProvider *p = providers->at(i);
-        for ( quint32 j = 0; j < p->count(); j++ )
+        maxreads = 0;
+        for ( int i = 0; i < providers->size(); i++ )
         {
-            if ( p->checkState(j) == Qt::Checked )
+            BlastTaxDataProvider *p = providers->at(i);
+            for ( quint32 j = 0; j < p->count(); j++ )
             {
-                quint32 reads = p->reads(j);
-                if ( reads == 0 )
-                    continue;
-                quint32 taxid = p->id(j);
-                qint32 ind = indexOf(taxid);
-                if ( ind == -1 )
-                    data.append(IdBlastTaxNodesPair(taxid));
-                else
-                    data[ind].tax_nodes.clear();
-                if ( reads > maxreads )
-                    maxreads = reads;
+                if ( p->checkState(j) == Qt::Checked )
+                {
+                    quint32 reads = p->reads(j);
+                    if ( reads == 0 )
+                        continue;
+                    quint32 taxid = p->id(j);
+                    qint32 ind = indexOf(taxid);
+                    if ( ind == -1 )
+                        data.append(IdBlastTaxNodesPair(taxid));
+                    else
+                        data[ind].tax_nodes.clear();
+                    if ( reads > maxreads )
+                        maxreads = reads;
+                }
             }
         }
-    }
 
-    for ( int i = 0; i < providers->size(); i++ )
-    {
-        BlastTaxDataProvider *p = providers->at(i);
-        for ( int j = 0; j < data.count(); j++)
+        for ( int i = 0; i < providers->size(); i++ )
         {
-            int id = data[j].id;
-            qint32 index = p->indexOf(id);
-            if ( index >= 0 )
-                data[j].tax_nodes.append(((BlastTaxNode *)p->taxNode(index))->clone());
-            else
-                data[j].tax_nodes.append(NULL);
+            BlastTaxDataProvider *p = providers->at(i);
+            for ( int j = 0; j < data.count(); j++)
+            {
+                int id = data[j].id;
+                qint32 index = p->indexOf(id);
+                if ( index >= 0 )
+                    data[j].tax_nodes.append(((BlastTaxNode *)p->taxNode(index))->clone());
+                else
+                    data[j].tax_nodes.append(NULL);
+            }
+        }
+
+        if ( data.size() > MAX_CHART_TAXES )
+        {
+            cdp = this;
+            qSort(data.begin(), data.end(), readsLessThan);
+            while ( data.size() > MAX_CHART_TAXES )
+                data.removeFirst();
         }
     }
-
-    if ( data.size() > MAX_CHART_TAXES )
-    {
-        cdp = this;
-        qSort(data.begin(), data.end(), readsLessThan);
-        while ( data.size() > MAX_CHART_TAXES )
-            data.removeFirst();
-    }
+    emit cacheUpdated();
 }
 
 //=========================================================================
@@ -468,15 +573,32 @@ quint32 ChartDataProvider::indexOf(qint32 id)
 }
 
 //=========================================================================
-QVariant ChartDataProvider::checkState(int)
+QVariant ChartDataProvider::checkState(int index)
 {
-    return Qt::Checked;
+    return data[index].checked ? Qt::Checked : Qt::Unchecked;
 }
 
 //=========================================================================
-void ChartDataProvider::setCheckedState(int, QVariant)
+void ChartDataProvider::setCheckedState(int index, QVariant val)
 {
-    // TODO
+    data[index].checked = val == Qt::Checked;
+    maxreads = 0;
+    for ( qint32 i = 0; i < data.count(); i++ )
+    {
+        IdBlastTaxNodesPair &di = data[i];
+        if ( !di.checked )
+            continue;
+        for ( int j = 0; j < di.tax_nodes.size(); j++ )
+        {
+            BlastTaxNode *node = di.tax_nodes[j];
+            if ( node == NULL )
+                continue;
+            quint32 reads = node->reads;
+            if ( reads > maxreads )
+                 maxreads = reads;
+        }
+    }
+    emit taxVisibilityChanged(index);
 }
 
 //=========================================================================

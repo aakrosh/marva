@@ -44,16 +44,19 @@ bool TaxListWidget::eventFilter(QObject *object, QEvent *event)
         if (keyEvent->key() == Qt::Key_Space)
         {
             QModelIndexList sel = ui->tableView->selectionModel()->selectedRows(0);
-            if ( sel.count() == 0 )
+            int sel_count =  sel.count();
+            if ( sel_count == 0 )
                 return false;
             bool checked = sel.at(0).data(Qt::CheckStateRole) != Qt::Checked;
             Qt::CheckState cs =  checked ? Qt::Checked : Qt::Unchecked;
-            int sel_count =  sel.count();
             bool with_reset = sel_count > 100;
             if ( with_reset )
                 getTaxNodeSignalSender(NULL)->sendSignals = false;
             for ( int i = 0 ; i < sel_count; i++ )
                 model->setData(sel.at(i), cs, Qt::CheckStateRole);
+            QModelIndex i1 = ui->tableView->indexAt(ui->tableView->rect().topLeft());
+            QModelIndex i2 = ui->tableView->indexAt(ui->tableView->rect().bottomRight());
+            model->dataChanged(i1, i2); // It is cheaper to refresh only visible items, then all the items in the selection
             if ( with_reset )
             {
                 getTaxNodeSignalSender(NULL)->sendSignals = true;

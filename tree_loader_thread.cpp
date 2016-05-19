@@ -88,5 +88,5 @@ void TreeLoaderThread::processLine(QString &line)
     parse(line, &tree, &pos);
     result = tree.children.size() == 0 ? NULL : (TaxNode *)tree.children[0];
     if ( result != NULL )
-        ((BaseTaxNode *)result)->parent = NULL;
+        ((TreeTaxNode *)result)->parent = NULL;
 }

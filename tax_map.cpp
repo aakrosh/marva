@@ -28,7 +28,7 @@ void TaxMap::setName(qint32 tid, const char *name)
 TaxNodeVisitor::TaxNodeVisitor(
         VisitorDirection _direction,
         bool visit_collapsed,
-        GraphView *gv,
+        TreeGraphView *gv,
         bool createGNodes,
         bool _visitNullGnodes) :
     direction(_direction),
@@ -41,7 +41,7 @@ TaxNodeVisitor::TaxNodeVisitor(
 }
 
 //=========================================================================
-bool TaxNodeVisitor::shouldVisitChildren(BaseTaxNode *node)
+bool TaxNodeVisitor::shouldVisitChildren(TreeTaxNode *node)
 {
     if ( node->children.isEmpty() )
         return false;
@@ -50,7 +50,7 @@ bool TaxNodeVisitor::shouldVisitChildren(BaseTaxNode *node)
 }
 
 //=========================================================================
-void TaxNodeVisitor::VisitRootToLeaves(BaseTaxNode *node)
+void TaxNodeVisitor::VisitRootToLeaves(TreeTaxNode *node)
 {
     if ( node->getGnode() == NULL )
     {
@@ -65,7 +65,7 @@ void TaxNodeVisitor::VisitRootToLeaves(BaseTaxNode *node)
     if ( visit_children )
     {
         beforeVisitChildren(node);
-        ThreadSafeListLocker<BaseTaxNode *> locker(&node->children);
+        ThreadSafeListLocker<TreeTaxNode *> locker(&node->children);
         for ( TaxNodeIterator it  = node->children.begin(); it != node->children.end(); it++ )
             VisitRootToLeaves(*it);
         afterVisitChildren(node);
@@ -73,7 +73,7 @@ void TaxNodeVisitor::VisitRootToLeaves(BaseTaxNode *node)
 }
 
 //=========================================================================
-void TaxNodeVisitor::VisitLeavesToRoot(BaseTaxNode *node)
+void TaxNodeVisitor::VisitLeavesToRoot(TreeTaxNode *node)
 {
     if ( node->getGnode()  == NULL )
     {
@@ -86,7 +86,7 @@ void TaxNodeVisitor::VisitLeavesToRoot(BaseTaxNode *node)
     if ( visit_children )
     {
         beforeVisitChildren(node);
-        ThreadSafeListLocker<BaseTaxNode *> locker(&node->children);
+        ThreadSafeListLocker<TreeTaxNode *> locker(&node->children);
         for ( TaxNodeIterator it  = node->children.begin(); it != node->children.end(); it++ )
             VisitLeavesToRoot(*it);
         afterVisitChildren(node);
@@ -95,7 +95,7 @@ void TaxNodeVisitor::VisitLeavesToRoot(BaseTaxNode *node)
 }
 
 //=========================================================================
-void TaxNodeVisitor::Visit(BaseTaxNode *node)
+void TaxNodeVisitor::Visit(TreeTaxNode *node)
 {
     if ( node == NULL )
         return;
@@ -106,10 +106,10 @@ void TaxNodeVisitor::Visit(BaseTaxNode *node)
 }
 
 //=========================================================================
-TaxNode::TaxNode(): BaseTaxNode(true), id(-555), level(0){}
+TaxNode::TaxNode(): TreeTaxNode(true), id(-555), level(0){}
 
 //=========================================================================
-TaxNode::TaxNode(qint32 _id): BaseTaxNode(true), id(_id), level(0){}
+TaxNode::TaxNode(qint32 _id): TreeTaxNode(true), id(_id), level(0){}
 
 //=========================================================================
 TaxNode *TaxNode::TaxNode::addChildById(quint32 chId)
@@ -118,7 +118,7 @@ TaxNode *TaxNode::TaxNode::addChildById(quint32 chId)
 }
 
 //=========================================================================
-TaxTreeGraphNode *TaxNode::createGnode(GraphView *gv)
+GraphNode *TaxNode::createGnode(TreeGraphView *gv)
 {
     gnode = new TaxTreeGraphNode(gv, this);
     return gnode;

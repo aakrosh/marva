@@ -41,7 +41,7 @@ private:
     void updateAllDirtyNames();
     Ui::MainWindow *ui;
     DataGraphicsView *activeGraphView;
-    GraphView *taxonomyTreeView;
+    TreeGraphView *taxonomyTreeView;
     QList<LoaderThread*> activeLoaderThreads;
     LeftPanel *leftPanel;
     TaxListWidget *taxListWidget;
@@ -52,7 +52,7 @@ private slots:
     void updateLoadedNames();
     void open_tab_blast_file(QString fileName);
     void open_tab_blast_files();
-    GraphView *openTaxonomyTreeView();
+    TreeGraphView *openTaxonomyTreeView();
     BlastTaxDataProviders *getAllBlastDataProviders();
     ChartView *createChartView();
     void treeIsLoaded(void *obj);

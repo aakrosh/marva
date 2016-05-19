@@ -45,7 +45,7 @@ void BlastDataTreeLoader::processLine(QString &line)
                 QMessageBox::information(0, QString("Error"), QString("No data for id %1 found").arg(rec.taxa_id));
                 return;
             }
-            TaxNode *node = it.value();
+            TreeTaxNode *node = it.value();
             BlastNodeMap::iterator bit = dataProvider->blastNodeMap->find(rec.taxa_id);
             if ( bit == dataProvider->blastNodeMap->end() )
             {
@@ -62,7 +62,7 @@ void BlastDataTreeLoader::processLine(QString &line)
                 quint32 r = ++bit.value()->reads;
                 if ( dataProvider->blastNodeMap->max_reads < r )
                     dataProvider->blastNodeMap->max_reads = r;
-                TaxTreeGraphNode *gn = bit.value()->getGnode();
+                TaxTreeGraphNode *gn = (TaxTreeGraphNode *)bit.value()->getGnode();
                 if ( gn != NULL )
                     gn->markDirty(DIRTY_NAME);
             }
@@ -83,7 +83,7 @@ void BlastDataTreeLoader::finishProcessing()
 }
 
 //=========================================================================
-BlastTaxNode::BlastTaxNode(TaxNode *refNode, int _count, BlastNodeMap *blastNodeMap):BaseTaxNode(false), reads(_count), tNode(refNode)
+BlastTaxNode::BlastTaxNode(TreeTaxNode *refNode, int _count, BlastNodeMap *blastNodeMap):TreeTaxNode(false), reads(_count), tNode(refNode)
 {
     if ( blastNodeMap != NULL )
         blastNodeMap->insert(refNode->getId(), this);
@@ -118,7 +118,7 @@ BlastTaxNode *BlastTaxNode::createPathToNode(BlastNodeMap *blastNodeMap)
 
 #include "graph_node.h"
 //=========================================================================
-TaxTreeGraphNode *BlastTaxNode::createGnode(GraphView *gv)
+GraphNode *BlastTaxNode::createGnode(TreeGraphView *gv)
 {
     gnode = new BlastGraphNode(gv, this);
     return gnode;

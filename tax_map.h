@@ -1,7 +1,7 @@
 #ifndef TAX_MAP_H
 #define TAX_MAP_H
 
-#include "base_tax_node.h"
+#include "tree_tax_node.h"
 
 #include <QMap>
 #include <QReadWriteLock>
@@ -10,9 +10,9 @@
 
 class QString;
 class TaxTreeGraphNode;
-class GraphView;
+class TreeGraphView;
 
-class TaxNode : public BaseTaxNode
+class TaxNode : public TreeTaxNode
 {
 public:
     TaxNode();
@@ -23,7 +23,7 @@ public:
     virtual int getLevel() { return level; }
     virtual void setLevel(int _level) { level = _level; }
     virtual QString getText() { return text; }
-    virtual TaxTreeGraphNode *createGnode(GraphView *gv);
+    virtual GraphNode *createGnode(TreeGraphView *gv);
 
 protected:
 private:
@@ -38,7 +38,7 @@ private:
     friend class TaxTreeGraphNode;
 };
 
-typedef QList<BaseTaxNode *>::iterator TaxNodeIterator;
+typedef QList<TreeTaxNode *>::iterator TaxNodeIterator;
 
 enum VisitorDirection
 {
@@ -49,21 +49,21 @@ enum VisitorDirection
 class TaxNodeVisitor
 {
 public:
-    TaxNodeVisitor(VisitorDirection _direction, bool visit_collapsed=false, GraphView *gv=NULL, bool createGNodes=false, bool visitNullGnodes = true);
-    virtual void Action(BaseTaxNode *root) = 0;
-    void Visit(BaseTaxNode *node);
+    TaxNodeVisitor(VisitorDirection _direction, bool visit_collapsed=false, TreeGraphView *gv=NULL, bool createGNodes=false, bool visitNullGnodes = true);
+    virtual void Action(TreeTaxNode *root) = 0;
+    void Visit(TreeTaxNode *node);
 private:
     VisitorDirection direction;
 protected:
     bool createGraphNodes;
     bool visitCollapsed;
-    GraphView *graphView;
+    TreeGraphView *graphView;
     bool visitNullGnodes;
-    void VisitRootToLeaves(BaseTaxNode *node);
-    void VisitLeavesToRoot(BaseTaxNode *node);
-    bool shouldVisitChildren(BaseTaxNode *node);
-    virtual void beforeVisitChildren(BaseTaxNode *){}
-    virtual void afterVisitChildren(BaseTaxNode *){}
+    void VisitRootToLeaves(TreeTaxNode *node);
+    void VisitLeavesToRoot(TreeTaxNode *node);
+    bool shouldVisitChildren(TreeTaxNode *node);
+    virtual void beforeVisitChildren(TreeTaxNode *){}
+    virtual void afterVisitChildren(TreeTaxNode *){}
 };
 /*
 class TaxMap : public QMap<qint32, QString>

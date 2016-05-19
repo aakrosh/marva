@@ -106,7 +106,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(onCurrentTabCnaged(int)));
 
-  GraphView *taxTreeView = openTaxonomyTreeView();
+  TreeGraphView *taxTreeView = openTaxonomyTreeView();
   connect(globalTaxDataProvider, SIGNAL(dataChanged()), taxonomyTreeView, SLOT(onTreeChanged()));
 
   statusList = new StatusListPanel(this);
@@ -212,11 +212,11 @@ void MainWindow::open_tab_blast_file(QString fileName)
 }
 
 //=========================================================================
-GraphView *MainWindow::openTaxonomyTreeView()
+TreeGraphView *MainWindow::openTaxonomyTreeView()
 {
     if ( taxonomyTreeView == NULL )
     {
-        taxonomyTreeView = new GraphView(this, taxTree);
+        taxonomyTreeView = new TreeGraphView(this, taxTree);
         taxonomyTreeView->persistant = true;
         taxonomyTreeView->taxDataProvider = globalTaxDataProvider;
     }
@@ -286,7 +286,7 @@ void MainWindow::updateAllDirtyNames()
     for ( int i = 0; i < ui->tabWidget->count(); i++ )
     {
         DataGraphicsView *qgv = (DataGraphicsView *)ui->tabWidget->widget(i);
-        GraphView *gv = dynamic_cast<GraphView *>(qgv);
+        TreeGraphView *gv = dynamic_cast<TreeGraphView *>(qgv);
         if ( gv != NULL )
             gv->updateDirtyNodes(DIRTY_NAME);
     }
@@ -330,6 +330,16 @@ void MainWindow::setActiveGraphView(DataGraphicsView *newGV)
     activeGraphView = newGV;
     connectGraphView(oldGV, newGV);
     taxListWidget->setTaxDataProvider(newGV->taxDataProvider);
+    BlastGraphView *gv = dynamic_cast<BlastGraphView*>(newGV);
+    if ( gv != NULL )
+    {
+        readsSB->setValue(gv->reads_threshold);
+        readsSB->setEnabled(true);
+    }
+    else
+    {
+        readsSB->setEnabled(false);
+    }
     emit activeGraphViewChanged(oldGV, newGV);
 }
 

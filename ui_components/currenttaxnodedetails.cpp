@@ -40,15 +40,20 @@ void CurrentTaxNodeDetails::onCurrentNodeChanged(BaseTaxNode *node)
         ui->lName->setText(node->getText());
     }
 
+    TreeTaxNode *ttn = dynamic_cast<TreeTaxNode *>(node);
     QStringList sl;
-    BaseTaxNode *p = node->parent;
-    while ( p != NULL )
+    if ( ttn != NULL )
     {
-        sl.insert(0, p->getText());
-        p = p->parent;
+        TreeTaxNode *p = ttn->parent;
+        while ( p != NULL )
+        {
+            sl.insert(0, p->getText());
+            p = p->parent;
+        }
+        sl.append(node->getText());
     }
-    sl.append(node->getText());
     ui->lPath->setText(sl.join("\n"));
+
 
     BlastTaxNode *bnode = dynamic_cast<BlastTaxNode *>(node);
     if ( bnode != NULL )

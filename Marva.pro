@@ -29,13 +29,16 @@ HEADERS += edge.h \
     taxdataprovider.h \
     chartview.h \
     datagraphicsview.h \
-    graphview.h
+    graphview.h \
+    tree_tax_node.h \
+    ui_components/bubblechartproperties.h
 FORMS += \
     main_window.ui \
     ui_components/taxlistwidget.ui \
     ui_components/leftpanel.ui \
     ui_components/currenttaxnodedetails.ui \
-    ui_components/labeleddoublespinbox.ui
+    ui_components/labeleddoublespinbox.ui \
+    ui_components/bubblechartproperties.ui
 SOURCES += edge.cpp \
     blast_record.cpp \
     blast_data.cpp \
@@ -56,4 +59,6 @@ SOURCES += edge.cpp \
     taxdataprovider.cpp \
     chartview.cpp \
     datagraphicsview.cpp \
-    graphview.cpp
+    graphview.cpp \
+    tree_tax_node.cpp \
+    ui_components/bubblechartproperties.cpp

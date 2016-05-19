@@ -4,8 +4,11 @@
 #include "taxdataprovider.h"
 #include "datagraphicsview.h"
 
+#include <QMenu>
+
 #define MARGIN 50
 class BlastTaxNode;
+
 typedef QList<BlastTaxNode *> BlastTaxNodes;
 
 class IdBlastTaxNodesPair
@@ -13,7 +16,8 @@ class IdBlastTaxNodesPair
 public:
     quint32 id;
     BlastTaxNodes tax_nodes;
-    IdBlastTaxNodesPair(quint32 _id):id(_id){}
+    bool checked;
+    IdBlastTaxNodesPair(quint32 _id):id(_id),checked(true){}
     quint32 reads() const;
 };
 
@@ -39,9 +43,12 @@ public:
     virtual quint32 getMaxReads();
     bool contains(quint32 id);
     virtual quint32 indexOf(qint32 id);
-    virtual QVariant checkState(int /*index*/);
-    virtual void setCheckedState(int /*index*/, QVariant /*value*/);
+    virtual QVariant checkState(int index);
+    virtual void setCheckedState(int index, QVariant value);
 
+signals:
+    void taxVisibilityChanged(quint32 index);
+    void cacheUpdated();
     friend class ChartView;
 };
 
@@ -60,11 +67,11 @@ public:
     void PrepareScene();
     QRectF chartRect;
     int ppl_count;
+    quint32 maxNodeSize;
     ChartGraphNode *getGNode(BlastTaxNode *node);
     inline ChartDataProvider *dataProvider() { return (ChartDataProvider*)taxDataProvider; }
 
     void showChart();
-
 
     void setHeader(QString fileName);
     void setChartRectSize(int w, int h);
@@ -72,16 +79,22 @@ public:
     virtual void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
     virtual bool eventFilter(QObject *object, QEvent *event) Q_DECL_OVERRIDE;
 private:
+    QMenu popupMenu;
+    QAction *propertiesAction;
     friend class ChartGraphNode;
     void goUp();
     void goDown();
 protected slots:
     virtual void onCurrentNodeChanged(BaseTaxNode *);
-
+    virtual void onTaxVisibilityChanged(quint32 index);
+    virtual void onDataChanged();
+    virtual void showContextMenu(const QPoint&);
+    virtual void showPropertiesDialog();
 public slots:
     virtual void onNodeVisibilityChanged(BaseTaxNode*, bool) {}
     virtual void reset() {}
     virtual void onReadsThresholdChanged(quint32 /*oldT*/, quint32 /*newT*/) {}
+    virtual void changeMaxBubbleSize(int);
 };
 
 

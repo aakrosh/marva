@@ -41,6 +41,7 @@
 #include "edge.h"
 #include "graph_node.h"
 #include "tax_map.h"
+#include "tree_tax_node.h"
 
 #include <math.h>
 
@@ -114,7 +115,7 @@ void Edge::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
     }
     else
     {
-        if ( dest->tax_node != source->tax_node->children[0] )
+        if ( dest->getTaxNode() != source->getTaxNode()->children[0] )
             painter->drawPolyline(&points[1], 3);
         else
             painter->drawPolyline(points, 4);
