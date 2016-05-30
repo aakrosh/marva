@@ -72,8 +72,7 @@ public:
     TreeTaxNode *root;
     QMenu *nodePopupMenu;
     QAction *hideNodeAction;
-    quint32 reads_threshold;
-    bool persistant;
+
 
     void adjust_scene_boundaries();
     inline void set_vert_interval(int interval) { vert_interval = interval; }
@@ -88,7 +87,6 @@ public:
     void markAllNodesDirty();
     void updateDirtyNodes(quint32 flag);
     void createMissedGraphNodes();
-//    inline TaxTreeGraphNode *getTaxTreeGNode() { return (TaxTreeGraphNode *) getGnode(); }
 
     DirtyGNodesList dirtyList;
 
@@ -118,21 +116,19 @@ private:
     void goLeft();
     void goRight();
 
+protected:
     void hideNodes(quint32 oldT, quint32 newT);
     void unhideNodes(quint32 oldT, quint32 newT);
 
 signals:
     currentNodeChanged(BaseTaxNode *);
 private slots:
-    void blastLoadingProgress(void *bdata);
-    void blastIsLoaded(void *bdata);
     void hideCurrent();
 protected slots:
     virtual void onCurrentNodeChanged(BaseTaxNode *);
 public slots:
     virtual void onNodeVisibilityChanged(BaseTaxNode *, bool);
     virtual void reset();
-    virtual void onReadsThresholdChanged(quint32 oldT, quint32 newT);
     virtual void onTreeChanged();
     virtual void onNodeNamesChanged();
 };
@@ -141,9 +137,18 @@ class BlastGraphView : public TreeGraphView
 {
     Q_OBJECT
 public:
+    quint32 reads_threshold;
     BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidget *parent, TaxNode *taxTree);
     ~BlastGraphView();
     inline BlastTaxDataProvider *blastTaxDataProvider() { return (BlastTaxDataProvider *)taxDataProvider; }
+    inline BlastTaxDataProvider *blastTaxDataProvider() const { return (BlastTaxDataProvider *)taxDataProvider; }
+    virtual void toJson(QJsonObject &json) const;
+    virtual void fromJson(QJsonObject &json);
+private slots:
+    void blastLoadingProgress(void *bdata);
+    void blastIsLoaded(void *bdata);
+public slots:
+    virtual void onReadsThresholdChanged(quint32 oldT, quint32 newT);
 signals:
     blast_view_closed();
 };

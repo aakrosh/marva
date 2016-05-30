@@ -33,8 +33,9 @@ class TaxDataProvider : public QObject
 {
     Q_OBJECT
 protected:
-    IdTaxNodeList idTaxNodeList;
 public:
+    IdTaxNodeList idTaxNodeList;
+    QString name;
     TaxDataProvider(QObject *parent, TaxDataProviderType type = UNKNOWN);
     virtual ~TaxDataProvider();
     virtual quint32 count();
@@ -71,6 +72,8 @@ public slots:
     void onMapChanged();
 };
 
+class BlastTaxNode;
+
 // Provides data for blast tree
 class BlastTaxDataProvider : public TaxDataProvider
 {
@@ -79,7 +82,7 @@ class BlastTaxDataProvider : public TaxDataProvider
     BlastNodeMap *blastNodeMap;
     quint32 parent_count;
 public:
-    QString name;
+    BlastTaxNode *root;
     BlastTaxDataProvider(QObject *parent);
     ~BlastTaxDataProvider();
     virtual quint32 reads(quint32 index);
@@ -90,6 +93,10 @@ public:
     virtual quint32 getMaxReads();
     virtual void addParent();
     virtual void removeParent();
+    BlastTaxNode *addTaxNode(qint32 id, qint32 reads=-1);
+    virtual void toJson(QJsonObject &json) const;
+    virtual void fromJson(QJsonObject &json);
+
 
 public slots:
     void onBlastProgress(void *);
@@ -98,6 +105,14 @@ public slots:
     friend class BlastDataTreeLoader;
 };
 
-typedef QList<BlastTaxDataProvider*> BlastTaxDataProviders;
+class BlastTaxDataProviders : public QList<BlastTaxDataProvider *>
+{
+public:
+    virtual void toJson(QJsonObject &json) const;
+    virtual void fromJson(QJsonObject &json);
+    BlastTaxDataProvider *providerByName(const QString &name) const;
+};
+
+extern BlastTaxDataProviders blastTaxDataProviders;
 
 #endif // TAXDATAPROVIDER_H

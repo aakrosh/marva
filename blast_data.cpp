@@ -15,7 +15,7 @@ TaxColorSrc taxColorSrc;
 
 //=========================================================================
 BlastDataTreeLoader::BlastDataTreeLoader(QObject *parent, QString fileName, BlastTaxDataProvider *dp, BlastFileType _type) :
-    LoaderThread(parent, fileName, NULL, root),
+    LoaderThread(parent, fileName, NULL, NULL),
     type(_type),
     root(NULL),
     dataProvider(dp)
@@ -39,33 +39,9 @@ void BlastDataTreeLoader::processLine(QString &line)
         {
             QStringList list = line.split("\t", QString::SkipEmptyParts);
             BlastRecord rec(type, list);
-            TaxMapIterator it = taxMap.find(rec.taxa_id);
-            if ( it == taxMap.end() )
-            {
-                QMessageBox::information(0, QString("Error"), QString("No data for id %1 found").arg(rec.taxa_id));
-                return;
-            }
-            TreeTaxNode *node = it.value();
-            BlastNodeMap::iterator bit = dataProvider->blastNodeMap->find(rec.taxa_id);
-            if ( bit == dataProvider->blastNodeMap->end() )
-            {
-                BlastTaxNode *blastNode = new BlastTaxNode(node, 1, dataProvider->blastNodeMap);
-                BlastTaxNode *res = blastNode->createPathToNode(dataProvider->blastNodeMap);
-                if ( root == NULL )
-                {
-                    root = res;
-                    result = res;
-                }
-            }
-            else
-            {
-                quint32 r = ++bit.value()->reads;
-                if ( dataProvider->blastNodeMap->max_reads < r )
-                    dataProvider->blastNodeMap->max_reads = r;
-                TaxTreeGraphNode *gn = (TaxTreeGraphNode *)bit.value()->getGnode();
-                if ( gn != NULL )
-                    gn->markDirty(DIRTY_NAME);
-            }
+            dataProvider->addTaxNode(rec.taxa_id, -1);
+            if ( result == NULL )
+                result = dataProvider->root;
         }
         break;
         default:
@@ -83,7 +59,10 @@ void BlastDataTreeLoader::finishProcessing()
 }
 
 //=========================================================================
-BlastTaxNode::BlastTaxNode(TreeTaxNode *refNode, int _count, BlastNodeMap *blastNodeMap):TreeTaxNode(false), reads(_count), tNode(refNode)
+BlastTaxNode::BlastTaxNode(TreeTaxNode *refNode, int _count, BlastNodeMap *blastNodeMap):
+    TreeTaxNode(false),
+    reads(_count),
+    tNode(refNode)
 {
     if ( blastNodeMap != NULL )
         blastNodeMap->insert(refNode->getId(), this);

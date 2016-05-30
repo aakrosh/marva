@@ -29,6 +29,7 @@ TaxListWidget::~TaxListWidget()
     delete ui;
 }
 
+//=========================================================================
 void TaxListWidget::setTaxDataProvider(TaxDataProvider *tdp)
 {
     model->taxDataProvider = tdp;
@@ -69,6 +70,7 @@ bool TaxListWidget::eventFilter(QObject *object, QEvent *event)
     return false;
 }
 
+//=========================================================================
 void TaxListWidget::resetView()
 {
     reset();

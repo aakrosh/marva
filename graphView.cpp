@@ -5,6 +5,8 @@
 #include <QScrollBar>
 #include <QMenu>
 #include <QAction>
+#include <QJsonObject>
+#include <QJsonArray>
 
 #include "graphview.h"
 #include "edge.h"
@@ -43,8 +45,6 @@ void TreeGraphView::markAllNodesDirty()
 TreeGraphView::TreeGraphView(QWidget *parent, TaxNode *taxTree)
     : DataGraphicsView(NULL, parent),
       root(taxTree),
-      reads_threshold(0),
-      persistant(false),
       create_nodes(true),
       treeDepth(0)
 {
@@ -618,7 +618,7 @@ void TreeGraphView::createMissedGraphNodes()
     {
     public:
         int nodesCreated;
-        GNodesCreator(TreeGraphView *gv) : TaxNodeVisitor(RootToLeaves, false, gv), nodesCreated(0){}
+        GNodesCreator(TreeGraphView *gv) : TaxNodeVisitor(RootToLeaves, false, gv, false, true, false), nodesCreated(0){}
         virtual void Action(TreeTaxNode *node)
         {
             if ( node->getGnode() == NULL && node->visible() )
@@ -633,33 +633,6 @@ void TreeGraphView::createMissedGraphNodes()
     gnCreator.Visit(root);
     if ( gnCreator.nodesCreated > 0 )        
         resetNodesCoordinates();
-}
-
-//=========================================================================
-void TreeGraphView::blastLoadingProgress(void *obj)
-{
-    static bool updating = false;
-    if ( updating )
-        return;
-    updating = true;
-    bool centeron = root == NULL;
-    if ( root != obj )
-        root = (BlastTaxNode *)obj;
-    createMissedGraphNodes();
-    if ( centeron )
-        centerOn(root->getGnode());
-    //reset();
-    updateDirtyNodes(DIRTY_NAME);
-    updating = false;
-}
-
-//=========================================================================
-void TreeGraphView::blastIsLoaded(void *obj)
-{
-    if ( root != obj )
-        root = (BlastTaxNode *)obj;
-    createMissedGraphNodes();
-    updateDirtyNodes(DIRTY_NAME);
 }
 
 //=========================================================================
@@ -768,22 +741,6 @@ void TreeGraphView::onNodeVisibilityChanged(BaseTaxNode *node, bool node_visible
         hideNode(ttn);
 }
 
-//=========================================================================
-void TreeGraphView::onReadsThresholdChanged(quint32 oldT, quint32 newT)
-{
-    if ( reads_threshold == newT )
-        return;
-    reads_threshold = newT;
-    getTaxNodeSignalSender(NULL)->sendSignals = false;
-    if ( oldT == newT )
-        return;
-    if ( oldT < newT )
-        hideNodes(oldT, newT);
-    else
-        unhideNodes(oldT, newT);
-    getTaxNodeSignalSender(NULL)->sendSignals = true;
-    getTaxNodeSignalSender(NULL)->bigChangesHappened();
-}
 
 //=========================================================================
 void DirtyGNodesList::Add(TaxTreeGraphNode *node)
@@ -797,15 +754,92 @@ void DirtyGNodesList::Add(TaxTreeGraphNode *node)
 //*************************************************************************
 //=========================================================================
 BlastGraphView::BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidget *parent, TaxNode *taxTree):
-    TreeGraphView(parent, taxTree)
-{
+    TreeGraphView(parent, taxTree),
+    reads_threshold(0)
+{    
     taxDataProvider = (TaxDataProvider*)blastTaxDataProvider;
-    blastTaxDataProvider->setParent(NULL);
-    blastTaxDataProvider->addParent();
+    if ( blastTaxDataProvider != NULL )
+    {
+        blastTaxDataProvider->setParent(NULL);
+        blastTaxDataProvider->addParent();
+    }
+    dirtyList.clear();
+    scene()->clear();
+    root = NULL;
 }
 
+//=========================================================================
 BlastGraphView::~BlastGraphView()
 {
     blastTaxDataProvider()->removeParent();
     emit blast_view_closed();
+}
+
+//=========================================================================
+void BlastGraphView::blastLoadingProgress(void *obj)
+{
+    static bool updating = false;
+    if ( updating )
+        return;
+    updating = true;
+    bool centeron = root == NULL;
+    if ( root != obj )
+        root = (BlastTaxNode *)obj;
+    createMissedGraphNodes();
+    if ( centeron )
+        centerOn(root->getGnode());
+    updateDirtyNodes(DIRTY_NAME);
+    updating = false;
+}
+
+//=========================================================================
+void BlastGraphView::blastIsLoaded(void *obj)
+{
+    if ( root != obj )
+        root = (BlastTaxNode *)obj;
+    createMissedGraphNodes();
+    updateDirtyNodes(DIRTY_NAME);
+}
+
+//=========================================================================
+void BlastGraphView::toJson(QJsonObject &json) const
+{
+    json["Type"] = "BlastGraphView";
+    json["Threshold"] = (int)reads_threshold;
+    json["DataProvider"] = blastTaxDataProvider()->name;
+}
+
+//=========================================================================
+void BlastGraphView::fromJson(QJsonObject &json)
+{
+    reads_threshold = json["Threshold"].toInt();
+    QString dpName = json["DataProvider"].toString();
+    BlastTaxDataProvider *p = blastTaxDataProviders.providerByName(dpName);
+    if ( p == NULL )
+    {
+         close();
+         return;
+    }
+    p->addParent();
+    taxDataProvider = p;
+    root = blastTaxDataProvider()->root;
+    createMissedGraphNodes();
+    AddNodeToScene(root);
+}
+
+//=========================================================================
+void BlastGraphView::onReadsThresholdChanged(quint32 oldT, quint32 newT)
+{
+    if ( reads_threshold == newT )
+        return;
+    reads_threshold = newT;
+    getTaxNodeSignalSender(NULL)->sendSignals = false;
+    if ( oldT == newT )
+        return;
+    if ( oldT < newT )
+        hideNodes(oldT, newT);
+    else
+        unhideNodes(oldT, newT);
+    getTaxNodeSignalSender(NULL)->sendSignals = true;
+    getTaxNodeSignalSender(NULL)->bigChangesHappened();
 }

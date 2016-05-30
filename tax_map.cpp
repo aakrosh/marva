@@ -25,17 +25,18 @@ void TaxMap::setName(qint32 tid, const char *name)
 }
 
 //=========================================================================
-TaxNodeVisitor::TaxNodeVisitor(
-        VisitorDirection _direction,
+TaxNodeVisitor::TaxNodeVisitor(VisitorDirection _direction,
         bool visit_collapsed,
         TreeGraphView *gv,
         bool createGNodes,
-        bool _visitNullGnodes) :
+        bool _visitNullGnodes,
+        bool _visit_invisible) :
     direction(_direction),
     createGraphNodes(createGNodes),
     visitCollapsed(visit_collapsed),
     graphView(gv),
-    visitNullGnodes(_visitNullGnodes)
+    visitNullGnodes(_visitNullGnodes),
+    visit_invisible(_visit_invisible)
 {
 
 }
@@ -45,8 +46,11 @@ bool TaxNodeVisitor::shouldVisitChildren(TreeTaxNode *node)
 {
     if ( node->children.isEmpty() )
         return false;
-    else
-        return this->visitCollapsed || !node->isCollapsed();
+    else if ( !visitCollapsed && node->isCollapsed() )
+        return false;
+    else if ( !visit_invisible && !node->is_visible )
+        return false;
+    return true;
 }
 
 //=========================================================================

@@ -11,6 +11,10 @@
 #include "taxdataprovider.h"
 
 #include <QFileDialog>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QMessageBox>
 
 TaxMap taxMap;
 TaxNode *taxTree;
@@ -172,13 +176,108 @@ void MainWindow::open_tab_blast_files()
     QFileDialog dialog(this);
     dialog.setFileMode(QFileDialog::ExistingFiles);
     QStringList fileNames;
-    if (dialog.exec())
+    if ( dialog.exec() )
         fileNames = dialog.selectedFiles();
     if ( fileNames.isEmpty() )
         return;
 
     foreach (QString fileName, fileNames)
         open_tab_blast_file(fileName);
+}
+
+//=========================================================================
+void MainWindow::open_project()
+{
+
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open project"),
+                                                          QString(),
+                                                          tr("Marva project (*.marva)"));
+    if ( fileName.isEmpty() )
+        return;
+    closeAllViews();
+    QFile loadFile(fileName);
+    if ( !loadFile.open(QIODevice::ReadOnly) )
+    {
+        qWarning("Couldn't open project file.");
+        return;
+    }
+    QByteArray saveData = loadFile.readAll();
+    QJsonDocument loadDoc = QJsonDocument::fromJson(saveData);
+    QJsonObject jobj = loadDoc.object();
+    fromJson(jobj);
+    loadFile.close();
+}
+
+//=========================================================================
+void MainWindow::save_project()
+{
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Save project"),
+                                                          QString(),
+                                                          tr("Marva project (*.marva)"));
+    if ( fileName.isEmpty() )
+        return;
+    QFile saveFile(fileName);
+
+    if ( !saveFile.open(QIODevice::WriteOnly ))
+        qWarning("Couldn't open project file for writing.");
+
+    QJsonObject saveObject;
+    toJson(saveObject);
+    QJsonDocument saveDoc(saveObject);
+    saveFile.write(saveDoc.toJson(QJsonDocument::Compact));
+    saveFile.close();
+}
+
+//=========================================================================
+void MainWindow::toJson(QJsonObject &json) const
+{
+    blastTaxDataProviders.toJson(json);
+    QJsonArray jViewArr;
+    for ( int i = 0; i < ui->tabWidget->count(); i++ )
+    {
+        DataGraphicsView *dgv = (DataGraphicsView *)ui->tabWidget->widget(i);
+        if ( dgv != NULL && !dgv->persistant )
+        {
+            QJsonObject jview;
+            dgv->toJson(jview);
+            jViewArr.append(jview);
+        }
+    }
+    json["views"] = jViewArr;
+}
+
+//=========================================================================
+void MainWindow::fromJson(QJsonObject &json)
+{
+    blastTaxDataProviders.clear();
+    blastTaxDataProviders.fromJson(json);
+    QJsonArray jViewArr = json["views"].toArray();
+    for ( int i = 0; i < jViewArr.size(); i++ )
+    {
+        QJsonObject jView = jViewArr[i].toObject();;
+        QString type = jView["Type"].toString();
+        DataGraphicsView *dgv = DataGraphicsView::createViewByType(this, type);
+        if ( dgv == NULL )
+        {
+            QMessageBox::warning(0, "Cannot create view", QString("Unknown view type %1").arg(type));
+            continue;
+        }
+        dgv->fromJson(jView);
+        addGraphView(dgv, dgv->taxDataProvider->name);
+        taxListWidget->setTaxDataProvider(dgv->taxDataProvider);
+        taxListWidget->reset();
+    }
+}
+
+//=========================================================================
+void MainWindow::closeAllViews()
+{
+    for ( int i = 0; i < ui->tabWidget->count(); i++ )
+    {
+        DataGraphicsView *dgv = (DataGraphicsView *)ui->tabWidget->widget(i);
+        if ( dgv != NULL && !dgv->persistant )
+            dgv->close();
+    }
 }
 
 //=========================================================================
@@ -190,9 +289,6 @@ void MainWindow::open_tab_blast_file(QString fileName)
 
     connect(blastView, SIGNAL(blast_view_closed()), bdtl, SLOT(stop_thread()));
 
-    blastView->dirtyList.clear();
-    blastView->scene()->clear();
-    blastView->root = NULL;
     taxListWidget->setTaxDataProvider(blastTaxDataProvider);
     taxListWidget->reset();
     ui->taxListDockWidget->setVisible(true);

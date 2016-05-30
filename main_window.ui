@@ -64,14 +64,15 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <widget class="QMenu" name="menuOpen">
+    <widget class="QMenu" name="menuImport">
      <property name="title">
-      <string>Open</string>
+      <string>&amp;Import</string>
      </property>
      <addaction name="action_Tab_separated_BLAST_file"/>
     </widget>
-    <addaction name="menuOpen"/>
+    <addaction name="actionOpen"/>
     <addaction name="actionSave"/>
+    <addaction name="menuImport"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -106,7 +107,7 @@
   </widget>
   <action name="actionSave">
    <property name="text">
-    <string>&amp;Save</string>
+    <string>&amp;Save project</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
@@ -139,6 +140,11 @@
   <action name="actionCreateChart">
    <property name="text">
     <string>Create chart</string>
+   </property>
+  </action>
+  <action name="actionOpen">
+   <property name="text">
+    <string>&amp;Open project</string>
    </property>
   </action>
  </widget>
@@ -176,8 +182,42 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionSave</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>save_project()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>449</x>
+     <y>313</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionOpen</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>open_project()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>449</x>
+     <y>313</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>open_tab_blast_files()</slot>
+  <slot>save_project()</slot>
+  <slot>open_project()</slot>
  </slots>
 </ui>

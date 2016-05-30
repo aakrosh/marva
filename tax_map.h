@@ -49,7 +49,7 @@ enum VisitorDirection
 class TaxNodeVisitor
 {
 public:
-    TaxNodeVisitor(VisitorDirection _direction, bool visit_collapsed=false, TreeGraphView *gv=NULL, bool createGNodes=false, bool visitNullGnodes = true);
+    TaxNodeVisitor(VisitorDirection _direction, bool visit_collapsed=false, TreeGraphView *gv=NULL, bool createGNodes=false, bool visitNullGnodes = true, bool _visit_invisible = true);
     virtual void Action(TreeTaxNode *root) = 0;
     void Visit(TreeTaxNode *node);
 private:
@@ -59,6 +59,7 @@ protected:
     bool visitCollapsed;
     TreeGraphView *graphView;
     bool visitNullGnodes;
+    bool visit_invisible;
     void VisitRootToLeaves(TreeTaxNode *node);
     void VisitLeavesToRoot(TreeTaxNode *node);
     bool shouldVisitChildren(TreeTaxNode *node);

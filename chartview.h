@@ -1,10 +1,12 @@
 #ifndef CHARTVIEW_H
 #define CHARTVIEW_H
-#include <QList>
 #include "taxdataprovider.h"
 #include "datagraphicsview.h"
+#include "ui_components/bubblechartproperties.h"
 
+#include <QList>
 #include <QMenu>
+#include <QGraphicsItem>
 
 #define MARGIN 50
 class BlastTaxNode;
@@ -45,12 +47,20 @@ public:
     virtual quint32 indexOf(qint32 id);
     virtual QVariant checkState(int index);
     virtual void setCheckedState(int index, QVariant value);
+    quint32 visibleTaxNumber();
+    virtual void toJson(QJsonObject &json) const;
+    virtual void fromJson(QJsonObject &json);
+
+    void addParentToAllDataProviders();
 
 signals:
     void taxVisibilityChanged(quint32 index);
     void cacheUpdated();
     friend class ChartView;
 };
+
+class ChartView;
+
 
 class ChartGraphNode;
 class ChartView : public DataGraphicsView
@@ -61,15 +71,15 @@ class ChartView : public DataGraphicsView
     QList<QGraphicsRectItem *> grid;
     QList<QGraphicsTextItem*> verticalLegend;
     QList<QGraphicsTextItem*> horizontalLegend;
+    BubbleChartConfig config;
 public:
     ChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent = 0);
     ~ChartView();
-    void PrepareScene();
+    void prepareScene();
     QRectF chartRect;
-    int ppl_count;
-    quint32 maxNodeSize;
     ChartGraphNode *getGNode(BlastTaxNode *node);
     inline ChartDataProvider *dataProvider() { return (ChartDataProvider*)taxDataProvider; }
+    inline ChartDataProvider *dataProvider() const { return (ChartDataProvider*)taxDataProvider; }
 
     void showChart();
 
@@ -78,23 +88,33 @@ public:
     virtual void resizeEvent(QResizeEvent *e);
     virtual void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
     virtual bool eventFilter(QObject *object, QEvent *event) Q_DECL_OVERRIDE;
+    void CreateGraphNode(BlastTaxNode *node);
+    virtual void toJson(QJsonObject &json) const;
+    virtual void fromJson(QJsonObject &json);
+
 private:
     QMenu popupMenu;
     QAction *propertiesAction;
     friend class ChartGraphNode;
     void goUp();
     void goDown();
+    void setVerticalLegendSelected(qint32 index, bool selected);
+    void setVerticalLegentColor(BaseTaxNode *node, bool selected);
+    void compareNodesAndUpdate(ChartGraphNode *chartGraphNode, BaseTaxNode *refNode);
+
 protected slots:
     virtual void onCurrentNodeChanged(BaseTaxNode *);
     virtual void onTaxVisibilityChanged(quint32 index);
     virtual void onDataChanged();
     virtual void showContextMenu(const QPoint&);
     virtual void showPropertiesDialog();
+    void hideCurrentTax();
 public slots:
     virtual void onNodeVisibilityChanged(BaseTaxNode*, bool) {}
     virtual void reset() {}
     virtual void onReadsThresholdChanged(quint32 /*oldT*/, quint32 /*newT*/) {}
     virtual void changeMaxBubbleSize(int);
+    virtual void toggleTitleVisibility(bool);
 };
 
 

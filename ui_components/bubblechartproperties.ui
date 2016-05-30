@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>530</width>
-    <height>79</height>
+    <width>532</width>
+    <height>115</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,7 +22,10 @@
      <item>
       <widget class="QLabel" name="label">
        <property name="text">
-        <string>Maximum bubble size</string>
+        <string>Maximum &amp;bubble size</string>
+       </property>
+       <property name="buddy">
+        <cstring>horizontalSlider</cstring>
        </property>
       </widget>
      </item>
@@ -50,6 +53,16 @@
       </widget>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="cbShowTitle">
+     <property name="text">
+      <string>Show &amp;title</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item>
     <spacer name="verticalSpacer">
@@ -85,8 +98,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>227</x>
-     <y>61</y>
+     <x>236</x>
+     <y>105</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -101,8 +114,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>295</x>
-     <y>67</y>
+     <x>304</x>
+     <y>105</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>

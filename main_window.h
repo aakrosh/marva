@@ -52,6 +52,11 @@ private slots:
     void updateLoadedNames();
     void open_tab_blast_file(QString fileName);
     void open_tab_blast_files();
+    void open_project();
+    void save_project();
+    void toJson(QJsonObject &json) const;
+    void fromJson(QJsonObject &json);
+    void closeAllViews();
     TreeGraphView *openTaxonomyTreeView();
     BlastTaxDataProviders *getAllBlastDataProviders();
     ChartView *createChartView();
