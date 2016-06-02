@@ -3,12 +3,13 @@
 #include "tree_loader_thread.h"
 #include "map_loader_thread.h"
 #include "graph_node.h"
+#include "taxnodesignalsender.h"
+#include "taxdataprovider.h"
 #include "ui_components/taxlistwidget.h"
 #include "ui_components/leftpanel.h"
 #include "ui_components/currenttaxnodedetails.h"
 #include "ui_components/labeleddoublespinbox.h"
-#include "taxnodesignalsender.h"
-#include "taxdataprovider.h"
+#include "ui_components/start_dialog.h"
 
 #include <QFileDialog>
 #include <QJsonDocument>
@@ -90,7 +91,6 @@ MainWindow::MainWindow(QWidget *parent) :
   taxListWidget->setTaxDataProvider(globalTaxDataProvider);
 
   connect(globalTaxDataProvider, SIGNAL(dataChanged()), taxListWidget, SLOT(refresh()));
-
   TreeLoaderThread *tlThread = new TreeLoaderThread(this, globalTaxDataProvider, true);
   connect(tlThread, SIGNAL(resultReady(void *)), globalTaxDataProvider, SLOT(onTreeLoaded()));
   connect(tlThread, SIGNAL(resultReady(void *)), this, SLOT(treeIsLoaded(void *)));
@@ -138,6 +138,10 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->actionTaxonomyTree, SIGNAL(triggered(bool)), this, SLOT(openTaxonomyTreeView()));
   connect(ui->actionCreateChart, SIGNAL(triggered(bool)), this, SLOT(createChartView()));
 
+  StartDialog *startDialog = new StartDialog(this);
+  connect(startDialog, SIGNAL(fileChoosen(QString)), this, SLOT(openProject(QString)));
+  connect(startDialog, SIGNAL(accepted()), startDialog, SLOT(deleteLater()));
+  startDialog->open();
 }
 
 //=========================================================================
@@ -180,9 +184,30 @@ void MainWindow::open_tab_blast_files()
         fileNames = dialog.selectedFiles();
     if ( fileNames.isEmpty() )
         return;
-
     foreach (QString fileName, fileNames)
         open_tab_blast_file(fileName);
+}
+
+//=========================================================================
+void MainWindow::openProject(QString fileName)
+{
+    treeLoaderMutex.lock();     // No actual locking is needed. Just wait till the tree is loaded
+    treeLoaderMutex.unlock();
+    QFile loadFile(fileName);
+    if ( !loadFile.open(QIODevice::ReadOnly) )
+    {
+        qWarning("Couldn't open project file.");
+        return;
+    }
+    QString status = QString("Loading project file %1").arg(loadFile.fileName());
+    QListWidgetItem *statusListItem = statusList->AddItem(status);
+    QCoreApplication::processEvents();
+    QByteArray saveData = loadFile.readAll();
+    QJsonDocument loadDoc = QJsonDocument::fromJson(saveData);
+    QJsonObject jobj = loadDoc.object();
+    fromJson(jobj);
+    loadFile.close();
+    statusList->RemoveItem(statusListItem);
 }
 
 //=========================================================================
@@ -195,17 +220,7 @@ void MainWindow::open_project()
     if ( fileName.isEmpty() )
         return;
     closeAllViews();
-    QFile loadFile(fileName);
-    if ( !loadFile.open(QIODevice::ReadOnly) )
-    {
-        qWarning("Couldn't open project file.");
-        return;
-    }
-    QByteArray saveData = loadFile.readAll();
-    QJsonDocument loadDoc = QJsonDocument::fromJson(saveData);
-    QJsonObject jobj = loadDoc.object();
-    fromJson(jobj);
-    loadFile.close();
+    openProject(fileName);
 }
 
 //=========================================================================
@@ -226,6 +241,12 @@ void MainWindow::save_project()
     QJsonDocument saveDoc(saveObject);
     saveFile.write(saveDoc.toJson(QJsonDocument::Compact));
     saveFile.close();
+}
+
+//=========================================================================
+void MainWindow::close_project()
+{
+    closeAllViews();
 }
 
 //=========================================================================

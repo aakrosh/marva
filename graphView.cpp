@@ -68,8 +68,11 @@ TreeGraphView::TreeGraphView(QWidget *parent, TaxNode *taxTree)
         centerOn(root->getGnode());
     nodePopupMenu = new QMenu();
     hideNodeAction = new QAction("Hide node", this);
+    hideAllButNodeAction = new QAction("Hide all but this", this);
     nodePopupMenu->addAction(hideNodeAction);
+    nodePopupMenu->addAction(hideAllButNodeAction);
     connect(hideNodeAction, SIGNAL(triggered()), this, SLOT(hideCurrent()));
+    connect(hideAllButNodeAction, SIGNAL(triggered()), this, SLOT(hideAllButCurrent()));
     setAttribute(Qt::WA_DeleteOnClose);
 }
 
@@ -481,6 +484,16 @@ void TreeGraphView::keyPressEvent(QKeyEvent *event)
 }
 
 //=========================================================================
+void TreeGraphView::showContextMenu(const QPoint &p)
+{
+    QMenu *newMenu = new QMenu(this);
+    newMenu->addActions(nodePopupMenu->actions());
+    newMenu->addSeparator();
+    newMenu->addActions(popupMenu.actions());
+    newMenu->exec(mapToGlobal(p));
+}
+
+//=========================================================================
 void TreeGraphView::shrink_vertically(int s)
 {
     if ( get_vert_interval() <20 )
@@ -728,6 +741,22 @@ void TreeGraphView::hideCurrent()
         else
             p->setVisible(false);
         p = p->parent;
+    }
+}
+
+//=========================================================================
+void TreeGraphView::hideAllButCurrent()
+{
+    curNode->setVisible(true);
+    TreeTaxNode *vNode = ((TreeTaxNode *)curNode);
+    TreeTaxNode *p = vNode->parent;
+    while ( p != NULL )
+    {
+        ChildrenList &list = p->children;
+        for ( TaxNodeIterator it = list.begin(); it < list.end(); it++ )
+            (*it)->setVisible((*it) == vNode);
+        vNode = p;
+        p = vNode->parent;
     }
 }
 

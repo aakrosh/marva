@@ -100,6 +100,7 @@ protected:
     virtual void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE;
 #endif
     virtual void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
+    virtual void showContextMenu(const QPoint&);
 private:
     int hor_interval;
     int vert_interval;
@@ -124,6 +125,7 @@ signals:
     currentNodeChanged(BaseTaxNode *);
 private slots:
     void hideCurrent();
+    void hideAllButCurrent();
 protected slots:
     virtual void onCurrentNodeChanged(BaseTaxNode *);
 public slots:

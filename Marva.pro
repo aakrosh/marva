@@ -4,7 +4,7 @@
 
 TEMPLATE = app
 TARGET = Marva
-QT += widgets core gui
+QT += widgets core gui printsupport
 INCLUDEPATH += .
 QMAKE_CXXFLAGS += -std=c++11
 # Input
@@ -31,14 +31,16 @@ HEADERS += edge.h \
     datagraphicsview.h \
     graphview.h \
     tree_tax_node.h \
-    ui_components/bubblechartproperties.h
+    ui_components/bubblechartproperties.h \
+    ui_components/start_dialog.h
 FORMS += \
     main_window.ui \
     ui_components/taxlistwidget.ui \
     ui_components/leftpanel.ui \
     ui_components/currenttaxnodedetails.ui \
     ui_components/labeleddoublespinbox.ui \
-    ui_components/bubblechartproperties.ui
+    ui_components/bubblechartproperties.ui \
+    ui_components/start_dialog.ui
 SOURCES += edge.cpp \
     blast_record.cpp \
     blast_data.cpp \
@@ -61,4 +63,5 @@ SOURCES += edge.cpp \
     datagraphicsview.cpp \
     graphview.cpp \
     tree_tax_node.cpp \
-    ui_components/bubblechartproperties.cpp
+    ui_components/bubblechartproperties.cpp \
+    ui_components/start_dialog.cpp

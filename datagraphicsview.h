@@ -2,13 +2,20 @@
 #define DATAGRAPHICSVIEW_H
 
 #include <QGraphicsView>
+#include <QPrinter>
+#include <QMenu>
+
 class TaxDataProvider;
 class BaseTaxNode;
 
 class DataGraphicsView : public QGraphicsView
 {
+    Q_OBJECT
+    QAction *printAction;
+    QAction *screenshotAction;
 protected:
     BaseTaxNode *curNode;
+    QMenu popupMenu;
 public:
     TaxDataProvider *taxDataProvider;
     bool persistant;
@@ -21,7 +28,11 @@ public:
     static DataGraphicsView *createViewByType(QWidget *parent, QString &type);
 protected slots:
     virtual void onCurrentNodeChanged(BaseTaxNode *) {}
-
+    virtual void print();
+    virtual void makeScreenshot();
+    void renderToPrinter(QPrinter *);
+    void renderToPainter(QPainter *);
+    virtual void showContextMenu(const QPoint&);
 public slots:
     virtual void onNodeVisibilityChanged(BaseTaxNode*, bool) {}
     virtual void reset() {}

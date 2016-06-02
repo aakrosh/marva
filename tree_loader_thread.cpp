@@ -2,6 +2,8 @@
 #include "graph_node.h"
 #include "taxdataprovider.h"
 
+QMutex treeLoaderMutex;
+
 //=========================================================================
 TreeLoaderThread::TreeLoaderThread(QObject *parent, GlobalTaxMapDataProvider *gProvider, bool _merge) :
     LoaderThread(parent, "/data/ncbi.tre", "loading taxonomy tree"),
@@ -89,4 +91,12 @@ void TreeLoaderThread::processLine(QString &line)
     result = tree.children.size() == 0 ? NULL : (TaxNode *)tree.children[0];
     if ( result != NULL )
         ((TreeTaxNode *)result)->parent = NULL;
+}
+
+//=========================================================================
+void TreeLoaderThread::run()
+{
+    treeLoaderMutex.lock();
+    LoaderThread::run();
+    treeLoaderMutex.unlock();
 }

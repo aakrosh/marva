@@ -19,7 +19,7 @@ public:
     quint32 id;
     BlastTaxNodes tax_nodes;
     bool checked;
-    IdBlastTaxNodesPair(quint32 _id):id(_id),checked(true){}
+    IdBlastTaxNodesPair(quint32 _id, bool _checked=true):id(_id),checked(_checked){}
     quint32 reads() const;
 };
 
@@ -93,7 +93,6 @@ public:
     virtual void fromJson(QJsonObject &json);
 
 private:
-    QMenu popupMenu;
     QAction *propertiesAction;
     friend class ChartGraphNode;
     void goUp();
@@ -109,6 +108,7 @@ protected slots:
     virtual void showContextMenu(const QPoint&);
     virtual void showPropertiesDialog();
     void hideCurrentTax();
+
 public slots:
     virtual void onNodeVisibilityChanged(BaseTaxNode*, bool) {}
     virtual void reset() {}

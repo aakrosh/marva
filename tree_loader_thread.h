@@ -6,6 +6,9 @@
 #include "loader_thread.h"
 
 #include <QThread>
+#include <QMutex>
+
+extern QMutex treeLoaderMutex;
 
 class GlobalTaxMapDataProvider;
 
@@ -22,6 +25,7 @@ public:
     TaxNode tree;
 protected:
     virtual void processLine(QString &line);
+    virtual void run();
 };
 
 #endif // TREE_LOADER_THREAD_H

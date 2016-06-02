@@ -45,6 +45,8 @@ private:
     QList<LoaderThread*> activeLoaderThreads;
     LeftPanel *leftPanel;
     TaxListWidget *taxListWidget;
+
+
 signals:
     activeGraphViewChanged(DataGraphicsView *oldGV, DataGraphicsView *newGV);
 private slots:
@@ -54,6 +56,8 @@ private slots:
     void open_tab_blast_files();
     void open_project();
     void save_project();
+    void close_project();
+    void openProject(QString fileName);
     void toJson(QJsonObject &json) const;
     void fromJson(QJsonObject &json);
     void closeAllViews();

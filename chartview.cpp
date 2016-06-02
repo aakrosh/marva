@@ -15,8 +15,8 @@
 #include <QJsonArray>
 
 
-#define MAX_CHART_TAXES 40
-#define MAX_VISIBLE_CHART_TAXES 20
+#define MAX_CHART_TAXES 80
+#define MAX_VISIBLE_CHART_TAXES 40
 
 //=========================================================================
 ChartView::ChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
@@ -44,9 +44,7 @@ ChartView::ChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
 
     setChartRectSize(800, 800);
 
-    setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(this, SIGNAL(customContextMenuRequested(const QPoint&)),this, SLOT(showContextMenu(const QPoint&)));
-    propertiesAction = popupMenu.addAction("Properties");
+    propertiesAction = popupMenu.addAction("Properties...");
     connect(propertiesAction, SIGNAL(triggered(bool)), this, SLOT(showPropertiesDialog()));
 
     if ( _dataProviders->size() > 0 )
@@ -455,7 +453,6 @@ void ChartView::hideCurrentTax()
 {
     TaxNodeSignalSender *tnss = getTaxNodeSignalSender(curNode);
     tnss->VisibilityChanged(false);
-    //dataProvider()->setCheckedState(dataProvider()->indexOf(curNode->getId()), Qt::Unchecked);
 }
 
 //=========================================================================
@@ -720,6 +717,15 @@ void ChartDataProvider::toJson(QJsonObject &json) const
     for ( int i = 0 ; i < providers->size(); i++ )
         providersArray.append(providers->at(i)->name);
     json["BlastDataProviders"] = providersArray;
+    QJsonArray tax_array;
+    for ( int i = 0; i < data.size(); i++ )
+    {
+        QJsonArray tax_node;
+        tax_node.append((qint64)data[i].id);
+        tax_node.append(data[i].checked ? 1: 0);
+        tax_array.append(tax_node);
+    }
+    json["tax_ids"] = tax_array;
 }
 
 //=========================================================================
@@ -736,7 +742,30 @@ void ChartDataProvider::fromJson(QJsonObject &json)
         providers->append(p);
         p->addParent();
     }
-    updateCache(false);
+    QJsonArray tax_array = json["tax_ids"].toArray();
+    data.reserve(tax_array.count());
+    for ( int i = 0 ; i < tax_array.count(); i++ )
+    {
+        QJsonArray tax_node = tax_array[i].toArray();
+        quint32 tax_id = (quint32)tax_node[0].toInt();
+        bool checked = (quint32)tax_node[1].toInt() == 1;
+        data.append(IdBlastTaxNodesPair(tax_id, checked));
+    }
+    for ( int i = 0; i < providers->size(); i++ )
+    {
+        BlastTaxDataProvider *p = providers->at(i);
+        for ( int j = 0; j < data.count(); j++)
+        {
+            int id = data[j].id;
+            qint32 index = p->indexOf(id);
+            quint32 reads = p->reads(id);
+            if ( reads > maxreads)
+                maxreads = reads;
+            data[j].tax_nodes.append( index < 0 ? NULL : ((BlastTaxNode *)p->taxNode(index))->clone());
+        }
+    }
+
+    updateCache(true);
 }
 
 //=========================================================================

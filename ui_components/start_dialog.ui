@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>StartDialog</class>
+ <widget class="QDialog" name="StartDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>573</width>
+    <height>114</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QPushButton" name="bLoadLast">
+     <property name="text">
+      <string>Open last project</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="bBrowseProject">
+     <property name="text">
+      <string>Open project file...</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="bCreateEmpty">
+     <property name="text">
+      <string>Create empty project</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>bLoadLast</sender>
+   <signal>clicked()</signal>
+   <receiver>StartDialog</receiver>
+   <slot>openLastProject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>286</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>56</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>bBrowseProject</sender>
+   <signal>clicked()</signal>
+   <receiver>StartDialog</receiver>
+   <slot>openProjectFile()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>286</x>
+     <y>49</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>56</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>bCreateEmpty</sender>
+   <signal>clicked()</signal>
+   <receiver>StartDialog</receiver>
+   <slot>createEmptyProject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>286</x>
+     <y>78</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>56</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>openLastProject()</slot>
+  <slot>openProjectFile()</slot>
+  <slot>createEmptyProject()</slot>
+ </slots>
+</ui>
