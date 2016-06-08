@@ -3,6 +3,7 @@
 #include "taxdataprovider.h"
 #include "datagraphicsview.h"
 #include "ui_components/bubblechartproperties.h"
+#include "colors.h"
 
 #include <QList>
 #include <QMenu>
@@ -29,7 +30,6 @@ class ChartDataProvider : public TaxDataProvider
     BlastTaxDataProviders *providers;
     QList<IdBlastTaxNodesPair> data;
     quint32 maxreads;
-
 public:
     ChartDataProvider(BlastTaxDataProviders *_providers, QObject *parent);
     virtual ~ChartDataProvider();
@@ -51,19 +51,18 @@ public:
     virtual void toJson(QJsonObject &json) const;
     virtual void fromJson(QJsonObject &json);
 
+    inline BlastTaxDataProviders *getBlastTaxDataProviders() {return providers;}
+
     void addParentToAllDataProviders();
 
 signals:
     void taxVisibilityChanged(quint32 index);
     void cacheUpdated();
-    friend class ChartView;
+    friend class BubbleChartView;
 };
 
-class ChartView;
-
-
 class ChartGraphNode;
-class ChartView : public DataGraphicsView
+class BubbleChartView : public DataGraphicsView
 {
     Q_OBJECT
     QGraphicsTextItem *header;
@@ -73,15 +72,15 @@ class ChartView : public DataGraphicsView
     QList<QGraphicsTextItem*> horizontalLegend;
     BubbleChartConfig config;
 public:
-    ChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent = 0);
-    ~ChartView();
+    BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent = 0);
+    ~BubbleChartView();
     void prepareScene();
     QRectF chartRect;
     ChartGraphNode *getGNode(BlastTaxNode *node);
     inline ChartDataProvider *dataProvider() { return (ChartDataProvider*)taxDataProvider; }
     inline ChartDataProvider *dataProvider() const { return (ChartDataProvider*)taxDataProvider; }
 
-    void showChart();
+    void showChart(bool forceNodeUpdate=false);
 
     void setHeader(QString fileName);
     void setChartRectSize(int w, int h);
@@ -107,6 +106,8 @@ protected slots:
     virtual void onDataChanged();
     virtual void showContextMenu(const QPoint&);
     virtual void showPropertiesDialog();
+    virtual void showDataSourceDialog();
+    virtual void onColorChanged(BaseTaxNode *);
     void hideCurrentTax();
 
 public slots:
@@ -115,6 +116,7 @@ public slots:
     virtual void onReadsThresholdChanged(quint32 /*oldT*/, quint32 /*newT*/) {}
     virtual void changeMaxBubbleSize(int);
     virtual void toggleTitleVisibility(bool);
+    virtual void onDataSourceVisibilityChanged(int);
 };
 
 

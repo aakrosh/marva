@@ -50,6 +50,12 @@ void TaxNodeSignalSender::BigChangesHappened()
         emit bigChangesHappened();
 }
 
+void TaxNodeSignalSender::ColorChanged()
+{
+    if ( sendSignals )
+        emit colorChanged(node);
+}
+
 
 TaxNodeSignalSender *getTaxNodeSignalSender(BaseTaxNode *n)
 {

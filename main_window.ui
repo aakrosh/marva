@@ -108,7 +108,7 @@
   </widget>
   <action name="actionSave">
    <property name="text">
-    <string>&amp;Save project</string>
+    <string>&amp;Save project as...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
@@ -145,7 +145,7 @@
   </action>
   <action name="actionOpen">
    <property name="text">
-    <string>&amp;Open project</string>
+    <string>&amp;Open project ...</string>
    </property>
   </action>
   <action name="actionCloseProject">

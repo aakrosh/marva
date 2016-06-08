@@ -85,6 +85,7 @@ private slots:
     void refreshValues();
     void taxChanged(QModelIndex, QModelIndex);
     void onCurrentTaxChanged(BaseTaxNode *);
+    void onColorChanged(BaseTaxNode *);
 public slots:
     void reset();
     void onNodeVisibilityChanged(BaseTaxNode*,bool);

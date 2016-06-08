@@ -2,13 +2,20 @@
 #include "ui_currenttaxnodedetails.h"
 #include "base_tax_node.h"
 #include "blast_data.h"
+#include "colors.h"
+#include "taxnodesignalsender.h"
+#include "taxdataprovider.h"
 
 //=========================================================================
 CurrentTaxNodeDetails::CurrentTaxNodeDetails(QWidget *parent) :
     QWidget(parent),
+    curNodeId(-1),
+    dataProvider(NULL),
     ui(new Ui::CurrentTaxNodeDetails)
 {
     ui->setupUi(this);
+    TaxNodeSignalSender *tnss = getTaxNodeSignalSender(NULL);
+    connect(tnss, SIGNAL(colorChanged(BaseTaxNode*)), this, SLOT(onColorChanged(BaseTaxNode*)));
 }
 
 //=========================================================================
@@ -18,29 +25,42 @@ CurrentTaxNodeDetails::~CurrentTaxNodeDetails()
 }
 
 //=========================================================================
-void CurrentTaxNodeDetails::onCurrentNodeChanged(BaseTaxNode *node)
+void CurrentTaxNodeDetails::setTaxDataProvider(TaxDataProvider *tdp)
 {
-    if ( node == NULL )
-        return;
-    qint32 id = node->getId();
-    ui->lId->setText(QString::number(id));
+    dataProvider = tdp;
+    refresh();
+}
 
-    if ( id > 1 )
+//=========================================================================
+void CurrentTaxNodeDetails::refresh()
+{
+    if ( curNodeId < 0 )
+        return;
+    ui->lId->setText(QString::number(curNodeId));
+    if ( dataProvider == NULL )
+        return;
+    quint32 index = dataProvider->indexOf(curNodeId);
+    if ( index == quint32(-1) )
+        return;
+    quint32 reads = dataProvider->reads(index);
+    BaseTaxNode *bNode = dataProvider->taxNode(index);
+
+    if ( curNodeId > 1 )
     {
-        QString text = node->getText();
+        QString text = bNode->getText();
         if ( text.isEmpty() )
-            text = QString::number(id);
+            text = QString::number(curNodeId);
         QString ncbiLink = QString("<a href=\"http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=%1\">%2</a>")
-                .arg(node->getId())
+                .arg(curNodeId)
                 .arg(text);
         ui->lName->setText(ncbiLink);
     }
     else
     {
-        ui->lName->setText(node->getText());
+        ui->lName->setText(bNode->getText());
     }
 
-    TreeTaxNode *ttn = dynamic_cast<TreeTaxNode *>(node);
+    TreeTaxNode *ttn = dynamic_cast<TreeTaxNode *>(bNode);
     QStringList sl;
     if ( ttn != NULL )
     {
@@ -50,18 +70,40 @@ void CurrentTaxNodeDetails::onCurrentNodeChanged(BaseTaxNode *node)
             sl.insert(0, p->getText());
             p = p->parent;
         }
-        sl.append(node->getText());
+        sl.append(bNode->getText());
     }
     ui->lPath->setText(sl.join("\n"));
 
+    ui->lReads->setText(reads == 0 ? QString("-") : QString::number(reads));
 
-    BlastTaxNode *bnode = dynamic_cast<BlastTaxNode *>(node);
-    if ( bnode != NULL )
+    onColorChanged(bNode);
+}
+
+//=========================================================================
+void CurrentTaxNodeDetails::onCurrentNodeChanged(BaseTaxNode *node)
+{
+    if ( node == NULL || node->getId() == curNodeId )
+        return;
+    curNodeId = node->getId();
+    refresh();
+}
+
+//=========================================================================
+void CurrentTaxNodeDetails::onColorChanged(BaseTaxNode *node)
+{
+    if ( node->getId() == curNodeId )
     {
-        ui->lReads->setText(QString::number(bnode->reads));
+        QColor col = colors.getColor(curNodeId);
+        if(col.isValid())
+        {
+            QString qss = QString("background-color: %1").arg(col.name());
+            ui->bColor->setStyleSheet(qss);
+        }
     }
-    else
-    {
-        ui->lReads->setText("-");
-    }
+}
+
+//=========================================================================
+void CurrentTaxNodeDetails::onBColorClicked()
+{
+    colors.pickColor(curNodeId);
 }

@@ -5,7 +5,7 @@
 #include "tax_map.h"
 #include "taxdataprovider.h"
 #include "taxnodesignalsender.h"
-#include "chartview.h"
+#include "bubblechartview.h"
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 #include <QPainter>
@@ -46,7 +46,7 @@ void GraphNode::updateToolTip()
 //=========================================================================
 quint32 GraphNode::color()
 {
-    return taxColorSrc.getColor(tax_node->getId());
+    return colors.getColor(tax_node->getId());
 }
 
 
@@ -407,7 +407,7 @@ void ChartGraphNode::setMaxNodeSize(quint32 size)
 //=========================================================================
 int ChartGraphNode::size() const
 {
-    ChartView * ch_view = (ChartView *)view;
+    BubbleChartView * ch_view = (BubbleChartView *)view;
     return qMax(1., ((qreal)reads())/ch_view->dataProvider()->getMaxReads()*maxNodeRadius);
 }
 

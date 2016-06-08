@@ -27,12 +27,15 @@ HEADERS += edge.h \
     ui_components/labeleddoublespinbox.h \
     common.h \
     taxdataprovider.h \
-    chartview.h \
     datagraphicsview.h \
     graphview.h \
     tree_tax_node.h \
     ui_components/bubblechartproperties.h \
-    ui_components/start_dialog.h
+    ui_components/start_dialog.h \
+    history.h \
+    colors.h \
+    datasourcesmodel.h \
+    bubblechartview.h
 FORMS += \
     main_window.ui \
     ui_components/taxlistwidget.ui \
@@ -59,9 +62,12 @@ SOURCES += edge.cpp \
     ui_components/currenttaxnodedetails.cpp \
     ui_components/labeleddoublespinbox.cpp \
     taxdataprovider.cpp \
-    chartview.cpp \
     datagraphicsview.cpp \
     graphview.cpp \
     tree_tax_node.cpp \
     ui_components/bubblechartproperties.cpp \
-    ui_components/start_dialog.cpp
+    ui_components/start_dialog.cpp \
+    history.cpp \
+    colors.cpp \
+    datasourcesmodel.cpp \
+    bubblechartview.cpp

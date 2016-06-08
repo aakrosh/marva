@@ -21,6 +21,7 @@ public:
     void GnodeRemoved();
     void makeCurrent();
     void BigChangesHappened();
+    void ColorChanged();
 signals:
     visibilityChanged(BaseTaxNode *n, bool visible);
     collapsedChanged(BaseTaxNode *n, bool collapsed);
@@ -28,6 +29,7 @@ signals:
     gnodeRemoved(BaseTaxNode *n);
     makeCurrent(BaseTaxNode *n);
     bigChangesHappened();
+    colorChanged(BaseTaxNode *n);
 public slots:
 };
 

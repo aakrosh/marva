@@ -1,7 +1,6 @@
 #include <QApplication>
 #include <QDebug>
 #include <QKeyEvent>
-#include <QMessageBox>
 #include <QScrollBar>
 #include <QMenu>
 #include <QAction>
@@ -795,6 +794,9 @@ BlastGraphView::BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidg
     dirtyList.clear();
     scene()->clear();
     root = NULL;
+
+    TaxNodeSignalSender *tnss = getTaxNodeSignalSender(NULL);
+    connect(tnss, SIGNAL(colorChanged(BaseTaxNode*)), this, SLOT(onColorChanged(BaseTaxNode*)));
 }
 
 //=========================================================================
@@ -831,6 +833,18 @@ void BlastGraphView::blastIsLoaded(void *obj)
 }
 
 //=========================================================================
+void BlastGraphView::onColorChanged(BaseTaxNode *n)
+{
+    BlastTaxNode *btn = blastTaxDataProvider()->nodeById(n->getId());
+    if ( btn == NULL )
+        return;
+    GraphNode *gn = btn->getGnode();
+    if ( gn == NULL )
+        return;
+    gn->update();
+}
+
+//=========================================================================
 void BlastGraphView::toJson(QJsonObject &json) const
 {
     json["Type"] = "BlastGraphView";
@@ -853,7 +867,7 @@ void BlastGraphView::fromJson(QJsonObject &json)
     taxDataProvider = p;
     root = blastTaxDataProvider()->root;
     createMissedGraphNodes();
-    AddNodeToScene(root);
+    //AddNodeToScene(root);
 }
 
 //=========================================================================

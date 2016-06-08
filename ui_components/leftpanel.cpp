@@ -17,3 +17,9 @@ LeftPanel::~LeftPanel()
 TaxListWidget *LeftPanel::taxList() { return ui->taxList; }
 
 CurrentTaxNodeDetails *LeftPanel::curNodeDetails() { return ui->curNode; }
+
+void LeftPanel::setTaxDataProvider(TaxDataProvider *tdp)
+{
+    ui->curNode->setTaxDataProvider(tdp);
+    ui->taxList->setTaxDataProvider(tdp);
+}

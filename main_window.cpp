@@ -83,65 +83,65 @@ MainWindow::MainWindow(QWidget *parent) :
     activeGraphView(NULL),
     taxonomyTreeView(NULL)
 {
-  mainWindow = this;
-  generateDefaultNodes();
-  globalTaxDataProvider = new GlobalTaxMapDataProvider(this, &taxMap);
-  leftPanel = new LeftPanel(this);
-  taxListWidget = leftPanel->taxList();
-  taxListWidget->setTaxDataProvider(globalTaxDataProvider);
+    mainWindow = this;
+    generateDefaultNodes();
+    globalTaxDataProvider = new GlobalTaxMapDataProvider(this, &taxMap);
+    leftPanel = new LeftPanel(this);
+    taxListWidget = leftPanel->taxList();
+    leftPanel->setTaxDataProvider(globalTaxDataProvider);
 
-  connect(globalTaxDataProvider, SIGNAL(dataChanged()), taxListWidget, SLOT(refresh()));
-  TreeLoaderThread *tlThread = new TreeLoaderThread(this, globalTaxDataProvider, true);
-  connect(tlThread, SIGNAL(resultReady(void *)), globalTaxDataProvider, SLOT(onTreeLoaded()));
-  connect(tlThread, SIGNAL(resultReady(void *)), this, SLOT(treeIsLoaded(void *)));
-  connect(tlThread, SIGNAL(resultReady(void *)), taxListWidget, SLOT(reset()));
-  connect(tlThread, SIGNAL(finished()), tlThread, SLOT(deleteLater()));
-  tlThread->start();
+    connect(globalTaxDataProvider, SIGNAL(dataChanged()), taxListWidget, SLOT(refresh()));
+    TreeLoaderThread *tlThread = new TreeLoaderThread(this, globalTaxDataProvider, true);
+    connect(tlThread, SIGNAL(resultReady(void *)), globalTaxDataProvider, SLOT(onTreeLoaded()));
+    connect(tlThread, SIGNAL(resultReady(void *)), this, SLOT(treeIsLoaded(void *)));
+    connect(tlThread, SIGNAL(resultReady(void *)), taxListWidget, SLOT(reset()));
+    connect(tlThread, SIGNAL(finished()), tlThread, SLOT(deleteLater()));
+    tlThread->start();
 
-  ui->setupUi(this);
-  ui->taxListDockWidget->setWidget(leftPanel);
+    ui->setupUi(this);
+    ui->taxListDockWidget->setWidget(leftPanel);
 
-  readsSB = new LabeledDoubleSpinBox(NULL);
-  this->ui->toolBar->addWidget(readsSB);
-  readsSB->setLabel("Min reads");
-  readsSB->setValue(0);
-  readsSB->setToolTip("Minimum reads threshold to show");
-  readsSB->setVisible(false);
+    readsSB = new LabeledDoubleSpinBox(NULL);
+    ui->toolBar->addWidget(readsSB);
+    readsSB->setLabel("Min reads");
+    readsSB->setValue(0);
+    readsSB->setToolTip("Minimum reads threshold to show");
+    readsSB->setVisible(false);
 
-  connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(onCurrentTabCnaged(int)));
+    connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(onCurrentTabCnaged(int)));
 
-  TreeGraphView *taxTreeView = openTaxonomyTreeView();
-  connect(globalTaxDataProvider, SIGNAL(dataChanged()), taxonomyTreeView, SLOT(onTreeChanged()));
+    TreeGraphView *taxTreeView = openTaxonomyTreeView();
+    connect(globalTaxDataProvider, SIGNAL(dataChanged()), taxonomyTreeView, SLOT(onTreeChanged()));
 
-  statusList = new StatusListPanel(this);
-  statusList->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-  centralWidget()->layout()->addWidget(statusList);
-  statusList->setMaximumHeight(0);
-  ui->action_Tab_separated_BLAST_file->setEnabled(false);
-  connect(ui->tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeGraphView(int)));
+    statusList = new StatusListPanel(this);
+    statusList->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    centralWidget()->layout()->addWidget(statusList);
+    statusList->setMaximumHeight(0);
+    ui->action_Tab_separated_BLAST_file->setEnabled(false);
+    connect(ui->tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeGraphView(int)));
 
-  taxTreeView->setFocus();
+    taxTreeView->setFocus();
 
-  TaxNodeSignalSender *tnss = getTaxNodeSignalSender(NULL);
-  connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), taxTreeView, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
-  connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), taxListWidget, SLOT(onCurrentTaxChanged(BaseTaxNode*)));
-  connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), leftPanel->curNodeDetails(), SLOT(onCurrentNodeChanged(BaseTaxNode*)));
-  connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), taxListWidget, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
-  connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), taxTreeView, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
-  connect(tnss, SIGNAL(bigChangesHappened()), taxListWidget, SLOT(resetView()));
-  connect(tnss, SIGNAL(bigChangesHappened()), taxTreeView, SLOT(reset()));
+    TaxNodeSignalSender *tnss = getTaxNodeSignalSender(NULL);
+    connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), taxTreeView, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
+    connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), taxListWidget, SLOT(onCurrentTaxChanged(BaseTaxNode*)));
+    connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), leftPanel->curNodeDetails(), SLOT(onCurrentNodeChanged(BaseTaxNode*)));
+    connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), taxListWidget, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
+    connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), taxTreeView, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
+    connect(tnss, SIGNAL(bigChangesHappened()), taxListWidget, SLOT(resetView()));
+    connect(tnss, SIGNAL(bigChangesHappened()), taxTreeView, SLOT(reset()));
 
-  taxTreeView->setCurrentNode(taxTree);
+    taxTreeView->setCurrentNode(taxTree);
 
-  connectGraphView(NULL, taxTreeView);
+    connectGraphView(NULL, taxTreeView);
 
-  connect(ui->actionTaxonomyTree, SIGNAL(triggered(bool)), this, SLOT(openTaxonomyTreeView()));
-  connect(ui->actionCreateChart, SIGNAL(triggered(bool)), this, SLOT(createChartView()));
+    connect(ui->actionTaxonomyTree, SIGNAL(triggered(bool)), this, SLOT(openTaxonomyTreeView()));
+    connect(ui->actionCreateChart, SIGNAL(triggered(bool)), this, SLOT(createChartView()));
 
-  StartDialog *startDialog = new StartDialog(this);
-  connect(startDialog, SIGNAL(fileChoosen(QString)), this, SLOT(openProject(QString)));
-  connect(startDialog, SIGNAL(accepted()), startDialog, SLOT(deleteLater()));
-  startDialog->open();
+    StartDialog *startDialog = new StartDialog(this);
+    connect(startDialog, SIGNAL(fileChoosen(QString)), this, SLOT(openProject(QString)));
+    connect(startDialog, SIGNAL(accepted()), startDialog, SLOT(deleteLater()));
+    startDialog->open();
 }
 
 //=========================================================================
@@ -191,6 +191,8 @@ void MainWindow::open_tab_blast_files()
 //=========================================================================
 void MainWindow::openProject(QString fileName)
 {
+    if ( fileName.isEmpty() )
+        return;
     treeLoaderMutex.lock();     // No actual locking is needed. Just wait till the tree is loaded
     treeLoaderMutex.unlock();
     QFile loadFile(fileName);
@@ -208,6 +210,7 @@ void MainWindow::openProject(QString fileName)
     fromJson(jobj);
     loadFile.close();
     statusList->RemoveItem(statusListItem);
+    history.addProject(fileName);
 }
 
 //=========================================================================
@@ -241,6 +244,7 @@ void MainWindow::save_project()
     QJsonDocument saveDoc(saveObject);
     saveFile.write(saveDoc.toJson(QJsonDocument::Compact));
     saveFile.close();
+    history.addProject(fileName);
 }
 
 //=========================================================================
@@ -270,11 +274,19 @@ void MainWindow::toJson(QJsonObject &json) const
 //=========================================================================
 void MainWindow::fromJson(QJsonObject &json)
 {
+    QCoreApplication::processEvents();
     blastTaxDataProviders.clear();
     blastTaxDataProviders.fromJson(json);
+    QCoreApplication::processEvents();
+    if ( blastTaxDataProviders.size() == 0 )
+    {
+        QMessageBox::warning(0, "Cannot open project", QString("UNo data providers are found in the project file"));
+        return;
+    }
     QJsonArray jViewArr = json["views"].toArray();
     for ( int i = 0; i < jViewArr.size(); i++ )
     {
+        QCoreApplication::processEvents();
         QJsonObject jView = jViewArr[i].toObject();;
         QString type = jView["Type"].toString();
         DataGraphicsView *dgv = DataGraphicsView::createViewByType(this, type);
@@ -285,8 +297,7 @@ void MainWindow::fromJson(QJsonObject &json)
         }
         dgv->fromJson(jView);
         addGraphView(dgv, dgv->taxDataProvider->name);
-        taxListWidget->setTaxDataProvider(dgv->taxDataProvider);
-        taxListWidget->reset();
+        leftPanel->setTaxDataProvider(dgv->taxDataProvider);
     }
 }
 
@@ -310,8 +321,7 @@ void MainWindow::open_tab_blast_file(QString fileName)
 
     connect(blastView, SIGNAL(blast_view_closed()), bdtl, SLOT(stop_thread()));
 
-    taxListWidget->setTaxDataProvider(blastTaxDataProvider);
-    taxListWidget->reset();
+    leftPanel->setTaxDataProvider(blastTaxDataProvider);
     ui->taxListDockWidget->setVisible(true);
     addGraphView(blastView, blastTaxDataProvider->name);
     readsSB->setVisible(true);
@@ -358,16 +368,16 @@ BlastTaxDataProviders *MainWindow::getAllBlastDataProviders()
         if ( gv != NULL )
         {
             if ( gv->taxDataProvider->metaObject() == &BlastTaxDataProvider::staticMetaObject )
-                res->append((BlastTaxDataProvider *)gv->taxDataProvider);
+                res->addProvider((BlastTaxDataProvider *)gv->taxDataProvider);
         }
     }
     return res;
 }
 
 //=========================================================================
-ChartView *MainWindow::createChartView()
+BubbleChartView *MainWindow::createChartView()
 {
-    ChartView *cv = new ChartView(getAllBlastDataProviders(), this);
+    BubbleChartView *cv = new BubbleChartView(getAllBlastDataProviders(), this);
     addGraphView(cv, "Chart");
     return cv;
 }
@@ -446,7 +456,7 @@ void MainWindow::setActiveGraphView(DataGraphicsView *newGV)
     DataGraphicsView *oldGV = activeGraphView;
     activeGraphView = newGV;
     connectGraphView(oldGV, newGV);
-    taxListWidget->setTaxDataProvider(newGV->taxDataProvider);
+    leftPanel->setTaxDataProvider(newGV->taxDataProvider);
     BlastGraphView *gv = dynamic_cast<BlastGraphView*>(newGV);
     if ( gv != NULL )
     {

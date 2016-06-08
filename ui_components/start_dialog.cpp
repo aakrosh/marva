@@ -1,15 +1,18 @@
 #include "start_dialog.h"
 #include "ui_start_dialog.h"
+#include "history.h"
 
 #include <QFileDialog>
+#include <QMessageBox>
 
 StartDialog::StartDialog(QWidget *parent) :
     QDialog(parent),
-    projectFileName(""),
     ui(new Ui::StartDialog)
 {
     ui->setupUi(this);
     ui->bLoadLast->setFocus();
+    History h;
+    ui->bLoadLast->setEnabled(!h.lastProject().isEmpty());
 }
 
 StartDialog::~StartDialog()
@@ -19,22 +22,32 @@ StartDialog::~StartDialog()
 
 void StartDialog::openLastProject()
 {
-    // TODO: Get file name from history
-    emit fileChoosen("");
+    History h;
+    EmitFileNameAndAccept(h.lastProject());
+}
+
+void StartDialog::EmitFileNameAndAccept(QString projectFileName)
+{
+    setEnabled(false);
+    setVisible(false);
+    QMessageBox *msg = new QMessageBox(QMessageBox::NoIcon, "Please wait", "Taxonomy tree is loading", QMessageBox::NoButton, this,
+                                   Qt::WindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint | Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::CustomizeWindowHint) & ~Qt::WindowCloseButtonHint);
+    msg->setStandardButtons(0);
+    msg->show();
+    QApplication::processEvents();
+    emit fileChoosen(projectFileName);
     accept();
 }
 
 void StartDialog::openProjectFile()
 {
-    projectFileName = QFileDialog::getOpenFileName(this, tr("Open project"),
+    QString projectFileName = QFileDialog::getOpenFileName(this, tr("Open project"),
                                                           QString(),
                                                           tr("Marva project (*.marva)"));
-    emit fileChoosen(projectFileName);
-    accept();
+    EmitFileNameAndAccept(projectFileName);
 }
 
 void StartDialog::createEmptyProject()
 {
-    emit fileChoosen(projectFileName);
-    accept();
+    EmitFileNameAndAccept("");
 }

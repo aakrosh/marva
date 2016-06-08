@@ -9,6 +9,7 @@ class LeftPanel;
 
 class TaxListWidget;
 class CurrentTaxNodeDetails;
+class TaxDataProvider;
 
 class LeftPanel : public QWidget
 {
@@ -19,6 +20,7 @@ public:
     ~LeftPanel();
     TaxListWidget *taxList();
     CurrentTaxNodeDetails *curNodeDetails();
+    void setTaxDataProvider(TaxDataProvider *tdp);
 
 private:
     Ui::LeftPanel *ui;

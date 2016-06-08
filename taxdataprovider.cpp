@@ -63,8 +63,10 @@ quint32 TaxDataProvider::readsById(quint32)
 //=========================================================================
 quint32 TaxDataProvider::indexOf(qint32 id)
 {
+    if ( idTaxNodeList.empty() )
+        return -1;
     QList<IdTaxNodePair>::const_iterator it = idTaxNodeList.constBegin();
-    while ( it != idTaxNodeList.end() )
+    while ( it != idTaxNodeList.constEnd() )
     {
         if ( (*it).id == id )
             return it - idTaxNodeList.constBegin();
@@ -171,7 +173,7 @@ BlastTaxDataProvider::BlastTaxDataProvider(QObject *parent):
     parent_count(0),
     root(NULL)
 {
-    blastTaxDataProviders.append(this);
+    blastTaxDataProviders.addProvider(this);
     blastNodeMap = new BlastNodeMap();
     if ( parent != NULL )
         addParent();
@@ -273,6 +275,12 @@ void BlastTaxDataProvider::fromJson(QJsonObject &json)
 }
 
 //=========================================================================
+BlastTaxNode *BlastTaxDataProvider::nodeById(qint32 id)
+{
+    return blastNodeMap->value(id);
+}
+
+//=========================================================================
 quint32 BlastTaxDataProvider::reads(quint32 index)
 {
     if ( idTaxNodeList.empty() )
@@ -325,7 +333,7 @@ QColor BlastTaxDataProvider::color(int index)
 {
     QReadWriteLocker locker(&lock);
     if ( index < (int)count() )
-        return QColor(taxColorSrc.getColor(idTaxNodeList.at(index).id)).lighter(150);
+        return QColor(colors.getColor(idTaxNodeList.at(index).id)).lighter(150);
     else
         return TaxDataProvider::color(index);
 }
@@ -366,6 +374,13 @@ void BlastTaxDataProvider::onBlastLoaded(void *)
 }
 
 //=========================================================================
+BlastTaxDataProviders::BlastTaxDataProviders() :
+    QList<BlastTaxDataProvider *>(),
+    visibility_mask(0)
+{
+}
+
+//=========================================================================
 void BlastTaxDataProviders::toJson(QJsonObject &json) const
 {
     QJsonArray jProviders;
@@ -401,4 +416,25 @@ BlastTaxDataProvider *BlastTaxDataProviders::providerByName(const QString &name)
     }
     QMessageBox::warning(0, "Cannot find provider", QString("Cannot find provider with name %1").arg(name));
     return NULL;
+}
+
+//=========================================================================
+void BlastTaxDataProviders::setVisible(quint8 index, bool visible)
+{
+    if ( visible )
+        visibility_mask |= 1 << index;
+    else
+        visibility_mask &= ~(1 << index);
+}
+
+//=========================================================================
+bool BlastTaxDataProviders::isVisible(quint8 index)
+{
+    return ((visibility_mask >> index) & 1) != 0;
+}
+
+void BlastTaxDataProviders::addProvider(BlastTaxDataProvider *p)
+{
+    append(p);
+    setVisible(count()-1, true);
 }

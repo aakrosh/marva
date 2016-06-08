@@ -2,6 +2,9 @@
 <ui version="4.0">
  <class>CurrentTaxNodeDetails</class>
  <widget class="QWidget" name="CurrentTaxNodeDetails">
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -63,6 +66,19 @@
            </property>
           </widget>
          </item>
+         <item>
+          <spacer name="horizontalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
         </layout>
        </item>
        <item>
@@ -80,6 +96,43 @@
             <string/>
            </property>
           </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
+          <widget class="QPushButton" name="bColor">
+           <property name="text">
+            <string>Color</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_4">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
          </item>
         </layout>
        </item>
@@ -137,8 +190,27 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>bColor</sender>
+   <signal>clicked()</signal>
+   <receiver>CurrentTaxNodeDetails</receiver>
+   <slot>onBColorClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>51</x>
+     <y>111</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>5</x>
+     <y>114</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
  <slots>
   <slot>onCurrentTaxNodeChanged(BaseTaxNode*)</slot>
+  <slot>onColorChanged(BaseTaxNode*)</slot>
+  <slot>onBColorClicked()</slot>
  </slots>
 </ui>

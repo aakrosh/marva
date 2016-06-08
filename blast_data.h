@@ -14,14 +14,7 @@
 class BlastTaxDataProvider;
 
 typedef QMap<quint32, quint32> TaxQuantity;
-typedef QMap<qint32, quint32> TaxColorMap;
 
-
-class TaxColorSrc : public TaxColorMap
-{
-public:
-    virtual quint32 getColor(qint32 tax_id);
-};
 class BlastTaxNode;
 
 class BlastNodeMap : public QMap<qint32, BlastTaxNode *>
@@ -63,8 +56,6 @@ protected:
     virtual void finishProcessing();
 
 };
-
-extern TaxColorSrc taxColorSrc;
 
 
 #endif // BLAST_DATA

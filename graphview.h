@@ -49,7 +49,6 @@
 
 class TaxTreeGraphNode;
 class TreeLoaderThread;
-class TaxColorSrc;
 class BlastData;
 class QMenu;
 class TaxDataProvider;
@@ -72,6 +71,7 @@ public:
     TreeTaxNode *root;
     QMenu *nodePopupMenu;
     QAction *hideNodeAction;
+    QAction *hideAllButNodeAction;
 
 
     void adjust_scene_boundaries();
@@ -149,6 +149,7 @@ public:
 private slots:
     void blastLoadingProgress(void *bdata);
     void blastIsLoaded(void *bdata);
+    void onColorChanged(BaseTaxNode *n);
 public slots:
     virtual void onReadsThresholdChanged(quint32 oldT, quint32 newT);
 signals:

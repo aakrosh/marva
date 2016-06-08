@@ -12,7 +12,6 @@ class StartDialog : public QDialog
     Q_OBJECT
 
 public:
-    QString projectFileName;
     explicit StartDialog(QWidget *parent = 0);
     ~StartDialog();
 
@@ -20,9 +19,10 @@ private:
     Ui::StartDialog *ui;
 
 private slots:
-    void  openLastProject();
-    void  openProjectFile();
-    void  createEmptyProject();
+    void openLastProject();
+    void openProjectFile();
+    void createEmptyProject();
+    void EmitFileNameAndAccept(QString projectFileName);
 
 signals:
     fileChoosen(QString fileName);

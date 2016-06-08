@@ -1,4 +1,4 @@
-#include "chartview.h"
+#include "bubblechartview.h"
 #include "graph_node.h"
 #include "taxnodesignalsender.h"
 #include "ui_components/bubblechartproperties.h"
@@ -19,7 +19,7 @@
 #define MAX_VISIBLE_CHART_TAXES 40
 
 //=========================================================================
-ChartView::ChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
+BubbleChartView::BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
     : DataGraphicsView(NULL, parent)
 {
     setWindowTitle(tr("Gene chart"));
@@ -31,6 +31,9 @@ ChartView::ChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
 
     connect((ChartDataProvider *)taxDataProvider, SIGNAL(taxVisibilityChanged(quint32)), this, SLOT(onTaxVisibilityChanged(quint32)));
     connect((ChartDataProvider *)taxDataProvider, SIGNAL(cacheUpdated()), this, SLOT(onDataChanged()));
+
+    TaxNodeSignalSender *tnss = getTaxNodeSignalSender(NULL);
+    connect(tnss, SIGNAL(colorChanged(BaseTaxNode*)), this, SLOT(onColorChanged(BaseTaxNode*)));
 
     QGraphicsScene *s = new QGraphicsScene(this);
     s->setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -55,20 +58,20 @@ ChartView::ChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
 }
 
 //=========================================================================
-ChartView::~ChartView()
+BubbleChartView::~BubbleChartView()
 {
     scene()->clear();
 }
 
 //=========================================================================
-void ChartView::setChartRectSize(int w, int h)
+void BubbleChartView::setChartRectSize(int w, int h)
 {
     chartRect = QRectF(0, 0, w, h);
     scene()->setSceneRect(-2*MARGIN, config.showTitle ? -MARGIN : 0, chartRect.width()+3*MARGIN, chartRect.height()+MARGIN+(config.showTitle ? MARGIN : 0));
 }
 
 //=========================================================================
-void ChartView::resizeEvent(QResizeEvent *e)
+void BubbleChartView::resizeEvent(QResizeEvent *e)
 {
     QSize s = e->size();
     setChartRectSize(s.width()*0.8, s.height()*0.8);
@@ -77,7 +80,7 @@ void ChartView::resizeEvent(QResizeEvent *e)
 }
 
 //=========================================================================
-void ChartView::prepareScene()
+void BubbleChartView::prepareScene()
 {
     QPen peng(Qt::black);
     peng.setWidth(1.5);
@@ -105,8 +108,6 @@ void ChartView::prepareScene()
                 BlastTaxNode *node = btns.at(i);
                 if ( node != NULL )
                 {
-                    if ( node == NULL )
-                        continue;
                     quint32 reads = node->reads;
                     if ( reads == 0 )
                         continue;
@@ -150,7 +151,7 @@ void ChartView::prepareScene()
 }
 
 //=========================================================================
-void ChartView::showChart()
+void BubbleChartView::showChart(bool forceNodeUpdate)
 {
     if ( dataProvider()->data.size() == 0 )
         return;
@@ -161,43 +162,53 @@ void ChartView::showChart()
     quint32 columnWidth = qMin(config.bubbleSize, swidth/dataProvider()->providers->count());
     ChartDataProvider *chartDataProvider = dataProvider();
     int rnum = 0;
+    quint32 column = 0;
     for ( int j = 0; j < chartDataProvider->data.count(); j++)
     {
         const BlastTaxNodes &btns = chartDataProvider->data.at(j).tax_nodes;
         if ( !chartDataProvider->data.at(j).checked )
             continue;
+        column = 0;
         for ( int i = 0; i < btns.size(); i++ )
         {
-            qreal x1 = i*columnWidth;
+            if ( !chartDataProvider->getBlastTaxDataProviders()->isVisible(i) )
+                continue;
+            qreal x1 = (column++)*columnWidth;
             BlastTaxNode *node = btns.at(i);
             if ( node == NULL )
                 continue;
             ChartGraphNode *gnode = (ChartGraphNode*)node->getGnode();
-            Q_ASSERT_X(gnode != NULL, "showChart", "GraphNode must be created here");
+            Q_ASSERT_X(gnode != NULL, "showChart", "GraphNode must be created here");            
             gnode->setMaxNodeSize(config.bubbleSize);
             gnode->setPos(chartRect.x()+x1+columnWidth/2, chartRect.y()+(rnum)*maxBubbleSize+maxBubbleSize/2);
+            if ( forceNodeUpdate )
+                gnode->update();
         }
         verticalLegend[j]->setPos(chartRect.x()-verticalLegend[j]->boundingRect().width(), rnum*maxBubbleSize);
         ++rnum;
     }
     quint32 rectHeight = rnum*maxBubbleSize + maxBubbleSize/2;
-    chartRectGI->setRect(chartRect.x(), chartRect.y(), dataProvider()->providers->count()*columnWidth, rectHeight);
+    chartRectGI->setRect(chartRect.x(), chartRect.y(), column*columnWidth, rectHeight);
     if ( header->isVisible() )
     {
         header->setPos(0, 10-MARGIN);
-        header->setTextWidth(dataProvider()->providers->count()*columnWidth);
+        header->setTextWidth(column*columnWidth);
     }
+    column = 0;
     for ( int i = 0; i < chartDataProvider->providers->size(); i++ )
     {
-        qreal x1 = i*columnWidth;
+        if ( !horizontalLegend.at(i)->isVisible() )
+            continue;
+        qreal x1 = column*columnWidth;
         grid.at(i)->setRect(chartRect.x()+x1, chartRect.y(), columnWidth, rectHeight);
         horizontalLegend.at(i)->setPos(chartRect.x()+x1+columnWidth/2, chartRect.y()+rectHeight+5);
+        column++;
     }
 }
 
 
 //=========================================================================
-void ChartView::setVerticalLegendSelected(qint32 index, bool selected)
+void BubbleChartView::setVerticalLegendSelected(qint32 index, bool selected)
 {
     if ( index >= 0 )
     {
@@ -207,14 +218,14 @@ void ChartView::setVerticalLegendSelected(qint32 index, bool selected)
 }
 
 //=========================================================================
-void ChartView::setVerticalLegentColor(BaseTaxNode *node, bool selected)
+void BubbleChartView::setVerticalLegentColor(BaseTaxNode *node, bool selected)
 {
     qint32 index = node == NULL ? -1 : dataProvider()->indexOf(node->getId());
     setVerticalLegendSelected(index, selected);
 }
 
 //=========================================================================
-void ChartView::compareNodesAndUpdate(ChartGraphNode *chartGraphNode, BaseTaxNode *refNode)
+void BubbleChartView::compareNodesAndUpdate(ChartGraphNode *chartGraphNode, BaseTaxNode *refNode)
 {
     if ( refNode != NULL )
     {
@@ -224,7 +235,7 @@ void ChartView::compareNodesAndUpdate(ChartGraphNode *chartGraphNode, BaseTaxNod
 }
 
 //=========================================================================
-void ChartView::onCurrentNodeChanged(BaseTaxNode *node)
+void BubbleChartView::onCurrentNodeChanged(BaseTaxNode *node)
 {
     if ( curNode == node )
         return;
@@ -246,7 +257,7 @@ void ChartView::onCurrentNodeChanged(BaseTaxNode *node)
 }
 
 //=========================================================================
-void ChartView::CreateGraphNode(BlastTaxNode *node)
+void BubbleChartView::CreateGraphNode(BlastTaxNode *node)
 {
     ChartGraphNode *gnode = new ChartGraphNode(this, node);
     node->gnode = gnode;
@@ -255,7 +266,7 @@ void ChartView::CreateGraphNode(BlastTaxNode *node)
 }
 
 //=========================================================================
-void ChartView::toJson(QJsonObject &json) const
+void BubbleChartView::toJson(QJsonObject &json) const
 {
     json["Type"] = QString("ChartView");
     json["Header"] = header->toPlainText();
@@ -267,7 +278,7 @@ void ChartView::toJson(QJsonObject &json) const
 }
 
 //=========================================================================
-void ChartView::fromJson(QJsonObject &json)
+void BubbleChartView::fromJson(QJsonObject &json)
 {
     QJsonObject jDp = json["Dp"].toObject();
     dataProvider()->fromJson(jDp);
@@ -280,7 +291,7 @@ void ChartView::fromJson(QJsonObject &json)
 }
 
 //=========================================================================
-void ChartView::onTaxVisibilityChanged(quint32 index)
+void BubbleChartView::onTaxVisibilityChanged(quint32 index)
 {
     ChartDataProvider *chartDataProvider = dataProvider();
     const BlastTaxNodes &btns = chartDataProvider->data.at(index).tax_nodes;
@@ -295,17 +306,47 @@ void ChartView::onTaxVisibilityChanged(quint32 index)
         }
         else
         {
-            ChartGraphNode *gnode = (ChartGraphNode *) node->getGnode();//getGNode(node);
+            ChartGraphNode *gnode = (ChartGraphNode *) node->getGnode();
             if ( gnode != NULL )
                 delete gnode;
         }
     }
     verticalLegend[index]->setVisible(chartDataProvider->data.at(index).checked);
-    showChart();
+    showChart(true);
 }
 
 //=========================================================================
-void ChartView::onDataChanged()
+void BubbleChartView::onDataSourceVisibilityChanged(int index)
+{
+    ChartDataProvider *dp = dataProvider();
+    BlastTaxDataProviders *btdps = dp->getBlastTaxDataProviders();
+    bool visible = btdps->isVisible(index);
+    for ( int i = 0; i < dp->data.count(); i++ )
+    {
+        if ( !dp->data.at(i).checked )
+            continue;
+        BlastTaxNode *node = dp->data.at(i).tax_nodes[index];
+        if ( node == NULL )
+            continue;
+        GraphNode *gnode = node->getGnode();
+        if ( visible )
+        {
+            if ( gnode == NULL )
+                CreateGraphNode(node);
+        }
+        else
+        {
+            if ( gnode != NULL )
+                delete gnode;
+        }
+    }
+    horizontalLegend.at(index)->setVisible(visible);
+    grid.at(index)->setVisible(visible);
+    showChart(true);
+}
+
+//=========================================================================
+void BubbleChartView::onDataChanged()
 {
     for ( int j = 0; j < verticalLegend.size(); j++)
     {
@@ -335,7 +376,7 @@ void ChartView::onDataChanged()
 }
 
 //=========================================================================
-void ChartView::showContextMenu(const QPoint &pos)
+void BubbleChartView::showContextMenu(const QPoint &pos)
 {
     QGraphicsItem *item = scene()->itemAt(mapToScene(pos), QTransform());
     ChartGraphNode *cgn = dynamic_cast<ChartGraphNode *>(item);
@@ -365,13 +406,13 @@ void ChartView::showContextMenu(const QPoint &pos)
 }
 
 //=========================================================================
-void ChartView::changeMaxBubbleSize(int)
+void BubbleChartView::changeMaxBubbleSize(int)
 {
     showChart();
 }
 
 //=========================================================================
-void ChartView::toggleTitleVisibility(bool visible)
+void BubbleChartView::toggleTitleVisibility(bool visible)
 {
     QSize s = size();
     header->setVisible(visible);
@@ -380,7 +421,7 @@ void ChartView::toggleTitleVisibility(bool visible)
 }
 
 //=========================================================================
-void ChartView::setHeader(QString fileName)
+void BubbleChartView::setHeader(QString fileName)
 {
     int idx = fileName.lastIndexOf('/');
     fileName = fileName.mid(idx+1);
@@ -399,7 +440,7 @@ void ChartView::setHeader(QString fileName)
 
 
 //=========================================================================
-ChartGraphNode *ChartView::getGNode(BlastTaxNode *node)
+ChartGraphNode *BubbleChartView::getGNode(BlastTaxNode *node)
 {
     foreach(QGraphicsItem *item, scene()->items())
     {
@@ -414,7 +455,7 @@ ChartGraphNode *ChartView::getGNode(BlastTaxNode *node)
 }
 
 //=========================================================================
-void ChartView::goUp()
+void BubbleChartView::goUp()
 {
     BaseTaxNode *cNode = currentNode();
     if ( cNode == NULL )
@@ -427,7 +468,7 @@ void ChartView::goUp()
 }
 
 //=========================================================================
-void ChartView::goDown()
+void BubbleChartView::goDown()
 {
     BaseTaxNode *cNode = currentNode();
     if ( cNode == NULL )
@@ -440,23 +481,44 @@ void ChartView::goDown()
 }
 
 //=========================================================================
-void ChartView::showPropertiesDialog()
+void BubbleChartView::showPropertiesDialog()
 {
-    BubbleChartProperties *propertiesDialog = new BubbleChartProperties(this, &config);
+    BubbleChartProperties *propertiesDialog = new BubbleChartProperties(this, &config, dataProvider()->getBlastTaxDataProviders());
     connect(propertiesDialog, SIGNAL(maxBubbleSizeChanged(int)), this, SLOT(changeMaxBubbleSize(int)));
     connect(propertiesDialog, SIGNAL(showTitleToggled(bool)), this, SLOT(toggleTitleVisibility(bool)));
-    propertiesDialog->exec();
+    connect(propertiesDialog, SIGNAL(dataSourceVisibilityChanged(int)), this, SLOT(onDataSourceVisibilityChanged(int)));
+    propertiesDialog->show();
 }
 
 //=========================================================================
-void ChartView::hideCurrentTax()
+void BubbleChartView::showDataSourceDialog()
+{
+
+}
+
+//=========================================================================
+void BubbleChartView::onColorChanged(BaseTaxNode *node)
+{
+    quint32 index = dataProvider()->indexOf(node->getId());
+    foreach(BlastTaxNode *btn, dataProvider()->data.at(index).tax_nodes)
+    {
+        if ( btn == NULL )
+            continue;
+        GraphNode *gn = btn->getGnode();
+        if ( gn != NULL )
+            gn->update();
+    }
+}
+
+//=========================================================================
+void BubbleChartView::hideCurrentTax()
 {
     TaxNodeSignalSender *tnss = getTaxNodeSignalSender(curNode);
     tnss->VisibilityChanged(false);
 }
 
 //=========================================================================
-void ChartView::keyPressEvent(QKeyEvent *event)
+void BubbleChartView::keyPressEvent(QKeyEvent *event)
 {
     switch( event->key() )
     {
@@ -471,7 +533,7 @@ void ChartView::keyPressEvent(QKeyEvent *event)
 }
 
 //=========================================================================
-bool ChartView::eventFilter(QObject *object, QEvent *event)
+bool BubbleChartView::eventFilter(QObject *object, QEvent *event)
 {
     if ( event->type() == QEvent::GraphicsSceneMousePress )
     if ( object->metaObject() == &QGraphicsTextItem::staticMetaObject )
@@ -634,7 +696,7 @@ void ChartDataProvider::updateCache(bool ids_only)
 //=========================================================================
 QColor ChartDataProvider::color(int index)
 {
-    return taxColorSrc.getColor(data[index].id);
+    return colors.getColor(data[index].id);
 }
 
 //=========================================================================
@@ -739,7 +801,7 @@ void ChartDataProvider::fromJson(QJsonObject &json)
         BlastTaxDataProvider *p = blastTaxDataProviders.providerByName(pName);
         if ( p == NULL )
             continue;
-        providers->append(p);
+        providers->addProvider(p);
         p->addParent();
     }
     QJsonArray tax_array = json["tax_ids"].toArray();
@@ -764,7 +826,6 @@ void ChartDataProvider::fromJson(QJsonObject &json)
             data[j].tax_nodes.append( index < 0 ? NULL : ((BlastTaxNode *)p->taxNode(index))->clone());
         }
     }
-
     updateCache(true);
 }
 

@@ -5,7 +5,8 @@
 #include "graphview.h"
 #include "blast_data.h"
 #include "ui_components/statuslistpanel.h"
-#include "chartview.h"
+#include "bubblechartview.h"
+#include "history.h"
 
 namespace Ui {
 class MainWindow;
@@ -45,6 +46,7 @@ private:
     QList<LoaderThread*> activeLoaderThreads;
     LeftPanel *leftPanel;
     TaxListWidget *taxListWidget;
+    History history;
 
 
 signals:
@@ -63,7 +65,7 @@ private slots:
     void closeAllViews();
     TreeGraphView *openTaxonomyTreeView();
     BlastTaxDataProviders *getAllBlastDataProviders();
-    ChartView *createChartView();
+    BubbleChartView *createChartView();
     void treeIsLoaded(void *obj);
     void blastIsLoaded(void *obj);
     void blastLoadingProgress(void *obj);

@@ -32,6 +32,8 @@ TaxListWidget::~TaxListWidget()
 //=========================================================================
 void TaxListWidget::setTaxDataProvider(TaxDataProvider *tdp)
 {
+    if ( tdp == model->taxDataProvider )
+        return;
     model->taxDataProvider = tdp;
     reset();
 }
@@ -157,6 +159,18 @@ void TaxListWidget::onCurrentTaxChanged(BaseTaxNode *node)
         return;
     ui->tableView->selectRow(index);
     ui->tableView->scrollTo(model->index(index, 0));
+}
+
+//=========================================================================
+void TaxListWidget::onColorChanged(BaseTaxNode *node)
+{
+    if ( model->taxDataProvider == NULL )
+        return;
+    qint32 index = model->taxDataProvider->indexOf(node->getId());
+    if ( index < 0 )
+        return;
+    QModelIndex cell = model->index(index, 0);
+    model->dataChanged(cell, cell);
 }
 
 //=========================================================================

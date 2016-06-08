@@ -2,7 +2,7 @@
 #include "taxdataprovider.h"
 #include "taxnodesignalsender.h"
 #include "graphview.h"
-#include "chartview.h"
+#include "bubblechartview.h"
 
 #include <QPrinter>
 #include <QPrintDialog>
@@ -40,7 +40,7 @@ DataGraphicsView *DataGraphicsView::createViewByType(QWidget *parent, QString &t
     if ( type == "BlastGraphView" )
         return new BlastGraphView(NULL, parent, NULL);
     if ( type == "ChartView" )
-        return new ChartView(NULL, parent);
+        return new BubbleChartView(NULL, parent);
     return NULL;
 }
 

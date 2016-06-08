@@ -42,6 +42,7 @@
 #define NODE_H
 
 #include "blast_data.h"
+#include "colors.h"
 
 #include <QGraphicsItem>
 #include <QList>
@@ -64,8 +65,6 @@ class DataGraphicsView;
 #define DIRTY_CHILD 0x2
 #define DIRTY_ALL   DIRTY_NAME|DIRTY_CHILD
 #define GRAPHICS_NODE_TYPE  UserType+1
-
-extern TaxColorSrc taxColorSrc;
 
 class GraphNode : public QGraphicsItem
 {

@@ -66,19 +66,11 @@ protected:
     virtual void beforeVisitChildren(TreeTaxNode *){}
     virtual void afterVisitChildren(TreeTaxNode *){}
 };
-/*
-class TaxMap : public QMap<qint32, QString>
-{
-public:
-    TaxMap();
-    void insertName(qint32 tid, const char *name);
-};
-*/
+
 class TaxMap : public QMap<qint32, TaxNode *>
 {
 public:
     TaxMap();
-//    void insertName(qint32 tid, const char *name);
     void setName(qint32 tid, const char *name);
 };
 

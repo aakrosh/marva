@@ -2,6 +2,7 @@
 #define TAXDATAPROVIDER_H
 
 #include "tax_map.h"
+#include "colors.h"
 
 #include <QList>
 #include <QReadWriteLock>
@@ -96,7 +97,7 @@ public:
     BlastTaxNode *addTaxNode(qint32 id, qint32 reads=-1);
     virtual void toJson(QJsonObject &json) const;
     virtual void fromJson(QJsonObject &json);
-
+    BlastTaxNode *nodeById(qint32 id);
 
 public slots:
     void onBlastProgress(void *);
@@ -107,10 +108,15 @@ public slots:
 
 class BlastTaxDataProviders : public QList<BlastTaxDataProvider *>
 {
+    quint64 visibility_mask;
 public:
+    BlastTaxDataProviders();
     virtual void toJson(QJsonObject &json) const;
     virtual void fromJson(QJsonObject &json);
     BlastTaxDataProvider *providerByName(const QString &name) const;
+    void setVisible(quint8 index, bool visible);
+    bool isVisible(quint8 index);
+    void addProvider(BlastTaxDataProvider *);
 };
 
 extern BlastTaxDataProviders blastTaxDataProviders;

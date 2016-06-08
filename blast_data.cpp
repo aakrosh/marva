@@ -4,14 +4,13 @@
 #include "taxdataprovider.h"
 
 #include <QTextStream>
-#include <QMessageBox>
 #include <QDebug>
 #include <QFileInfo>
 #include <exception>
 using namespace std;
 
 BlastNodeMap blastNodeMap;
-TaxColorSrc taxColorSrc;
+
 
 //=========================================================================
 BlastDataTreeLoader::BlastDataTreeLoader(QObject *parent, QString fileName, BlastTaxDataProvider *dp, BlastFileType _type) :
@@ -101,21 +100,4 @@ GraphNode *BlastTaxNode::createGnode(TreeGraphView *gv)
 {
     gnode = new BlastGraphNode(gv, this);
     return gnode;
-}
-
-
-//=========================================================================
-quint32 TaxColorSrc::getColor(qint32 tax_id)
-{
-    iterator it = find(tax_id);
-    if ( it == end() )
-    {
-        quint32 color = ((rand() % 0xFFFF) + ((rand() % 0xFF) << 16)) | 0xFF000000;
-        insert(tax_id, color);
-        return color;
-    }
-    else
-    {
-        return it.value();
-    }
 }
