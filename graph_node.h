@@ -42,13 +42,9 @@
 #define NODE_H
 
 #include "blast_data.h"
-#include "colors.h"
 
 #include <QGraphicsItem>
 #include <QList>
-
-
-#define HOR_INTERVAL  150
 
 class Edge;
 class TreeGraphView;
@@ -124,6 +120,7 @@ protected:
 
 friend class TreeLoaderThread;
 friend class TreeGraphView;
+QPainterPath getTextPath() const;
 };
 
 class BlastGraphNode: public TaxTreeGraphNode

@@ -5,11 +5,16 @@
 #include "graph_node.h"
 #include "taxnodesignalsender.h"
 #include "taxdataprovider.h"
+#include "colors.h"
+#include "config.h"
+#include "blastfileloader.h"
+
 #include "ui_components/taxlistwidget.h"
 #include "ui_components/leftpanel.h"
 #include "ui_components/currenttaxnodedetails.h"
 #include "ui_components/labeleddoublespinbox.h"
 #include "ui_components/start_dialog.h"
+#include "ui_components/configurationdialog.h"
 
 #include <QFileDialog>
 #include <QJsonDocument>
@@ -18,19 +23,18 @@
 #include <QMessageBox>
 
 TaxMap taxMap;
-TaxNode *taxTree;
 MainWindow *mainWindow;
 
 //=========================================================================
 void generateDefaultNodes()
 {
     // To improve the startup speed, first create hardcoded default nodes, they will be updated then the whole tree will be loaded
-    taxTree = new TaxNode(1);
-    taxMap.insert(1, taxTree);
+    globalTaxDataProvider->taxTree = new TaxNode(1);
+    taxMap.insert(1, globalTaxDataProvider->taxTree);
     taxMap.setName(1, "root");
-    taxTree->setCollapsed(false, false);
+    globalTaxDataProvider->taxTree->setCollapsed(false, false);
 
-    TaxNode *n131567 = (TaxNode *)taxTree->addChildById(131567);
+    TaxNode *n131567 = (TaxNode *)globalTaxDataProvider->taxTree->addChildById(131567);
     taxMap.insert(131567, n131567);
     taxMap.setName(131567, "cellular organisms");
     n131567->setCollapsed(false, false);
@@ -48,24 +52,24 @@ void generateDefaultNodes()
     taxMap.insert(2759, (TaxNode *)n131567->addChildById(2759));
     taxMap.setName(2759, "Eukaryota");
 
-    TaxNode *n10239 = (TaxNode *)taxTree->addChildById(10239);
+    TaxNode *n10239 = (TaxNode *)globalTaxDataProvider->taxTree->addChildById(10239);
     taxMap.insert(10239, n10239);
     taxMap.setName(10239, "Viruses");
 
     taxMap.insert(39759, (TaxNode *)n10239->addChildById(39759));
     taxMap.setName(39759, "Deltavirus");
 
-    TaxNode *n12884 = (TaxNode *)taxTree->addChildById(12884);
+    TaxNode *n12884 = (TaxNode *)globalTaxDataProvider->taxTree->addChildById(12884);
     taxMap.insert(12884, n12884);
     taxMap.setName(12884, "Viroids");
 
     taxMap.insert(185752, (TaxNode *)n12884->addChildById(185752));
     taxMap.setName(185752, "Avsunviroidae");
 
-    taxMap.insert(12908, (TaxNode *)taxTree->addChildById(12908));
+    taxMap.insert(12908, (TaxNode *)globalTaxDataProvider->taxTree->addChildById(12908));
     taxMap.setName(12908, "unclassified sequences");
 
-    taxMap.insert(28384, (TaxNode *)taxTree->addChildById(28384));
+    taxMap.insert(28384, (TaxNode *)globalTaxDataProvider->taxTree->addChildById(28384));
     taxMap.setName(28384, "other sequences");
 }
 
@@ -83,9 +87,13 @@ MainWindow::MainWindow(QWidget *parent) :
     activeGraphView(NULL),
     taxonomyTreeView(NULL)
 {
+    history = AbstractConfigFileFactory<History>::create(this);
+    colors = AbstractConfigFileFactory<Colors>::create(this);
+    configuration = AbstractConfigFileFactory<Config>::create(this);
+
+    globalTaxDataProvider = new GlobalTaxMapDataProvider(this, &taxMap);
     mainWindow = this;
     generateDefaultNodes();
-    globalTaxDataProvider = new GlobalTaxMapDataProvider(this, &taxMap);
     leftPanel = new LeftPanel(this);
     taxListWidget = leftPanel->taxList();
     leftPanel->setTaxDataProvider(globalTaxDataProvider);
@@ -131,7 +139,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(tnss, SIGNAL(bigChangesHappened()), taxListWidget, SLOT(resetView()));
     connect(tnss, SIGNAL(bigChangesHappened()), taxTreeView, SLOT(reset()));
 
-    taxTreeView->setCurrentNode(taxTree);
+    taxTreeView->setCurrentNode(globalTaxDataProvider->taxTree);
 
     connectGraphView(NULL, taxTreeView);
 
@@ -169,6 +177,9 @@ void MainWindow::connectGraphView(DataGraphicsView *oldGV, DataGraphicsView *new
     connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), newGV, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
     connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), newGV, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
     connect(tnss, SIGNAL(bigChangesHappened()), newGV, SLOT(reset()));
+    connect(tnss, SIGNAL(bigChangesHappened()), newGV, SLOT(reset()));
+    connect(tnss, SIGNAL(colorChanged(BaseTaxNode*)), newGV, SLOT(onColorChanged(BaseTaxNode*)));
+
     connect(newGV, SIGNAL(destroyed(QObject*)), this, SLOT(activeGraphViewDestroyed()));
 
     connect(readsSB, SIGNAL(valueChanged(quint32,quint32)), newGV, SLOT(onReadsThresholdChanged(quint32,quint32)));
@@ -210,7 +221,7 @@ void MainWindow::openProject(QString fileName)
     fromJson(jobj);
     loadFile.close();
     statusList->RemoveItem(statusListItem);
-    history.addProject(fileName);
+    history->addProject(fileName);
 }
 
 //=========================================================================
@@ -244,7 +255,7 @@ void MainWindow::save_project()
     QJsonDocument saveDoc(saveObject);
     saveFile.write(saveDoc.toJson(QJsonDocument::Compact));
     saveFile.close();
-    history.addProject(fileName);
+    history->addProject(fileName);
 }
 
 //=========================================================================
@@ -274,30 +285,37 @@ void MainWindow::toJson(QJsonObject &json) const
 //=========================================================================
 void MainWindow::fromJson(QJsonObject &json)
 {
-    QCoreApplication::processEvents();
-    blastTaxDataProviders.clear();
-    blastTaxDataProviders.fromJson(json);
-    QCoreApplication::processEvents();
-    if ( blastTaxDataProviders.size() == 0 )
-    {
-        QMessageBox::warning(0, "Cannot open project", QString("UNo data providers are found in the project file"));
-        return;
-    }
-    QJsonArray jViewArr = json["views"].toArray();
-    for ( int i = 0; i < jViewArr.size(); i++ )
+    try
     {
         QCoreApplication::processEvents();
-        QJsonObject jView = jViewArr[i].toObject();;
-        QString type = jView["Type"].toString();
-        DataGraphicsView *dgv = DataGraphicsView::createViewByType(this, type);
-        if ( dgv == NULL )
+        blastTaxDataProviders.clear();
+        blastTaxDataProviders.fromJson(json);
+        QCoreApplication::processEvents();
+        if ( blastTaxDataProviders.size() == 0 )
         {
-            QMessageBox::warning(0, "Cannot create view", QString("Unknown view type %1").arg(type));
-            continue;
+            QMessageBox::warning(0, "Cannot open project", QString("UNo data providers are found in the project file"));
+            return;
         }
-        dgv->fromJson(jView);
-        addGraphView(dgv, dgv->taxDataProvider->name);
-        leftPanel->setTaxDataProvider(dgv->taxDataProvider);
+        QJsonArray jViewArr = json["views"].toArray();
+        for ( int i = 0; i < jViewArr.size(); i++ )
+        {
+            QCoreApplication::processEvents();
+            QJsonObject jView = jViewArr[i].toObject();;
+            QString type = jView["Type"].toString();
+            DataGraphicsView *dgv = DataGraphicsView::createViewByType(this, type);
+            if ( dgv == NULL )
+            {
+                QMessageBox::warning(0, "Cannot create view", QString("Unknown view type %1").arg(type));
+                continue;
+            }
+            dgv->fromJson(jView);
+            addGraphView(dgv, dgv->taxDataProvider->name);
+            leftPanel->setTaxDataProvider(dgv->taxDataProvider);
+        }
+    }
+    catch (...)
+    {
+        QMessageBox::warning(this, "Error occured", "Cannot load project");
     }
 }
 
@@ -317,7 +335,7 @@ void MainWindow::open_tab_blast_file(QString fileName)
 {
     BlastTaxDataProvider *blastTaxDataProvider = new BlastTaxDataProvider(NULL);
     BlastGraphView *blastView = new BlastGraphView(blastTaxDataProvider, this, NULL);
-    BlastDataTreeLoader *bdtl = new BlastDataTreeLoader(this, fileName, blastTaxDataProvider, tabular);
+    BlastFileLoader *bdtl = new BlastFileLoader(this, fileName, blastTaxDataProvider, tabular);
 
     connect(blastView, SIGNAL(blast_view_closed()), bdtl, SLOT(stop_thread()));
 
@@ -343,7 +361,7 @@ TreeGraphView *MainWindow::openTaxonomyTreeView()
 {
     if ( taxonomyTreeView == NULL )
     {
-        taxonomyTreeView = new TreeGraphView(this, taxTree);
+        taxonomyTreeView = new TreeGraphView(this, globalTaxDataProvider->taxTree);
         taxonomyTreeView->persistant = true;
         taxonomyTreeView->taxDataProvider = globalTaxDataProvider;
     }
@@ -387,7 +405,7 @@ void MainWindow::treeIsLoaded(void *obj)
 {
     TaxNode *tree = (TaxNode *)obj;
     qDebug() << "Tree Loading is finished";
-    taxTree->mergeWith(tree, taxonomyTreeView);
+    globalTaxDataProvider->taxTree->mergeWith(tree, taxonomyTreeView);
     ui->action_Tab_separated_BLAST_file->setEnabled(true);
 
     disconnect(globalTaxDataProvider, SIGNAL(dataChanged()), taxonomyTreeView, SLOT(onTreeChanged()));
@@ -460,6 +478,7 @@ void MainWindow::setActiveGraphView(DataGraphicsView *newGV)
     BlastGraphView *gv = dynamic_cast<BlastGraphView*>(newGV);
     if ( gv != NULL )
     {
+        readsSB->setMaxValue(activeGraphView->taxDataProvider->getMaxReads());
         readsSB->setValue(gv->reads_threshold);
         readsSB->setEnabled(true);
     }
@@ -481,7 +500,13 @@ void MainWindow::onCurrentTabCnaged(int)
 //=========================================================================
 void MainWindow::activeGraphViewDestroyed()
 {
-//    activeGraphView = NULL;
+}
+
+//=========================================================================
+void MainWindow::openOptionsDialog()
+{
+    ConfigurationDialog *cd = new ConfigurationDialog(this);
+    cd->show();
 }
 
 //=========================================================================

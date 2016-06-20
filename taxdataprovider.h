@@ -2,7 +2,6 @@
 #define TAXDATAPROVIDER_H
 
 #include "tax_map.h"
-#include "colors.h"
 
 #include <QList>
 #include <QReadWriteLock>
@@ -19,6 +18,8 @@ public:
     BaseTaxNode *node;
     qint32 id;
     IdTaxNodePair(BaseTaxNode *n, qint32 _id):node(n), id(_id){}
+    inline bool operator==(const IdTaxNodePair &x){ return id == x.id; }
+    inline bool operator==(qint32 other_id){ return id == other_id; }
 };
 
 typedef QList<IdTaxNodePair> IdTaxNodeList;
@@ -34,6 +35,7 @@ class TaxDataProvider : public QObject
 {
     Q_OBJECT
 protected:
+    QReadWriteLock lock;
 public:
     IdTaxNodeList idTaxNodeList;
     QString name;
@@ -66,6 +68,7 @@ class GlobalTaxMapDataProvider : public TaxDataProvider
     Q_OBJECT
 public:
     TaxMap *taxMap;
+    TaxNode *taxTree;
     GlobalTaxMapDataProvider(QObject *parent, TaxMap *tm);
     virtual void updateCache(bool values_only);
 public slots:
@@ -73,13 +76,13 @@ public slots:
     void onMapChanged();
 };
 
+extern GlobalTaxMapDataProvider *globalTaxDataProvider;
 class BlastTaxNode;
 
 // Provides data for blast tree
 class BlastTaxDataProvider : public TaxDataProvider
 {
     Q_OBJECT
-    QReadWriteLock lock;
     BlastNodeMap *blastNodeMap;
     quint32 parent_count;
 public:
@@ -94,8 +97,9 @@ public:
     virtual quint32 getMaxReads();
     virtual void addParent();
     virtual void removeParent();
-    BlastTaxNode *addTaxNode(qint32 id, qint32 reads=-1);
-    virtual void toJson(QJsonObject &json) const;
+    BlastTaxNode *addTaxNode(qint32 id, qint32 reads, qint64 pos = -1);
+    BlastTaxNode *addTaxNode(qint32 id, qint32 reads, QList<qint64> pos);
+    virtual void toJson(QJsonObject &json);
     virtual void fromJson(QJsonObject &json);
     BlastTaxNode *nodeById(qint32 id);
 
@@ -111,7 +115,7 @@ class BlastTaxDataProviders : public QList<BlastTaxDataProvider *>
     quint64 visibility_mask;
 public:
     BlastTaxDataProviders();
-    virtual void toJson(QJsonObject &json) const;
+    virtual void toJson(QJsonObject &json);
     virtual void fromJson(QJsonObject &json);
     BlastTaxDataProvider *providerByName(const QString &name) const;
     void setVisible(quint8 index, bool visible);

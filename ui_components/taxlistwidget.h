@@ -57,7 +57,7 @@ public:
   void setTaxDataProvider(TaxDataProvider *td, bool refreshValuesOnly);
   Qt::ItemFlags flags(const QModelIndex &index) const;
   void clearCache();
-
+public:
   friend class TaxListWidget;
 };
 
@@ -74,7 +74,6 @@ public:
 private:
     Ui::TaxListWidget *ui;
     int oldRowCount;
-
 signals:
     void currentTaxChanged(BaseTaxNode *);
 
@@ -86,6 +85,8 @@ private slots:
     void taxChanged(QModelIndex, QModelIndex);
     void onCurrentTaxChanged(BaseTaxNode *);
     void onColorChanged(BaseTaxNode *);
+    void showContextMenu(const QPoint&);
+    void changeCurrentTaxColor();
 public slots:
     void reset();
     void onNodeVisibilityChanged(BaseTaxNode*,bool);

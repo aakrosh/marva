@@ -2,9 +2,10 @@
 #define COLORS_H
 
 #include <QObject>
-#include <QFile>
 #include <QMap>
 #include <QJsonObject>
+
+#include "abstractconfigfile.h"
 
 typedef QMap<qint32, quint32> TaxColorMap;
 
@@ -15,28 +16,24 @@ public:
     virtual quint32 getColor(qint32 tax_id);
 };
 
-class Colors : QObject
+class Colors : public AbstractConfigFile
 {
     Q_OBJECT
-    QFile file;
     TaxColorMap configuredColors;
-    void init();
 public:
-    Colors();
-    void load();
-    void save();
+    Colors(QObject *parent =0);
     quint32 getColor(qint32 tax_id);
     void setColor(qint32 tax_id, quint32 color);
     quint32 pickColor(qint32 tax_id);
+    virtual void init();
 private:
-    void toJson(QJsonObject &json) const;
-    void fromJson(QJsonObject &json);
-public slots:
-    void saveColors();
+    virtual void toJson(QJsonObject &json) const;
+    virtual void fromJson(QJsonObject &json);
+
 signals:
     colorsChanged(qint32);
 };
 
-extern Colors colors;
+extern Colors *colors;
 
 #endif // COLORS_H

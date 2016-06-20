@@ -37,6 +37,7 @@ public slots:
     virtual void onNodeVisibilityChanged(BaseTaxNode*, bool) {}
     virtual void reset() {}
     virtual void onReadsThresholdChanged(quint32 /*oldT*/, quint32 /*newT*/) {}
+    virtual void onColorChanged(BaseTaxNode *) {}
 
 };
 

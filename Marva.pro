@@ -35,7 +35,11 @@ HEADERS += edge.h \
     history.h \
     colors.h \
     datasourcesmodel.h \
-    bubblechartview.h
+    bubblechartview.h \
+    abstractconfigfile.h \
+    config.h \
+    ui_components/configurationdialog.h \
+    blastfileloader.h
 FORMS += \
     main_window.ui \
     ui_components/taxlistwidget.ui \
@@ -43,7 +47,8 @@ FORMS += \
     ui_components/currenttaxnodedetails.ui \
     ui_components/labeleddoublespinbox.ui \
     ui_components/bubblechartproperties.ui \
-    ui_components/start_dialog.ui
+    ui_components/start_dialog.ui \
+    ui_components/configurationdialog.ui
 SOURCES += edge.cpp \
     blast_record.cpp \
     blast_data.cpp \
@@ -70,4 +75,8 @@ SOURCES += edge.cpp \
     history.cpp \
     colors.cpp \
     datasourcesmodel.cpp \
-    bubblechartview.cpp
+    bubblechartview.cpp \
+    abstractconfigfile.cpp \
+    config.cpp \
+    ui_components/configurationdialog.cpp \
+    blastfileloader.cpp

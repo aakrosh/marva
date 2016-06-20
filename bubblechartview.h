@@ -3,7 +3,6 @@
 #include "taxdataprovider.h"
 #include "datagraphicsview.h"
 #include "ui_components/bubblechartproperties.h"
-#include "colors.h"
 
 #include <QList>
 #include <QMenu>
@@ -48,7 +47,7 @@ public:
     virtual QVariant checkState(int index);
     virtual void setCheckedState(int index, QVariant value);
     quint32 visibleTaxNumber();
-    virtual void toJson(QJsonObject &json) const;
+    virtual void toJson(QJsonObject &json);
     virtual void fromJson(QJsonObject &json);
 
     inline BlastTaxDataProviders *getBlastTaxDataProviders() {return providers;}
@@ -70,7 +69,7 @@ class BubbleChartView : public DataGraphicsView
     QList<QGraphicsRectItem *> grid;
     QList<QGraphicsTextItem*> verticalLegend;
     QList<QGraphicsTextItem*> horizontalLegend;
-    BubbleChartConfig config;
+    BubbleChartParameters config;
 public:
     BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent = 0);
     ~BubbleChartView();
@@ -107,8 +106,8 @@ protected slots:
     virtual void showContextMenu(const QPoint&);
     virtual void showPropertiesDialog();
     virtual void showDataSourceDialog();
-    virtual void onColorChanged(BaseTaxNode *);
     void hideCurrentTax();
+    void setCurrentTaxColor();
 
 public slots:
     virtual void onNodeVisibilityChanged(BaseTaxNode*, bool) {}
@@ -117,6 +116,7 @@ public slots:
     virtual void changeMaxBubbleSize(int);
     virtual void toggleTitleVisibility(bool);
     virtual void onDataSourceVisibilityChanged(int);
+    virtual void onColorChanged(BaseTaxNode *);
 };
 
 

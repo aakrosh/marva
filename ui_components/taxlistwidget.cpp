@@ -4,6 +4,7 @@
 #include "main_window.h"
 #include "taxnodesignalsender.h"
 #include "taxdataprovider.h"
+#include "colors.h"
 
 #include <QPaintEvent>
 #include <QtConcurrent/QtConcurrent>
@@ -20,7 +21,11 @@ TaxListWidget::TaxListWidget(QWidget *parent) :
     ui->tableView->setModel(model);
     ui->tableView->installEventFilter(this);
     connect(ui->tableView->selectionModel(), SIGNAL(currentRowChanged(QModelIndex, QModelIndex)), this, SLOT(taxChanged(QModelIndex, QModelIndex)));
+    connect(model, SIGNAL(layoutChanged()), ui->tableView->selectionModel(), SLOT(clear()));
     refresh();
+
+    this->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(this, SIGNAL(customContextMenuRequested(const QPoint&)),this, SLOT(showContextMenu(const QPoint&)));
 }
 
 //=========================================================================
@@ -143,6 +148,8 @@ void TaxListWidget::refreshValues()
 //=========================================================================
 void TaxListWidget::taxChanged(QModelIndex index, QModelIndex)
 {
+      if ( !index.isValid() )
+        return;
       TaxNodeSignalSender *tnss = getTaxNodeSignalSender(model->taxDataProvider->taxNode(index.row()));
       tnss->makeCurrent();
 }
@@ -171,6 +178,23 @@ void TaxListWidget::onColorChanged(BaseTaxNode *node)
         return;
     QModelIndex cell = model->index(index, 0);
     model->dataChanged(cell, cell);
+}
+
+//=========================================================================
+void TaxListWidget::showContextMenu(const QPoint &p)
+{
+    QMenu popupMenu;
+    QAction *colorsAction = popupMenu.addAction("Colors...");
+    connect(colorsAction, SIGNAL(triggered(bool)), this, SLOT(changeCurrentTaxColor()));
+    popupMenu.exec(mapToGlobal(p));
+
+}
+
+//=========================================================================
+void TaxListWidget::changeCurrentTaxColor()
+{
+    QModelIndexList selRows = this->ui->tableView->selectionModel()->selectedRows();
+    colors->pickColor(model->taxDataProvider->taxNode(selRows[0].row())->getId());
 }
 
 //=========================================================================
@@ -229,6 +253,9 @@ TaxListCache cache;
 //=========================================================================
 QVariant TaxListTableModel::data(const QModelIndex &index, int role) const
 {
+    if ( !index.isValid() )
+      return QVariant();
+
     if (role == Qt::DisplayRole)
     {
         qint32 i = index.row();
@@ -260,6 +287,9 @@ QVariant TaxListTableModel::data(const QModelIndex &index, int role) const
 //=========================================================================
 bool TaxListTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
+    if ( !index.isValid() )
+      return false;
+
     if ( role == Qt::CheckStateRole && index.column() == 0 )
     {
         taxDataProvider->setCheckedState(index.row(), value);
@@ -289,6 +319,7 @@ void TaxListTableModel::sort(int column, Qt::SortOrder order)
 {
     emit layoutAboutToBeChanged();
     taxDataProvider->sort(column, order);
+    //TaxNodeSignalSender *tnss = getTaxNodeSignalSender();
     clearCache();
     emit layoutChanged();
 }
@@ -306,6 +337,12 @@ void TaxListTableModel::clearCache()
 }
 
 //=========================================================================
+/*void TaxListTableModel::onLayoutChanged()
+{
+
+}*/
+
+//=========================================================================
 void TaxListTableModel::setTaxDataProvider(TaxDataProvider *tdp, bool refreshValuesOnly=false)
 {
     if ( tdp != NULL)
@@ -318,7 +355,7 @@ void TaxListTableModel::setTaxDataProvider(TaxDataProvider *tdp, bool refreshVal
 Qt::ItemFlags TaxListTableModel::flags(const QModelIndex &index) const
 {
     Qt::ItemFlags f =  Qt::ItemIsEnabled | Qt::ItemIsSelectable;
-    if ( index.column() == 0 )
+    if ( index.isValid() && index.column() == 0 )
         f |= Qt::ItemIsUserCheckable;
     return f;
 }

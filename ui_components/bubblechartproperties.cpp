@@ -2,7 +2,7 @@
 #include "ui_bubblechartproperties.h"
 #include "datasourcesmodel.h"
 
-BubbleChartProperties::BubbleChartProperties(QWidget *parent, BubbleChartConfig *_config, BlastTaxDataProviders *dp) :
+BubbleChartProperties::BubbleChartProperties(QWidget *parent, BubbleChartParameters *_config, BlastTaxDataProviders *dp) :
     QDialog(parent),
     config(_config),
     ui(new Ui::BubbleChartProperties)

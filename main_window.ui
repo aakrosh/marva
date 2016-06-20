@@ -79,13 +79,20 @@
    </widget>
    <widget class="QMenu" name="menuViews">
     <property name="title">
-     <string>Views</string>
+     <string>&amp;Views</string>
     </property>
     <addaction name="actionTaxonomyTree"/>
     <addaction name="actionCreateChart"/>
    </widget>
+   <widget class="QMenu" name="menu_Tools">
+    <property name="title">
+     <string>&amp;Tools</string>
+    </property>
+    <addaction name="actionOptions"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuViews"/>
+   <addaction name="menu_Tools"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -132,7 +139,7 @@
   </action>
   <action name="actionTaxonomyTree">
    <property name="text">
-    <string>Taxonomy tree</string>
+    <string>&amp;Taxonomy tree</string>
    </property>
    <property name="toolTip">
     <string>Open taxonomy tree</string>
@@ -140,7 +147,7 @@
   </action>
   <action name="actionCreateChart">
    <property name="text">
-    <string>Create chart</string>
+    <string>&amp;Create chart</string>
    </property>
   </action>
   <action name="actionOpen">
@@ -151,6 +158,11 @@
   <action name="actionCloseProject">
    <property name="text">
     <string>&amp;Close project</string>
+   </property>
+  </action>
+  <action name="actionOptions">
+   <property name="text">
+    <string>&amp;Options...</string>
    </property>
   </action>
  </widget>
@@ -236,11 +248,28 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionOptions</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>openOptionsDialog()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>449</x>
+     <y>313</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>open_tab_blast_files()</slot>
   <slot>save_project()</slot>
   <slot>open_project()</slot>
   <slot>close_project()</slot>
+  <slot>openOptionsDialog()</slot>
  </slots>
 </ui>

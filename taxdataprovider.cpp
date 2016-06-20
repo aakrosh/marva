@@ -1,6 +1,7 @@
 #include "taxdataprovider.h"
 #include "blast_data.h"
 #include "graph_node.h"
+#include "colors.h"
 
 #include <QColor>
 #include <QObject>
@@ -9,7 +10,7 @@
 #include <QMessageBox>
 
 BlastTaxDataProviders blastTaxDataProviders;
-
+GlobalTaxMapDataProvider *globalTaxDataProvider;
 //=========================================================================
 TaxDataProvider::TaxDataProvider(QObject *parent, TaxDataProviderType _type)
     : QObject(parent),
@@ -27,18 +28,24 @@ TaxDataProvider::~TaxDataProvider()
 //=========================================================================
 quint32 TaxDataProvider::count()
 {
+    QReadWriteLocker locker(&lock);
+
     return idTaxNodeList.count();
 }
 
 //=========================================================================
 qint32 TaxDataProvider::id(quint32 index)
 {
+    QReadWriteLocker locker(&lock);
+
     return idTaxNodeList.at(index).id;
 }
 
 //=========================================================================
 BaseTaxNode *TaxDataProvider::taxNode(quint32 index)
 {
+    QReadWriteLocker locker(&lock);
+
     return idTaxNodeList.at(index).node;
 }
 
@@ -63,21 +70,19 @@ quint32 TaxDataProvider::readsById(quint32)
 //=========================================================================
 quint32 TaxDataProvider::indexOf(qint32 id)
 {
+    QReadWriteLocker locker(&lock);
+
     if ( idTaxNodeList.empty() )
         return -1;
-    QList<IdTaxNodePair>::const_iterator it = idTaxNodeList.constBegin();
-    while ( it != idTaxNodeList.constEnd() )
-    {
-        if ( (*it).id == id )
-            return it - idTaxNodeList.constBegin();
-        ++it;
-    }
-    return -1;
+    IdTaxNodePair temp(NULL, id);
+    return  idTaxNodeList.indexOf(temp);
 }
 
 //=========================================================================
 QVariant TaxDataProvider::checkState(int index)
 {
+    QReadWriteLocker locker(&lock);
+
     if ( index < (int)count() )
         return idTaxNodeList.at(index).node->visible() ? Qt::Checked : Qt::Unchecked;
     else
@@ -87,6 +92,8 @@ QVariant TaxDataProvider::checkState(int index)
 //=========================================================================
 void TaxDataProvider::setCheckedState(int index, QVariant value)
 {
+    QReadWriteLocker locker(&lock);
+
     bool visible = value == Qt::Checked;
     BaseTaxNode *node = idTaxNodeList.at(index).node;
     if ( visible != node->visible() )
@@ -97,7 +104,7 @@ void TaxDataProvider::setCheckedState(int index, QVariant value)
 bool nameLessThan(const IdTaxNodePair &v1, const IdTaxNodePair &v2)
 {
     bool res = v1.node->getText() < v2.node->getText();
-     return res ;
+      return res ;
 }
 bool idLessThan(const IdTaxNodePair &v1, const IdTaxNodePair &v2)
 {
@@ -106,6 +113,8 @@ bool idLessThan(const IdTaxNodePair &v1, const IdTaxNodePair &v2)
 
 void TaxDataProvider::sort(int column, Qt::SortOrder order)
 {
+    QReadWriteLocker locker(&lock, true);
+
     if ( column == 2 )
         return;
     if ( column == 0 )
@@ -139,6 +148,8 @@ GlobalTaxMapDataProvider::GlobalTaxMapDataProvider(QObject *parent, TaxMap *tm) 
 //=========================================================================
 void GlobalTaxMapDataProvider::updateCache(bool values_only)
 {
+    QReadWriteLocker locker(&lock, true);
+
     if ( !values_only )
     {
         idTaxNodeList.clear();
@@ -198,7 +209,15 @@ void BlastTaxDataProvider::removeParent()
 }
 
 //=========================================================================
-BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads)
+BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, qint64 pos)
+{
+    QList<qint64> positions;
+    positions.append(pos);
+    return addTaxNode(id, reads, positions);
+}
+
+//=========================================================================
+BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, QList<qint64> pos)
 {
     TaxMapIterator it = taxMap.find(id);
     if ( it == taxMap.end() )
@@ -214,6 +233,7 @@ BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads)
             root = res;
         if ( reads > 0 )
             blastNode->reads = reads;
+        blastNode->positions.append(pos);
     }
     else
     {
@@ -231,10 +251,12 @@ BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads)
 }
 
 //=========================================================================
-void BlastTaxDataProvider::toJson(QJsonObject &json) const
+void BlastTaxDataProvider::toJson(QJsonObject &json)
 {
     json["Name"] = name;
     QJsonArray dpArray;
+    QReadWriteLocker locker(&lock);
+
     for (int i = 0 ; i < idTaxNodeList.count(); i++ )
     {
         const IdTaxNodePair &pair = idTaxNodeList[i];
@@ -246,6 +268,10 @@ void BlastTaxDataProvider::toJson(QJsonObject &json) const
         jnode.append((qint64)node->reads);
         jnode.append(node->is_visible ? 1 : 0);
         jnode.append(node->isCollapsed() ? 1: 0);
+        QJsonArray jpos;
+        for ( int j = 0; j < node->positions.count(); j++)
+            jpos.append(node->positions[j]);
+        jnode.append(jpos);
         dpArray.append(jnode);
     }
     json["Arr"] = dpArray;
@@ -254,24 +280,34 @@ void BlastTaxDataProvider::toJson(QJsonObject &json) const
 //=========================================================================
 void BlastTaxDataProvider::fromJson(QJsonObject &json)
 {
-    name = json["Name"].toString();
-    QJsonArray dpArr = json["Arr"].toArray();
-    for (int i = 0; i < dpArr.size(); ++i)
+    try
     {
-        QJsonArray jNode = dpArr[i].toArray();
-        qint32 id = jNode[0].toInt();
-        quint32 reads = jNode[1].toInt();
-        bool visible = jNode[2].toInt() == 1;
-        bool collapsed = jNode[3].toInt() == 1;
-        BlastTaxNode *node = addTaxNode(id, reads > 0 ? reads : -1);
-        if ( node != NULL )
+        name = json["Name"].toString();
+        QJsonArray dpArr = json["Arr"].toArray();
+        for (int i = 0; i < dpArr.size(); ++i)
         {
-            node->setVisible(visible);
-            if ( collapsed )
-                node->setCollapsed(true, false);
+            QJsonArray jNode = dpArr[i].toArray();
+            qint32 id = jNode[0].toInt();
+            quint32 reads = jNode[1].toInt();
+            bool visible = jNode[2].toInt() == 1;
+            bool collapsed = jNode[3].toInt() == 1;
+            BlastTaxNode *node = addTaxNode(id, reads > 0 ? reads : -1);
+            if ( node != NULL )
+            {
+                node->setVisible(visible);
+                if ( collapsed )
+                    node->setCollapsed(true, false);
+            }
+            QJsonArray jPos = jNode[4].toArray();
+            for ( int j = 0; j < jPos.count(); j++ )
+                node->positions.append(jPos[j].toInt());
         }
+        updateCache(false);
     }
-    updateCache(false);
+    catch (...)
+    {
+        QMessageBox::warning(NULL, "Error occured", "Cannot restore data for tree view");
+    }
 }
 
 //=========================================================================
@@ -283,6 +319,8 @@ BlastTaxNode *BlastTaxDataProvider::nodeById(qint32 id)
 //=========================================================================
 quint32 BlastTaxDataProvider::reads(quint32 index)
 {
+    QReadWriteLocker locker(&lock);
+
     if ( idTaxNodeList.empty() )
         return 0;
     if ( (int)index >= idTaxNodeList.count() )
@@ -316,14 +354,21 @@ void BlastTaxDataProvider::updateCache(bool values_only)
         idTaxNodeList.clear();
         idTaxNodeList.reserve(blastNodeMap->size());
     }
-    int i = 0;
     if ( idTaxNodeList.size() < blastNodeMap->size() )
-        idTaxNodeList.reserve(blastNodeMap->size());
-    for ( BlastNodeMap::iterator mit = blastNodeMap->begin(); mit != blastNodeMap->end(); ++mit )
     {
-        if ( values_only && i < idTaxNodeList.size() )
-            idTaxNodeList[i++].node = mit.value();
-        else
+        idTaxNodeList.reserve(blastNodeMap->size());
+        values_only = false;
+    }
+
+    if ( values_only )
+    {
+        for ( int i = 0; i < idTaxNodeList.count(); i++ )
+            if ( idTaxNodeList[i].node == NULL || idTaxNodeList[i].node->getText().isEmpty() )
+                idTaxNodeList[i].node = blastNodeMap->value(idTaxNodeList[i].id);
+    }
+    else
+    {
+        for ( BlastNodeMap::iterator mit = blastNodeMap->begin(); mit != blastNodeMap->end(); ++mit )
             idTaxNodeList.append(IdTaxNodePair(mit.value(), mit.key()));
     }
 }
@@ -333,7 +378,7 @@ QColor BlastTaxDataProvider::color(int index)
 {
     QReadWriteLocker locker(&lock);
     if ( index < (int)count() )
-        return QColor(colors.getColor(idTaxNodeList.at(index).id)).lighter(150);
+        return QColor(colors->getColor(idTaxNodeList.at(index).id)).lighter(150);
     else
         return TaxDataProvider::color(index);
 }
@@ -348,6 +393,7 @@ void BlastTaxDataProvider::sort(int column, Qt::SortOrder order)
 {
     if ( column == 2 )
     {
+        QReadWriteLocker locker(&lock, true);
         qSort(idTaxNodeList.begin(), idTaxNodeList.end(), readsLessThan);
         if ( order == Qt::DescendingOrder )
             std::reverse(idTaxNodeList.begin(), idTaxNodeList.end());
@@ -381,7 +427,7 @@ BlastTaxDataProviders::BlastTaxDataProviders() :
 }
 
 //=========================================================================
-void BlastTaxDataProviders::toJson(QJsonObject &json) const
+void BlastTaxDataProviders::toJson(QJsonObject &json)
 {
     QJsonArray jProviders;
     for ( int  i = 0; i < count(); i++ )
@@ -396,12 +442,19 @@ void BlastTaxDataProviders::toJson(QJsonObject &json) const
 //=========================================================================
 void BlastTaxDataProviders::fromJson(QJsonObject &json)
 {
-    QJsonArray jProviders = json["BlastTaxDataProviders"].toArray();
-    for ( int i = 0 ; i < jProviders.count(); i++ )
+    try
     {
-        BlastTaxDataProvider *provider = new BlastTaxDataProvider(NULL);
-        QJsonObject jProvider = jProviders[i].toObject();
-        provider->fromJson(jProvider);
+        QJsonArray jProviders = json["BlastTaxDataProviders"].toArray();
+        for ( int i = 0 ; i < jProviders.count(); i++ )
+        {
+            BlastTaxDataProvider *provider = new BlastTaxDataProvider(NULL);
+            QJsonObject jProvider = jProviders[i].toObject();
+            provider->fromJson(jProvider);
+        }
+    }
+    catch (...)
+    {
+        QMessageBox::warning(NULL, "Error occured", "Cannot restore data for tree views");
     }
 }
 

@@ -3,60 +3,9 @@
 #include "graph_node.h"
 #include "taxdataprovider.h"
 
-#include <QTextStream>
-#include <QDebug>
-#include <QFileInfo>
-#include <exception>
-using namespace std;
-
 BlastNodeMap blastNodeMap;
-
-
 //=========================================================================
-BlastDataTreeLoader::BlastDataTreeLoader(QObject *parent, QString fileName, BlastTaxDataProvider *dp, BlastFileType _type) :
-    LoaderThread(parent, fileName, NULL, NULL),
-    type(_type),
-    root(NULL),
-    dataProvider(dp)
-{
-    dp->name = QFileInfo(fileName).fileName();
-    caption = QString("Importing blast file: ").append(dp->name);
-}
-
-
-//=========================================================================
-BlastDataTreeLoader::~BlastDataTreeLoader()
-{
-}
-
-//=========================================================================
-void BlastDataTreeLoader::processLine(QString &line)
-{
-    switch ( type )
-    {
-        case tabular:
-        {
-            QStringList list = line.split("\t", QString::SkipEmptyParts);
-            BlastRecord rec(type, list);
-            dataProvider->addTaxNode(rec.taxa_id, -1);
-            if ( result == NULL )
-                result = dataProvider->root;
-        }
-        break;
-        default:
-        {
-            throw("Unknow file format");
-        }
-    }
-}
-
-//=========================================================================
-void BlastDataTreeLoader::finishProcessing()
-{
-    dataProvider->updateCache(false);
-    LoaderThread::finishProcessing();
-}
-
+//*************************************************************************
 //=========================================================================
 BlastTaxNode::BlastTaxNode(TreeTaxNode *refNode, int _count, BlastNodeMap *blastNodeMap):
     TreeTaxNode(false),

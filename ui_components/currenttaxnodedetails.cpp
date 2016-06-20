@@ -93,7 +93,7 @@ void CurrentTaxNodeDetails::onColorChanged(BaseTaxNode *node)
 {
     if ( node->getId() == curNodeId )
     {
-        QColor col = colors.getColor(curNodeId);
+        QColor col = colors->getColor(curNodeId);
         if(col.isValid())
         {
             QString qss = QString("background-color: %1").arg(col.name());
@@ -105,5 +105,5 @@ void CurrentTaxNodeDetails::onColorChanged(BaseTaxNode *node)
 //=========================================================================
 void CurrentTaxNodeDetails::onBColorClicked()
 {
-    colors.pickColor(curNodeId);
+    colors->pickColor(curNodeId);
 }

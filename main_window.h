@@ -13,12 +13,10 @@ class MainWindow;
 }
 
 extern TaxMap taxMap;
-extern TaxNode *taxTree;
 class MapLoaderThread;
 class TaxListWidget;
 class LeftPanel;
 class LabeledDoubleSpinBox;
-class GlobalTaxMapDataProvider;
 
 class MainWindow : public QMainWindow
 {
@@ -29,9 +27,8 @@ public:
     ~MainWindow();
     StatusListPanel *statusList;
     LabeledDoubleSpinBox *readsSB;
-    GlobalTaxMapDataProvider *globalTaxDataProvider;
-    void addGraphView(QWidget *gv, QString label);
 
+    void addGraphView(QWidget *gv, QString label);
     void setActiveGraphView(DataGraphicsView *gv);
 
 protected:
@@ -46,7 +43,7 @@ private:
     QList<LoaderThread*> activeLoaderThreads;
     LeftPanel *leftPanel;
     TaxListWidget *taxListWidget;
-    History history;
+    History *history;
 
 
 signals:
@@ -72,6 +69,7 @@ private slots:
     void closeGraphView(int);
     void onCurrentTabCnaged(int);
     void activeGraphViewDestroyed();
+    void openOptionsDialog();
 };
 extern MainWindow *mainWindow;
 

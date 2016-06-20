@@ -6,6 +6,7 @@
 #include <QAction>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QMessageBox>
 
 #include "graphview.h"
 #include "edge.h"
@@ -16,8 +17,9 @@
 #include "taxnodesignalsender.h"
 #include "taxdataprovider.h"
 #include "taxnodesignalsender.h"
+#include "colors.h"
 
-#define RIGHT_NODE_MARGIN   200
+#define RIGHT_NODE_MARGIN   150
 #define MIN_DX 70
 
 //=========================================================================
@@ -44,6 +46,7 @@ void TreeGraphView::markAllNodesDirty()
 TreeGraphView::TreeGraphView(QWidget *parent, TaxNode *taxTree)
     : DataGraphicsView(NULL, parent),
       root(taxTree),
+      hiddenNodes(0),
       create_nodes(true),
       treeDepth(0)
 {
@@ -68,10 +71,18 @@ TreeGraphView::TreeGraphView(QWidget *parent, TaxNode *taxTree)
     nodePopupMenu = new QMenu();
     hideNodeAction = new QAction("Hide node", this);
     hideAllButNodeAction = new QAction("Hide all but this", this);
+    showAllNodesAction = new QAction("Show all", this);
+    colorAction = new QAction("Color...", this);
     nodePopupMenu->addAction(hideNodeAction);
     nodePopupMenu->addAction(hideAllButNodeAction);
+    nodePopupMenu->addAction(showAllNodesAction);
+    nodePopupMenu->addAction(colorAction);
     connect(hideNodeAction, SIGNAL(triggered()), this, SLOT(hideCurrent()));
     connect(hideAllButNodeAction, SIGNAL(triggered()), this, SLOT(hideAllButCurrent()));
+    connect(showAllNodesAction, SIGNAL(triggered()), this, SLOT(showAllNodes()));
+    connect(colorAction, SIGNAL(triggered()), this, SLOT(changeCurrentTaxColor()));
+
+    connect(this, SIGNAL(allNodesShown()), this, SLOT(onNodeVisiblityChanged()));
     setAttribute(Qt::WA_DeleteOnClose);
 }
 
@@ -117,6 +128,8 @@ void TreeGraphView::updateXCoord()
 void TreeGraphView::expandPathTo(TreeTaxNode *node)
 {
     if ( node->parent == NULL )
+        return;
+    if ( node->getGnode() != NULL )
         return;
     QList<TreeTaxNode *> path;
     TreeTaxNode *n = node;
@@ -211,6 +224,16 @@ void TreeGraphView::goRight()
 }
 
 //=========================================================================
+void TreeGraphView::setNodeInvisible(BaseTaxNode *bnode)
+{
+    if  ( !bnode->is_visible )
+        return;
+    bnode->setVisible(false);
+    hiddenNodes++;
+    emit nodeHidden(bnode);
+}
+
+//=========================================================================
 void TreeGraphView::hideNodes(quint32 oldT, quint32 newT)
 {
     class NodeHider : public TaxNodeVisitor
@@ -226,16 +249,17 @@ void TreeGraphView::hideNodes(quint32 oldT, quint32 newT)
         {
 
         }
+
         virtual void Action(TreeTaxNode *node)
         {
             BlastTaxNode *bnode = dynamic_cast<BlastTaxNode *>(node);
             if ( bnode->reads == 0 )
             {
                 if ( !has_visible )
-                    bnode->setVisible(false);
+                    graphView->setNodeInvisible(bnode);
             }
             else if ( bnode->reads >= oldT && bnode->reads < newT )
-               bnode->setVisible(false);
+                graphView->setNodeInvisible(bnode);
         }
         virtual void afterVisitChildren(TreeTaxNode *node)
         {
@@ -460,7 +484,10 @@ void TreeGraphView::keyPressEvent(QKeyEvent *event)
             return;
         case Qt::Key_Enter:
         case Qt::Key_Return:
-            getCurNode()->setCollapsed(!getCurNode()->isCollapsed(), true);
+            {
+                if ( curNode != NULL )
+                    getCurNode()->setCollapsed(!getCurNode()->isCollapsed(), true);
+            }
             return;
         case Qt::Key_Minus:
             if ( (event->modifiers() & Qt::ControlModifier) == Qt::ControlModifier )
@@ -666,7 +693,13 @@ void TreeGraphView::onCurrentNodeChanged(BaseTaxNode *node)
     if ( gnode == NULL )
         return;
     gnode->update();
-    ensureVisible(gnode);
+
+    QRect portRect = viewport()->rect();
+    QRectF sceneRect = mapToScene(portRect).boundingRect();
+    QRectF sceneRectInItemCoord = gnode->mapFromScene(sceneRect).boundingRect();
+
+    if ( !sceneRectInItemCoord.contains(gnode->boundingRect()) )
+        ensureVisible(gnode);
 }
 
 //=========================================================================
@@ -721,7 +754,9 @@ void TreeGraphView::showNode(TreeTaxNode *node)
 //=========================================================================
 void TreeGraphView::hideCurrent()
 {
-    curNode->setVisible(false);
+   NodePositionKeeper keeper(this, ((TreeTaxNode *)curNode)->parent);
+
+    setNodeInvisible(curNode);
     TreeTaxNode *p = getCurNode()->parent;
     while ( p != NULL )
     {
@@ -738,7 +773,7 @@ void TreeGraphView::hideCurrent()
         if ( has_visible_ch )
             break;
         else
-            p->setVisible(false);
+            hideNode(p);
         p = p->parent;
     }
 }
@@ -746,6 +781,7 @@ void TreeGraphView::hideCurrent()
 //=========================================================================
 void TreeGraphView::hideAllButCurrent()
 {
+    NodePositionKeeper keeper(this, curNode);
     curNode->setVisible(true);
     TreeTaxNode *vNode = ((TreeTaxNode *)curNode);
     TreeTaxNode *p = vNode->parent;
@@ -757,11 +793,51 @@ void TreeGraphView::hideAllButCurrent()
         vNode = p;
         p = vNode->parent;
     }
+    ensureVisible(curNode->getGnode());
+}
+
+//=========================================================================
+void TreeGraphView::showAllNodes()
+{
+    class NodeShower : public TaxNodeVisitor
+    {
+    public:
+        NodeShower(TreeGraphView *gv):TaxNodeVisitor(RootToLeaves, false, gv, true, true, true){}
+        virtual void Action(TreeTaxNode *node)
+        {
+            if ( !node->visible() )
+            {
+                node->setVisible(true);
+                TaxNodeSignalSender *tnss = getTaxNodeSignalSender(node);
+                tnss->VisibilityChanged(true);
+            }
+        }
+    };
+    NodeShower nr(this);
+    nr.Visit(root);
+    createMissedGraphNodes();
+    resetNodesCoordinates();
+    hiddenNodes = 0;
+    emit allNodesShown();
+}
+
+//=========================================================================
+void TreeGraphView::changeCurrentTaxColor()
+{
+    colors->pickColor(curNode->getId());
+}
+
+//=========================================================================
+void TreeGraphView::onNodeVisiblityChanged()
+{
+    showAllNodesAction->setVisible(hiddenNodes == 0);
 }
 
 //=========================================================================
 void TreeGraphView::onNodeVisibilityChanged(BaseTaxNode *node, bool node_visible)
 {
+    NodePositionKeeper keeper(this, curNode);
+
     TreeTaxNode *ttn = (TreeTaxNode *)node;
     if ( node_visible )
         showNode(ttn);
@@ -795,8 +871,6 @@ BlastGraphView::BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidg
     scene()->clear();
     root = NULL;
 
-    TaxNodeSignalSender *tnss = getTaxNodeSignalSender(NULL);
-    connect(tnss, SIGNAL(colorChanged(BaseTaxNode*)), this, SLOT(onColorChanged(BaseTaxNode*)));
 }
 
 //=========================================================================
@@ -810,7 +884,7 @@ BlastGraphView::~BlastGraphView()
 void BlastGraphView::blastLoadingProgress(void *obj)
 {
     static bool updating = false;
-    if ( updating )
+    if ( updating || obj == NULL )
         return;
     updating = true;
     bool centeron = root == NULL;
@@ -828,6 +902,8 @@ void BlastGraphView::blastIsLoaded(void *obj)
 {
     if ( root != obj )
         root = (BlastTaxNode *)obj;
+    if ( root == NULL )
+        return;
     createMissedGraphNodes();
     updateDirtyNodes(DIRTY_NAME);
 }
@@ -855,19 +931,25 @@ void BlastGraphView::toJson(QJsonObject &json) const
 //=========================================================================
 void BlastGraphView::fromJson(QJsonObject &json)
 {
-    reads_threshold = json["Threshold"].toInt();
-    QString dpName = json["DataProvider"].toString();
-    BlastTaxDataProvider *p = blastTaxDataProviders.providerByName(dpName);
-    if ( p == NULL )
+    try
     {
-         close();
-         return;
+        reads_threshold = json["Threshold"].toInt();
+        QString dpName = json["DataProvider"].toString();
+        BlastTaxDataProvider *p = blastTaxDataProviders.providerByName(dpName);
+        if ( p == NULL )
+        {
+             close();
+             return;
+        }
+        p->addParent();
+        taxDataProvider = p;
+        root = blastTaxDataProvider()->root;
+        createMissedGraphNodes();
     }
-    p->addParent();
-    taxDataProvider = p;
-    root = blastTaxDataProvider()->root;
-    createMissedGraphNodes();
-    //AddNodeToScene(root);
+    catch (...)
+    {
+        QMessageBox::warning(this, "Error occured", "Cannot restore graph view");
+    }
 }
 
 //=========================================================================
@@ -885,4 +967,21 @@ void BlastGraphView::onReadsThresholdChanged(quint32 oldT, quint32 newT)
         unhideNodes(oldT, newT);
     getTaxNodeSignalSender(NULL)->sendSignals = true;
     getTaxNodeSignalSender(NULL)->bigChangesHappened();
+}
+
+//=========================================================================
+NodePositionKeeper::NodePositionKeeper(TreeGraphView *gv, BaseTaxNode *n):
+    graphView(gv)
+{
+    gnode = n->getGnode();
+    if ( gnode == NULL )
+        return;
+    pos = graphView->mapFromScene(gnode->pos());
+}
+
+NodePositionKeeper::~NodePositionKeeper()
+{
+    QPointF p_new = graphView->mapFromScene(gnode->pos());
+    graphView->verticalScrollBar()->setValue(graphView->verticalScrollBar()->value()+p_new.y()-pos.y());
+    graphView->update();
 }

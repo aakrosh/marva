@@ -10,14 +10,17 @@
 QList<LoaderThread *> activeThreads;
 
 //=========================================================================
-LoaderThread::LoaderThread(QObject *parent, QString _fileName, const char *_caption, void *resultObj, int _progressCounter)
+LoaderThread::LoaderThread(QObject *parent, QString _fileName, const char *_caption, void *resultObj, int _progressCounter, bool _ignoreRepeated, bool _trackPosition)
     : QThread(parent),
     fileName(_fileName),
     progressCounter(_progressCounter),
     statusListItem(NULL),
+    ignoreRepeated(_ignoreRepeated),
+    trackPosition(_trackPosition),
     caption(_caption),
     result(resultObj),
-    must_stop(false)
+    must_stop(false),
+    curPos(-1)
 {
     connect(this, SIGNAL(started()), this, SLOT(addToList()));
     connect(this, SIGNAL(finished()), this, SLOT(removeFromList()));
@@ -36,6 +39,8 @@ void LoaderThread::StopRunningThreads()
         thread->Stop();
 }
 
+#define MAX_LINE_SIZE 4096
+
 //=========================================================================
 void LoaderThread::run()
 {
@@ -46,21 +51,58 @@ void LoaderThread::run()
     {
         qDebug() << "Cannot open input file " << fileName;
         return;
-    }
-    QTextStream in(&file);
+    }    
     int p = 0;
-    while( !in.atEnd() )
+    QString prevLine;
+    if ( trackPosition )
     {
-        if ( must_stop )
-            break;
-        QString line = in.readLine();
-        if ( line == NULL || line.isEmpty() )
-            continue;        
-        processLine(line);
-        if ( ++p == progressCounter )
+        QTextStream in(&file);
+        while( !file.atEnd() )
         {
-            emit progress(result);
-            p = 0;
+            if ( must_stop )
+                break;
+            QString line(file.readLine(MAX_LINE_SIZE));
+            if ( line == NULL || line.isEmpty() )
+                continue;
+            if ( ignoreRepeated )
+            {
+                QString pl = prevLine;
+                prevLine = line;
+                if ( line == pl )
+                    continue;
+            }
+            curPos = file.pos();
+            processLine(line);
+            if ( ++p == progressCounter )
+            {
+                emit progress(result);
+                p = 0;
+            }
+        }
+    }
+    else
+    {
+        QTextStream in(&file);
+        while( !in.atEnd() )
+        {
+            if ( must_stop )
+                break;
+            QString line = in.readLine();
+            if ( line == NULL || line.isEmpty() )
+                continue;
+            if ( ignoreRepeated )
+            {
+                QString pl = prevLine;
+                prevLine = line;
+                if ( line == pl )
+                    continue;
+            }
+            processLine(line);
+            if ( ++p == progressCounter )
+            {
+                emit progress(result);
+                p = 0;
+            }
         }
     }
     file.close();

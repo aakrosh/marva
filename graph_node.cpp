@@ -6,6 +6,9 @@
 #include "taxdataprovider.h"
 #include "taxnodesignalsender.h"
 #include "bubblechartview.h"
+#include "colors.h"
+#include "config.h"
+
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 #include <QPainter>
@@ -13,11 +16,6 @@
 #include <QDebug>
 #include <QScrollBar>
 #include <QMenu>
-
-#define NODE_CIRCLE_SIZE  8
-#define HALF_PLUS_SIZE 3
-#define MAX_NODE_RADIUS  30
-
 
 //=========================================================================
 GraphNode::GraphNode(DataGraphicsView *view, BaseTaxNode *node):
@@ -46,7 +44,7 @@ void GraphNode::updateToolTip()
 //=========================================================================
 quint32 GraphNode::color()
 {
-    return colors.getColor(tax_node->getId());
+    return colors->getColor(tax_node->getId());
 }
 
 
@@ -90,21 +88,32 @@ TaxTreeGraphNode::~TaxTreeGraphNode()
 }
 
 //=========================================================================
-QPainterPath TaxTreeGraphNode::shape() const
+QPainterPath TaxTreeGraphNode::getTextPath() const
 {
     QPainterPath path;
-    path.addEllipse(QPointF(0, 0), NODE_CIRCLE_SIZE, NODE_CIRCLE_SIZE);
     QFont font;
     QFontMetricsF fm(font);
-    qreal w = fm.width(get_const_text());
+    QString text = get_const_text();
+    if ( text.length() > 20 )
+        text = text.mid(0, 17).append("...");
+    qreal w = fm.width(text);
     qreal h = fm.height();
+    int ncs = configuration->GraphNode()->nodeCircleSize();
     if ( getTaxNode()->children.isEmpty() || getTaxNode()->isCollapsed() )
-        path.addRect(NODE_CIRCLE_SIZE+2, -h/2, w+2, h+2);
+        path.addRect(ncs+2, -h/2, w+2, h+2);
     else
-        path.addRect(-5 - w/2, -NODE_CIRCLE_SIZE-2-h, w+2, h+2);
-    QPainterPath result;
-    result.addRect(path.boundingRect());
-    return result;
+        path.addRect(-5 - w/2, -ncs-2-h, w+2, h+2);
+
+    return path;
+}
+
+//=========================================================================
+QPainterPath TaxTreeGraphNode::shape() const
+{
+    QPainterPath path = getTextPath();
+    int ncs = configuration->GraphNode()->nodeCircleSize();
+    path.addEllipse(QPointF(0, 0), ncs, ncs);
+    return path;
 }
 
 //=========================================================================
@@ -113,16 +122,18 @@ void TaxTreeGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *
     QColor mainColor = tax_node == view->currentNode() ? Qt::red : Qt::black;
     painter->setBrush(Qt::transparent);
     painter->setPen(QPen(tax_node->getId() >= 0 ? mainColor : Qt::lightGray, 0));
-    painter->drawEllipse(QPointF(0, 0), NODE_CIRCLE_SIZE, NODE_CIRCLE_SIZE);
+    int ncs = configuration->GraphNode()->nodeCircleSize();
+    painter->drawEllipse(QPointF(0, 0), ncs, ncs);
 
     QFont font;
     QFontMetricsF fm(font);
     painter->setPen(QPen(mainColor, 0.5, Qt::SolidLine));
     if ( !getTaxNode()->children.isEmpty() )
     {
-      painter->drawLine(-HALF_PLUS_SIZE, 0, HALF_PLUS_SIZE, 0);
-      if ( getTaxNode()->isCollapsed() )
-        painter->drawLine(0 , -HALF_PLUS_SIZE, 0, HALF_PLUS_SIZE);
+        int hps = configuration->GraphNode()->halfPlusSize();
+        painter->drawLine(-hps, 0, hps, 0);
+        if ( getTaxNode()->isCollapsed() )
+            painter->drawLine(0 , -hps, 0, hps);
     }
     QString text = this->text();
     if ( text.length() > 20 )
@@ -130,9 +141,9 @@ void TaxTreeGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *
     qreal w = fm.width(text);
     qreal h = fm.height();
     if ( getTaxNode()->children.isEmpty() || getTaxNode()->isCollapsed() )
-        painter->drawText(QRectF(NODE_CIRCLE_SIZE+2, -h/2, w+2, h+2), text);
+        painter->drawText(QRectF(ncs+2, -h/2, w+2, h+2), text);
     else
-        painter->drawText(QRectF(-5 - w/2, -NODE_CIRCLE_SIZE-2-h, w+2, h+2), text);
+        painter->drawText(QRectF(-5 - w/2, -ncs-2-h, w+2, h+2), text);
 }
 
 //=========================================================================
@@ -173,7 +184,8 @@ void TaxTreeGraphNode::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
   TaxNodeSignalSender *tnss = getTaxNodeSignalSender(tax_node);
   tnss->makeCurrent();
-  if ( QRectF(-NODE_CIRCLE_SIZE, -NODE_CIRCLE_SIZE, 2*NODE_CIRCLE_SIZE, 2*NODE_CIRCLE_SIZE).contains(event->pos()) )
+  int ncs = configuration->GraphNode()->nodeCircleSize();
+  if ( QRectF(-ncs, -ncs, 2*ncs, 2*ncs).contains(event->pos()) )
     getTaxNode()->setCollapsed(!getTaxNode()->isCollapsed(), true);
   update();
   QGraphicsItem::mousePressEvent(event);
@@ -246,7 +258,7 @@ void TaxTreeGraphNode::deleteChildrenNodes()
 void TaxTreeGraphNode::onNodeCollapsed(bool collapsed)
 {
     TreeGraphView *gview = ((TreeGraphView *)view);
-    QPointF p_old = view->mapFromScene(pos());
+    NodePositionKeeper keeper(gview, this->tax_node);
     if ( collapsed )
     {
         // Make this small hack to visit children nodes. Otherwise current collapsed node will be skipped
@@ -260,9 +272,6 @@ void TaxTreeGraphNode::onNodeCollapsed(bool collapsed)
         gview->createMissedGraphNodes();
     }
     gview->adjust_scene_boundaries();
-    QPointF p_new = view->mapFromScene(pos());
-    view->verticalScrollBar()->setValue(view->verticalScrollBar()->value()+p_new.y()-p_old.y());
-    view->update();
 }
 
 //=========================================================================
@@ -301,8 +310,11 @@ BlastGraphNode::BlastGraphNode(TreeGraphView *graphWidget, BlastTaxNode *node) :
 //=========================================================================
 QPainterPath BlastGraphNode::shape() const
 {
-    QPainterPath path = TaxTreeGraphNode::shape();
+    QPainterPath path = TaxTreeGraphNode::getTextPath();
     int s = size();
+    int ncs = configuration->GraphNode()->nodeCircleSize();
+    if ( s < ncs )
+        s = ncs;
     path.addEllipse(QPointF(0, 0), s, s);
     return path;
 }
@@ -314,11 +326,17 @@ void BlastGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *op
     if ( s > 0 )
     {
         QRadialGradient gradient(QPointF(0 ,0 ), s);
-        QColor col = color();
-        col.setAlpha(64);
-        gradient.setColorAt(0, col.darker(150));
-        gradient.setColorAt(1, col.lighter(150));
-        painter->setPen(Qt::NoPen);
+        QColor col_orig = color();
+        QColor col = col_orig;
+        QColor col0 = col.darker(50);
+        col0.setAlphaF(0.8);
+        QColor col1 = col.lighter(150);
+        col1.setAlphaF(0.2);
+        gradient.setColorAt(0, col0);
+        gradient.setColorAt(1, col1);
+        QPen pen = QPen(col_orig);
+        pen.setWidthF(0.1);
+        painter->setPen(col_orig);
         painter->setBrush(gradient);
         painter->drawEllipse(QPointF(0, 0), s, s);
     }
@@ -333,8 +351,8 @@ int BlastGraphNode::size() const
         return 0;
     quint32 reads = ((TreeGraphView *)view)->taxDataProvider->readsById(tax_node->getId());
     if ( reads == 0 )
-        return 0;
-    return reads*MAX_NODE_RADIUS/maxReads;
+        return 0;    
+    return reads*configuration->GraphNode()->maxNodeRadius()/maxReads;
 }
 
 //=========================================================================
@@ -348,10 +366,9 @@ void BlastGraphNode::updateToolTip()
 //*************************************************************************
 //=========================================================================
 ChartGraphNode::ChartGraphNode(DataGraphicsView *view, BaseTaxNode *node):
-    GraphNode(view, node),
-    maxNodeRadius(MAX_NODE_RADIUS)
+    GraphNode(view, node)
 {
-
+    maxNodeRadius = configuration->BubbleChart()->defaultMaxBubbleSize();
 }
 
 //=========================================================================

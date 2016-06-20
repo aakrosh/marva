@@ -68,6 +68,3 @@ void TreeTaxNode::mergeWith(TreeTaxNode *other, TreeGraphView *gview)
     if ( ttgnode != NULL && changed )
         ttgnode->markDirty(DIRTY_CHILD, &gview->dirtyList);
 }
-
-
-

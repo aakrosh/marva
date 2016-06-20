@@ -11,8 +11,8 @@ StartDialog::StartDialog(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->bLoadLast->setFocus();
-    History h;
-    ui->bLoadLast->setEnabled(!h.lastProject().isEmpty());
+    History *h = AbstractConfigFileFactory<History>::create(this);
+    ui->bLoadLast->setEnabled(!h->lastProject().isEmpty());
 }
 
 StartDialog::~StartDialog()
@@ -22,8 +22,8 @@ StartDialog::~StartDialog()
 
 void StartDialog::openLastProject()
 {
-    History h;
-    EmitFileNameAndAccept(h.lastProject());
+    History *h = AbstractConfigFileFactory<History>::create(this);;
+    EmitFileNameAndAccept(h->lastProject());
 }
 
 void StartDialog::EmitFileNameAndAccept(QString projectFileName)

@@ -2,6 +2,8 @@
 #include "graph_node.h"
 #include "taxnodesignalsender.h"
 #include "ui_components/bubblechartproperties.h"
+#include "colors.h"
+#include "config.h"
 #include <math.h>
 
 #include <QKeyEvent>
@@ -13,10 +15,7 @@
 #include <QMenu>
 #include <QJsonObject>
 #include <QJsonArray>
-
-
-#define MAX_CHART_TAXES 80
-#define MAX_VISIBLE_CHART_TAXES 40
+#include <QMessageBox>
 
 //=========================================================================
 BubbleChartView::BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
@@ -31,9 +30,6 @@ BubbleChartView::BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget 
 
     connect((ChartDataProvider *)taxDataProvider, SIGNAL(taxVisibilityChanged(quint32)), this, SLOT(onTaxVisibilityChanged(quint32)));
     connect((ChartDataProvider *)taxDataProvider, SIGNAL(cacheUpdated()), this, SLOT(onDataChanged()));
-
-    TaxNodeSignalSender *tnss = getTaxNodeSignalSender(NULL);
-    connect(tnss, SIGNAL(colorChanged(BaseTaxNode*)), this, SLOT(onColorChanged(BaseTaxNode*)));
 
     QGraphicsScene *s = new QGraphicsScene(this);
     s->setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -280,14 +276,21 @@ void BubbleChartView::toJson(QJsonObject &json) const
 //=========================================================================
 void BubbleChartView::fromJson(QJsonObject &json)
 {
-    QJsonObject jDp = json["Dp"].toObject();
-    dataProvider()->fromJson(jDp);
-    prepareScene();
-    header->setPlainText(json["Header"].toString());
-    config.bubbleSize = json["MaxNodeSize"].toInt();
-    config.maxBubbleSize = config.bubbleSize*2;
-    config.showTitle = json["ShowTitle"].toBool();
-    showChart();
+    try
+    {
+        QJsonObject jDp = json["Dp"].toObject();
+        dataProvider()->fromJson(jDp);
+        prepareScene();
+        header->setPlainText(json["Header"].toString());
+        config.bubbleSize = json["MaxNodeSize"].toInt();
+        config.maxBubbleSize = config.bubbleSize*2;
+        config.showTitle = json["ShowTitle"].toBool();
+        showChart();
+    }
+    catch (...)
+    {
+        QMessageBox::warning(this, "Error occured", "Cannot restore Bubble Chart from project configuration");
+    }
 }
 
 //=========================================================================
@@ -385,6 +388,8 @@ void BubbleChartView::showContextMenu(const QPoint &pos)
     {
         QAction *hideCurTax = newMenu->addAction("Hide");
         connect(hideCurTax, SIGNAL(triggered(bool)), this, SLOT(hideCurrentTax()));
+        QAction *setCurrentTaxColor = newMenu->addAction("Color...");
+        connect(setCurrentTaxColor, SIGNAL(triggered(bool)), this, SLOT(setCurrentTaxColor()));
     }
     else
     {
@@ -515,6 +520,12 @@ void BubbleChartView::hideCurrentTax()
 {
     TaxNodeSignalSender *tnss = getTaxNodeSignalSender(curNode);
     tnss->VisibilityChanged(false);
+}
+
+//=========================================================================
+void BubbleChartView::setCurrentTaxColor()
+{
+    colors->pickColor(curNode->getId());
 }
 
 //=========================================================================
@@ -684,10 +695,10 @@ void ChartDataProvider::updateCache(bool ids_only)
 
         cdp = this;
         qSort(data.begin(), data.end(), readsLessThan);
-        while ( data.size() > MAX_CHART_TAXES )
+        while ( data.size() > configuration->BubbleChart()->maxChartTaxes() )
             data.removeFirst();
         quint32 dsize = data.size();
-        for ( quint32 i = MAX_VISIBLE_CHART_TAXES; i < dsize; i++ )
+        for ( quint32 i = configuration->BubbleChart()->defaultVisibleChartTaxes(); i < dsize; i++ )
             data[dsize-i-1].checked = false;
     }
     emit cacheUpdated();
@@ -696,7 +707,7 @@ void ChartDataProvider::updateCache(bool ids_only)
 //=========================================================================
 QColor ChartDataProvider::color(int index)
 {
-    return colors.getColor(data[index].id);
+    return colors->getColor(data[index].id);
 }
 
 //=========================================================================
@@ -772,22 +783,29 @@ quint32 ChartDataProvider::visibleTaxNumber()
 }
 
 //=========================================================================
-void ChartDataProvider::toJson(QJsonObject &json) const
+void ChartDataProvider::toJson(QJsonObject &json)
 {
-    json["maxreads"] = (qint64)maxreads;
-    QJsonArray providersArray;
-    for ( int i = 0 ; i < providers->size(); i++ )
-        providersArray.append(providers->at(i)->name);
-    json["BlastDataProviders"] = providersArray;
-    QJsonArray tax_array;
-    for ( int i = 0; i < data.size(); i++ )
+    try
     {
-        QJsonArray tax_node;
-        tax_node.append((qint64)data[i].id);
-        tax_node.append(data[i].checked ? 1: 0);
-        tax_array.append(tax_node);
+        json["maxreads"] = (qint64)maxreads;
+        QJsonArray providersArray;
+        for ( int i = 0 ; i < providers->size(); i++ )
+            providersArray.append(providers->at(i)->name);
+        json["BlastDataProviders"] = providersArray;
+        QJsonArray tax_array;
+        for ( int i = 0; i < data.size(); i++ )
+        {
+            QJsonArray tax_node;
+            tax_node.append((qint64)data[i].id);
+            tax_node.append(data[i].checked ? 1: 0);
+            tax_array.append(tax_node);
+        }
+        json["tax_ids"] = tax_array;
     }
-    json["tax_ids"] = tax_array;
+    catch (...)
+    {
+        QMessageBox::warning(NULL, "Error occured", "Cannot restore data needed for chart");
+    }
 }
 
 //=========================================================================

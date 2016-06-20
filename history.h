@@ -1,27 +1,24 @@
 #ifndef HISTORY_H
 #define HISTORY_H
 
-#include <QObject>
-#include <QFile>
+#include "abstractconfigfile.h"
 
-class History : QObject
+#include <QObject>
+
+class History : public AbstractConfigFile
 {
     Q_OBJECT
-    QFile file;
     QStringList recentProjects;
 public:
-    History();
-    void load();
-    void save();
-
+    History(QObject *parent=0);
     void addProject(QString &projectName);
     QString lastProject() const;
+    virtual void init();
 private:
-    void init();
-    void toJson(QJsonObject &json) const;
-    void fromJson(QJsonObject &json);
+    virtual void toJson(QJsonObject &json) const;
+    virtual void fromJson(QJsonObject &json);
 public slots:
-    void saveHistory();
+
 signals:
     historyChanged();
 };

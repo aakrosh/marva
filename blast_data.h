@@ -29,6 +29,7 @@ class BlastTaxNode : public TreeTaxNode
 public:
     quint32 reads;
     TreeTaxNode *tNode;
+    QList<qint64> positions;
     BlastTaxNode(TreeTaxNode *refNode, int _count, BlastNodeMap *map);
     virtual ~BlastTaxNode(){}
     BlastTaxNode *createPathToNode(BlastNodeMap *blastNodeMap);
@@ -41,22 +42,6 @@ public:
     virtual QString getText() { return tNode->getText(); }
     BlastTaxNode *clone();
 };
-
-class BlastDataTreeLoader: public LoaderThread
-{
-private:
-    BlastFileType type;
-    BlastTaxNode *root;
-    BlastTaxDataProvider *dataProvider;
-public:
-    BlastDataTreeLoader(QObject *parent, QString fileName, BlastTaxDataProvider *dp, BlastFileType _type);
-    ~BlastDataTreeLoader();
-protected:
-    virtual void processLine(QString &line);
-    virtual void finishProcessing();
-
-};
-
 
 #endif // BLAST_DATA
 

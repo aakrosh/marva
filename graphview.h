@@ -72,6 +72,10 @@ public:
     QMenu *nodePopupMenu;
     QAction *hideNodeAction;
     QAction *hideAllButNodeAction;
+    QAction *showAllNodesAction;
+    QAction *colorAction;
+
+    int hiddenNodes;
 
 
     void adjust_scene_boundaries();
@@ -118,14 +122,20 @@ private:
     void goRight();
 
 protected:
+    void setNodeInvisible(BaseTaxNode *bnode);
     void hideNodes(quint32 oldT, quint32 newT);
     void unhideNodes(quint32 oldT, quint32 newT);
 
 signals:
     currentNodeChanged(BaseTaxNode *);
+    nodeHidden(BaseTaxNode *bnode);
+    allNodesShown();
 private slots:
     void hideCurrent();
     void hideAllButCurrent();
+    void showAllNodes();
+    void changeCurrentTaxColor();
+    void onNodeVisiblityChanged();
 protected slots:
     virtual void onCurrentNodeChanged(BaseTaxNode *);
 public slots:
@@ -149,11 +159,21 @@ public:
 private slots:
     void blastLoadingProgress(void *bdata);
     void blastIsLoaded(void *bdata);
-    void onColorChanged(BaseTaxNode *n);
 public slots:
     virtual void onReadsThresholdChanged(quint32 oldT, quint32 newT);
+    virtual void onColorChanged(BaseTaxNode *);
+
 signals:
     blast_view_closed();
 };
 
+class NodePositionKeeper
+{
+    TreeGraphView *graphView;
+    GraphNode *gnode;
+    QPointF pos;
+public:
+    NodePositionKeeper(TreeGraphView *gv, BaseTaxNode *node);
+    ~NodePositionKeeper();
+};
 #endif // GRAPHWIDGET_H

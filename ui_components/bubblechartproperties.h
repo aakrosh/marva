@@ -12,9 +12,9 @@ class BlastTaxDataProviders;
 
 #define MAX_NODE_SIZE 60
 
-struct BubbleChartConfig
+struct BubbleChartParameters
 {
-    BubbleChartConfig(): bubbleSize(MAX_NODE_SIZE), maxBubbleSize(MAX_NODE_SIZE*2), showTitle(true) {}
+    BubbleChartParameters(): bubbleSize(MAX_NODE_SIZE), maxBubbleSize(MAX_NODE_SIZE*2), showTitle(true) {}
     quint32 bubbleSize;
     quint32 maxBubbleSize;
     bool showTitle;
@@ -23,11 +23,11 @@ struct BubbleChartConfig
 class BubbleChartProperties : public QDialog
 {
     Q_OBJECT
-    BubbleChartConfig *config;
+    BubbleChartParameters *config;
     void setValues();
 public:
     Ui::BubbleChartProperties *ui;
-    explicit BubbleChartProperties(QWidget *parent, BubbleChartConfig *_config, BlastTaxDataProviders *dp);
+    explicit BubbleChartProperties(QWidget *parent, BubbleChartParameters *_config, BlastTaxDataProviders *dp);
     ~BubbleChartProperties();
 
 signals:
