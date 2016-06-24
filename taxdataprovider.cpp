@@ -56,6 +56,12 @@ quint32 TaxDataProvider::reads(quint32)
 }
 
 //=========================================================================
+quint32 TaxDataProvider::sum(quint32)
+{
+    return 0;
+}
+
+//=========================================================================
 QString TaxDataProvider::text(quint32 index)
 {
     return taxNode(index)->getText();
@@ -329,6 +335,21 @@ quint32 BlastTaxDataProvider::reads(quint32 index)
     if ( node == NULL )
         return 0;
     return node->reads;
+}
+
+//=========================================================================
+quint32 BlastTaxDataProvider::sum(quint32 index)
+{
+    QReadWriteLocker locker(&lock);
+
+    if ( idTaxNodeList.empty() )
+        return 0;
+    if ( (int)index >= idTaxNodeList.count() )
+        return 0;
+    BlastTaxNode *node = ((BlastTaxNode *)idTaxNodeList.at(index).node);
+    if ( node == NULL )
+        return 0;
+    return node->sum();
 }
 
 

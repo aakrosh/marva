@@ -3,11 +3,10 @@
 
 #include "common.h"
 
-#include <QMutex>
+#include <QReadWriteLock>
 #include <QList>
 
 template <class T>
-// TODO: Change to ReadWriteLock!!!!
 class ThreadSafeList : public QList<T>
 {
     QReadWriteLock	lock;

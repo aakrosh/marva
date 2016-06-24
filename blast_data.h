@@ -41,6 +41,7 @@ public:
     virtual GraphNode *createGnode(TreeGraphView *gv);
     virtual QString getText() { return tNode->getText(); }
     BlastTaxNode *clone();
+    quint32 sum();
 };
 
 #endif // BLAST_DATA

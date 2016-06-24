@@ -27,6 +27,15 @@ BlastTaxNode *BlastTaxNode::clone()
 }
 
 //=========================================================================
+quint32 BlastTaxNode::sum()
+{
+    quint32 s = reads;
+    for ( int i = 0; i < children.size(); i++ )
+        s += ((BlastTaxNode *) children[i])->sum();
+    return s;
+}
+
+//=========================================================================
 BlastTaxNode *BlastTaxNode::createPathToNode(BlastNodeMap *blastNodeMap)
 {
     BlastTaxNode *curNode = this;

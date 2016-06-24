@@ -39,7 +39,9 @@ HEADERS += edge.h \
     abstractconfigfile.h \
     config.h \
     ui_components/configurationdialog.h \
-    blastfileloader.h
+    blastfileloader.h \
+    logging.h \
+    ui_components/sliderwithedit.h
 FORMS += \
     main_window.ui \
     ui_components/taxlistwidget.ui \
@@ -48,7 +50,8 @@ FORMS += \
     ui_components/labeleddoublespinbox.ui \
     ui_components/bubblechartproperties.ui \
     ui_components/start_dialog.ui \
-    ui_components/configurationdialog.ui
+    ui_components/configurationdialog.ui \
+    ui_components/sliderwithedit.ui
 SOURCES += edge.cpp \
     blast_record.cpp \
     blast_data.cpp \
@@ -79,4 +82,6 @@ SOURCES += edge.cpp \
     abstractconfigfile.cpp \
     config.cpp \
     ui_components/configurationdialog.cpp \
-    blastfileloader.cpp
+    blastfileloader.cpp \
+    logging.cpp \
+    ui_components/sliderwithedit.cpp

@@ -109,12 +109,19 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     ui->taxListDockWidget->setWidget(leftPanel);
 
-    readsSB = new LabeledDoubleSpinBox(NULL);
-    ui->toolBar->addWidget(readsSB);
-    readsSB->setLabel("Min reads");
-    readsSB->setValue(0);
-    readsSB->setToolTip("Minimum reads threshold to show");
-    readsSB->setVisible(false);
+    readsSlider = new SliderWithEdit(this);
+    readsSlider->setLabel("Threshold");
+    readSliderAction = ui->toolBar->addWidget(readsSlider);
+    readsSlider->setToolTip("Minimum reads threshold to show");
+    readsSlider->setVisible(false);
+
+    bubbleSlider = new SliderWithEdit(this);
+    bubbleSlider->setLabel("Bubble size");
+    bubbleSlider->setMaxValue(200);
+    bubbleSlider->setMinValue(10);
+    bubbleSliderAction = ui->toolBar->addWidget(bubbleSlider);
+    bubbleSlider->setToolTip("Size of biggest bubble");
+    bubbleSlider->setVisible(false);
 
     connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(onCurrentTabCnaged(int)));
 
@@ -172,7 +179,8 @@ void MainWindow::connectGraphView(DataGraphicsView *oldGV, DataGraphicsView *new
     if ( oldGV != NULL )
     {
         tnss->disconnect(oldGV);
-        readsSB->disconnect(oldGV);
+        readsSlider->disconnect(oldGV);
+        bubbleSlider->disconnect(oldGV);
     }
     connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), newGV, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
     connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), newGV, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
@@ -182,7 +190,8 @@ void MainWindow::connectGraphView(DataGraphicsView *oldGV, DataGraphicsView *new
 
     connect(newGV, SIGNAL(destroyed(QObject*)), this, SLOT(activeGraphViewDestroyed()));
 
-    connect(readsSB, SIGNAL(valueChanged(quint32,quint32)), newGV, SLOT(onReadsThresholdChanged(quint32,quint32)));
+    connect(readsSlider, SIGNAL(valueChanged(quint32, quint32)), newGV, SLOT(onReadsThresholdChanged(quint32,quint32)));
+    connect(bubbleSlider, SIGNAL(valueChanged(quint32, quint32)), newGV, SLOT(onBubbleSizeChanged(quint32,quint32)));
 }
 
 //=========================================================================
@@ -342,8 +351,8 @@ void MainWindow::open_tab_blast_file(QString fileName)
     leftPanel->setTaxDataProvider(blastTaxDataProvider);
     ui->taxListDockWidget->setVisible(true);
     addGraphView(blastView, blastTaxDataProvider->name);
-    readsSB->setVisible(true);
-    readsSB->setReadOnly(true);
+
+    readsSlider->setEnabled(false);
 
     connect(bdtl, SIGNAL(progress(void *)), this, SLOT(blastLoadingProgress(void *)));
     connect(bdtl, SIGNAL(progress(void *)), blastView, SLOT(blastLoadingProgress(void *)));
@@ -454,8 +463,8 @@ void MainWindow::mapIsLoaded()
 //=========================================================================
 void MainWindow::blastLoadingProgress(void *)
 {
-    readsSB->setMaxValue(activeGraphView->taxDataProvider->getMaxReads());
-    readsSB->setValue(0);
+    readsSlider->setMaxValue(activeGraphView->taxDataProvider->getMaxReads());
+    readsSlider->setValue(0);
 }
 
 //=========================================================================
@@ -475,17 +484,20 @@ void MainWindow::setActiveGraphView(DataGraphicsView *newGV)
     activeGraphView = newGV;
     connectGraphView(oldGV, newGV);
     leftPanel->setTaxDataProvider(newGV->taxDataProvider);
-    BlastGraphView *gv = dynamic_cast<BlastGraphView*>(newGV);
-    if ( gv != NULL )
+    BlastGraphView *bgv = dynamic_cast<BlastGraphView*>(newGV);
+    if ( bgv != NULL )
     {
-        readsSB->setMaxValue(activeGraphView->taxDataProvider->getMaxReads());
-        readsSB->setValue(gv->reads_threshold);
-        readsSB->setEnabled(true);
+        readsSlider->setMaxValue(activeGraphView->taxDataProvider->getMaxReads());
+        readsSlider->setValue(bgv->reads_threshold);
     }
-    else
+    BubbledGraphViewConfig *bgv_config = dynamic_cast<BubbledGraphViewConfig*>(newGV->config);
+    if ( bgv_config != NULL )
     {
-        readsSB->setEnabled(false);
+        bubbleSlider->setValue(bgv_config->bubbleSize);
     }
+
+    readSliderAction->setVisible((newGV->getFlags() & DGF_READS) != 0);
+    bubbleSliderAction->setVisible((newGV->getFlags() & DGF_BUBBLES) != 0);
     emit activeGraphViewChanged(oldGV, newGV);
 }
 
@@ -513,5 +525,4 @@ void MainWindow::openOptionsDialog()
 void MainWindow::blastIsLoaded(void *)
 {
     blastLoadingProgress(NULL);
-    readsSB->setReadOnly(false);
 }

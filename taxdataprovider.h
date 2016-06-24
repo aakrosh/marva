@@ -45,6 +45,7 @@ public:
     virtual qint32 id(quint32 index);
     virtual BaseTaxNode *taxNode(quint32 index);
     virtual quint32 reads(quint32 index);
+    virtual quint32 sum(quint32 index);
     virtual QString text(quint32 index);
     virtual quint32 readsById(quint32 id);
     virtual quint32 indexOf(qint32 id);
@@ -90,6 +91,7 @@ public:
     BlastTaxDataProvider(QObject *parent);
     ~BlastTaxDataProvider();
     virtual quint32 reads(quint32 index);
+    virtual quint32 sum(quint32 index);
     virtual quint32 readsById(quint32 id);
     virtual void updateCache(bool values_only);
     virtual QColor color(int index);

@@ -93,10 +93,10 @@ QPainterPath TaxTreeGraphNode::getTextPath() const
     QPainterPath path;
     QFont font;
     QFontMetricsF fm(font);
-    QString text = get_const_text();
-    if ( text.length() > 20 )
-        text = text.mid(0, 17).append("...");
-    qreal w = fm.width(text);
+    static qreal w = fm.width("XXXXXXXXXXXXXXXXXXXX"); // Instead of calculation of width of actual width
+                                                       // We will use the precalculated length of 20 big symbols
+                                                       // Its not just about the performance. The bounding rectangle
+                                                       // of scene does not depend on width of text for visible nodes
     qreal h = fm.height();
     int ncs = configuration->GraphNode()->nodeCircleSize();
     if ( getTaxNode()->children.isEmpty() || getTaxNode()->isCollapsed() )
@@ -346,13 +346,15 @@ void BlastGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *op
 //=========================================================================
 int BlastGraphNode::size() const
 {
-    quint32 maxReads = ((TreeGraphView *)view)->taxDataProvider->getMaxReads();
+    BlastGraphView * bgv = (BlastGraphView *)view;
+    quint32 maxReads = bgv->taxDataProvider->getMaxReads();
     if ( maxReads == 0 )
         return 0;
-    quint32 reads = ((TreeGraphView *)view)->taxDataProvider->readsById(tax_node->getId());
+    quint32 reads = bgv->taxDataProvider->readsById(tax_node->getId());
     if ( reads == 0 )
-        return 0;    
-    return reads*configuration->GraphNode()->maxNodeRadius()/maxReads;
+        return 0;
+    bgv->getConfig()->bubbleSize;
+    return reads * bgv->getConfig()->bubbleSize/maxReads;
 }
 
 //=========================================================================

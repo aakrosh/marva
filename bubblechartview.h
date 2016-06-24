@@ -3,6 +3,7 @@
 #include "taxdataprovider.h"
 #include "datagraphicsview.h"
 #include "ui_components/bubblechartproperties.h"
+#include "graphview.h"
 
 #include <QList>
 #include <QMenu>
@@ -60,6 +61,15 @@ signals:
     friend class BubbleChartView;
 };
 
+class BubbleChartParameters : public BubbledGraphViewConfig
+{
+public:
+    BubbleChartParameters(): showTitle(true) {}
+    bool showTitle;
+};
+
+
+
 class ChartGraphNode;
 class BubbleChartView : public DataGraphicsView
 {
@@ -69,10 +79,9 @@ class BubbleChartView : public DataGraphicsView
     QList<QGraphicsRectItem *> grid;
     QList<QGraphicsTextItem*> verticalLegend;
     QList<QGraphicsTextItem*> horizontalLegend;
-    BubbleChartParameters config;
 public:
     BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent = 0);
-    ~BubbleChartView();
+    virtual ~BubbleChartView();
     void prepareScene();
     QRectF chartRect;
     ChartGraphNode *getGNode(BlastTaxNode *node);
@@ -89,7 +98,8 @@ public:
     void CreateGraphNode(BlastTaxNode *node);
     virtual void toJson(QJsonObject &json) const;
     virtual void fromJson(QJsonObject &json);
-
+    inline BubbleChartParameters *getConfig() { return (BubbleChartParameters *)config; }
+    inline BubbleChartParameters *getConfig() const { return (BubbleChartParameters *)config; }
 private:
     QAction *propertiesAction;
     friend class ChartGraphNode;
@@ -112,11 +122,13 @@ protected slots:
 public slots:
     virtual void onNodeVisibilityChanged(BaseTaxNode*, bool) {}
     virtual void reset() {}
-    virtual void onReadsThresholdChanged(quint32 /*oldT*/, quint32 /*newT*/) {}
     virtual void changeMaxBubbleSize(int);
+    virtual void onBubbleSizeChanged(quint32 /*oldS*/, quint32 /*newS*/);
     virtual void toggleTitleVisibility(bool);
     virtual void onDataSourceVisibilityChanged(int);
     virtual void onColorChanged(BaseTaxNode *);
+
+    friend class MainWindow;
 };
 
 

@@ -43,6 +43,7 @@ void CurrentTaxNodeDetails::refresh()
     if ( index == quint32(-1) )
         return;
     quint32 reads = dataProvider->reads(index);
+    quint32 sum = dataProvider->sum(index);
     BaseTaxNode *bNode = dataProvider->taxNode(index);
 
     if ( curNodeId > 1 )
@@ -75,6 +76,7 @@ void CurrentTaxNodeDetails::refresh()
     ui->lPath->setText(sl.join("\n"));
 
     ui->lReads->setText(reads == 0 ? QString("-") : QString::number(reads));
+    ui->lSum->setText(sum == 0 ? QString("-") : QString::number(sum));
 
     onColorChanged(bNode);
 }

@@ -9,16 +9,7 @@ class BubbleChartProperties;
 }
 
 class BlastTaxDataProviders;
-
-#define MAX_NODE_SIZE 60
-
-struct BubbleChartParameters
-{
-    BubbleChartParameters(): bubbleSize(MAX_NODE_SIZE), maxBubbleSize(MAX_NODE_SIZE*2), showTitle(true) {}
-    quint32 bubbleSize;
-    quint32 maxBubbleSize;
-    bool showTitle;
-};
+class BubbleChartParameters;
 
 class BubbleChartProperties : public QDialog
 {

@@ -21,6 +21,8 @@
 BubbleChartView::BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
     : DataGraphicsView(NULL, parent)
 {
+    flags |= DGF_BUBBLES;
+    config = new BubbleChartParameters();
     setWindowTitle(tr("Gene chart"));
 
     if ( _dataProviders == NULL )
@@ -63,7 +65,7 @@ BubbleChartView::~BubbleChartView()
 void BubbleChartView::setChartRectSize(int w, int h)
 {
     chartRect = QRectF(0, 0, w, h);
-    scene()->setSceneRect(-2*MARGIN, config.showTitle ? -MARGIN : 0, chartRect.width()+3*MARGIN, chartRect.height()+MARGIN+(config.showTitle ? MARGIN : 0));
+    scene()->setSceneRect(-2*MARGIN, getConfig()->showTitle ? -MARGIN : 0, chartRect.width()+3*MARGIN, chartRect.height()+MARGIN+(getConfig()->showTitle ? MARGIN : 0));
 }
 
 //=========================================================================
@@ -90,7 +92,7 @@ void BubbleChartView::prepareScene()
     pen.setWidth(0.2);
     QBrush brush(Qt::transparent);
     quint32 swidth = (int)this->sceneRect().height()*0.8;
-    quint32 columnWidth = qMin(config.bubbleSize, swidth/dp->providers->count());
+    quint32 columnWidth = qMin((quint32)getConfig()->bubbleSize, swidth/dp->providers->count());
     grid.clear();
     for ( int i = 0; i < dp->providers->size(); i++ )
     {
@@ -144,6 +146,8 @@ void BubbleChartView::prepareScene()
             break;
         }
     }
+    header->setPos(0, 10-MARGIN);
+    header->setTextWidth(dp->providers->count()*columnWidth);
 }
 
 //=========================================================================
@@ -154,8 +158,9 @@ void BubbleChartView::showChart(bool forceNodeUpdate)
     quint32 sheight = (int)this->sceneRect().height()*0.8;
     quint32 swidth = (int)this->sceneRect().height()*0.8;
     quint32 tsize = dataProvider()->visibleTaxNumber();
-    quint32 maxBubbleSize = tsize == 0 ? 0 : qMin(config.bubbleSize, sheight/tsize);
-    quint32 columnWidth = qMin(config.bubbleSize, swidth/dataProvider()->providers->count());
+    quint32 bubbleSize = getConfig()->bubbleSize;
+    quint32 maxBubbleSize = tsize == 0 ? 0 : qMin(bubbleSize, sheight/tsize);
+    quint32 columnWidth = qMin(bubbleSize, swidth/dataProvider()->providers->count());
     ChartDataProvider *chartDataProvider = dataProvider();
     int rnum = 0;
     quint32 column = 0;
@@ -175,7 +180,7 @@ void BubbleChartView::showChart(bool forceNodeUpdate)
                 continue;
             ChartGraphNode *gnode = (ChartGraphNode*)node->getGnode();
             Q_ASSERT_X(gnode != NULL, "showChart", "GraphNode must be created here");            
-            gnode->setMaxNodeSize(config.bubbleSize);
+            gnode->setMaxNodeSize(bubbleSize);
             gnode->setPos(chartRect.x()+x1+columnWidth/2, chartRect.y()+(rnum)*maxBubbleSize+maxBubbleSize/2);
             if ( forceNodeUpdate )
                 gnode->update();
@@ -185,7 +190,7 @@ void BubbleChartView::showChart(bool forceNodeUpdate)
     }
     quint32 rectHeight = rnum*maxBubbleSize + maxBubbleSize/2;
     chartRectGI->setRect(chartRect.x(), chartRect.y(), column*columnWidth, rectHeight);
-    if ( header->isVisible() )
+    if ( header->isVisible() && false )
     {
         header->setPos(0, 10-MARGIN);
         header->setTextWidth(column*columnWidth);
@@ -266,8 +271,8 @@ void BubbleChartView::toJson(QJsonObject &json) const
 {
     json["Type"] = QString("ChartView");
     json["Header"] = header->toPlainText();
-    json["MaxNodeSize"] = qint32(config.bubbleSize);
-    json["ShowTitle"] = config.showTitle;
+    json["MaxNodeSize"] = qint32(getConfig()->bubbleSize);
+    json["ShowTitle"] = getConfig()->showTitle;
     QJsonObject jDp;
     dataProvider()->toJson(jDp);
     json["Dp"] = jDp;
@@ -282,9 +287,9 @@ void BubbleChartView::fromJson(QJsonObject &json)
         dataProvider()->fromJson(jDp);
         prepareScene();
         header->setPlainText(json["Header"].toString());
-        config.bubbleSize = json["MaxNodeSize"].toInt();
-        config.maxBubbleSize = config.bubbleSize*2;
-        config.showTitle = json["ShowTitle"].toBool();
+        getConfig()->bubbleSize = json["MaxNodeSize"].toInt();
+        getConfig()->maxBubbleSize = getConfig()->bubbleSize*2;
+        getConfig()->showTitle = json["ShowTitle"].toBool();
         showChart();
     }
     catch (...)
@@ -417,6 +422,13 @@ void BubbleChartView::changeMaxBubbleSize(int)
 }
 
 //=========================================================================
+void BubbleChartView::onBubbleSizeChanged(quint32, quint32 newS)
+{
+    getConfig()->bubbleSize = newS;
+    showChart();
+}
+
+//=========================================================================
 void BubbleChartView::toggleTitleVisibility(bool visible)
 {
     QSize s = size();
@@ -440,7 +452,7 @@ void BubbleChartView::setHeader(QString fileName)
     font.setPixelSize(25);
     font.setBold(true);
     header->setFont(font);
-    header->setVisible(config.showTitle);
+    header->setVisible(getConfig()->showTitle);
 }
 
 
@@ -488,7 +500,7 @@ void BubbleChartView::goDown()
 //=========================================================================
 void BubbleChartView::showPropertiesDialog()
 {
-    BubbleChartProperties *propertiesDialog = new BubbleChartProperties(this, &config, dataProvider()->getBlastTaxDataProviders());
+    BubbleChartProperties *propertiesDialog = new BubbleChartProperties(this, getConfig(), dataProvider()->getBlastTaxDataProviders());
     connect(propertiesDialog, SIGNAL(maxBubbleSizeChanged(int)), this, SLOT(changeMaxBubbleSize(int)));
     connect(propertiesDialog, SIGNAL(showTitleToggled(bool)), this, SLOT(toggleTitleVisibility(bool)));
     connect(propertiesDialog, SIGNAL(dataSourceVisibilityChanged(int)), this, SLOT(onDataSourceVisibilityChanged(int)));

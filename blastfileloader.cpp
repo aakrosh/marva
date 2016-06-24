@@ -37,32 +37,37 @@ void BlastFileLoader::ProcessFinishedQuery()
 {
     while ( queryTaxList.count() > 0 )
     {
-        quint32 tax_id = queryTaxList[0].tax_id;
+        TaxPos &tp = queryTaxList.first();
+        quint32 tax_id = tp.tax_id;
         TreeTaxNode *n = globalTaxDataProvider->taxMap->value(tax_id);
         TreeTaxNode *p = n->parent;
-        if ( p == NULL )
-            break;
-        bool moveToParent = true;
+
+        quint32 ch_count = p == NULL ? 0 : p->children.count();
+        bool moveToParent = ch_count > 1;
         for ( qint32 c = 0 ; moveToParent && (c < p->children.count()); c++ )
             moveToParent = moveToParent && queryTaxList.contains(p->children[c]->getId());
-        QList<qint64> positions;
-        for ( qint32 c = 0 ; c < p->children.count(); c++ )
-        {
-            TreeTaxNode *child = p->children[c];
-            quint32 id = child->getId();
-            qint32 index = queryTaxList.indexOf(id);
-            if ( index >= 0 )
-            {
-                QList<qint64> pos = queryTaxList.at(index).pos;
-                queryTaxList.removeAt(index);
-                if ( !moveToParent )
-                    addTaxNode(id, pos);
-                else
-                    positions.append(pos);
-            }
-        }
         if ( moveToParent )
+        {
+            QList<qint64> positions;
+            for ( qint32 c = 0 ; c < p->children.count(); c++ )
+            {
+                TreeTaxNode *child = p->children[c];
+                quint32 id = child->getId();
+                qint32 index = queryTaxList.indexOf(id);
+                if ( index >= 0 )
+                {
+                    QList<qint64> pos = queryTaxList.at(index).pos;
+                    queryTaxList.removeAt(index);
+                    positions.append(pos);
+                }
+            }
             queryTaxList.append(p->getId(), positions);
+        }
+        else
+        {
+            addTaxNode(tax_id, tp.pos);
+            queryTaxList.removeFirst();
+        }
     }
 }
 

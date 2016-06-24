@@ -258,7 +258,7 @@ void TreeGraphView::hideNodes(quint32 oldT, quint32 newT)
                 if ( !has_visible )
                     graphView->setNodeInvisible(bnode);
             }
-            else if ( bnode->reads >= oldT && bnode->reads < newT )
+            else if ( bnode->is_visible && bnode->reads < newT )
                 graphView->setNodeInvisible(bnode);
         }
         virtual void afterVisitChildren(TreeTaxNode *node)
@@ -342,14 +342,18 @@ void TreeGraphView::unhideNodes(quint32 oldT, quint32 newT)
 //=========================================================================
 void TreeGraphView::resizeEvent(QResizeEvent *e)
 {
-    QRectF r = sceneRect();
-    qreal newW = e->size().width()-20;
-    quint32 minW = MIN_DX*treeDepth+RIGHT_NODE_MARGIN;
-    if ( newW < minW )
-        newW = minW;
-    r.setWidth(newW);
-    setSceneRect(r);
-    updateXCoord();
+    if ( e->oldSize().width() != e->size().width() )
+    {
+        QRectF r = sceneRect();
+        qreal newW = e->size().width()-60;
+        quint32 minW = MIN_DX*treeDepth+RIGHT_NODE_MARGIN;
+        if ( newW < minW )
+            newW = minW;
+        r.setWidth(newW);
+        setSceneRect(r);
+        updateXCoord();
+    }
+    DataGraphicsView::resizeEvent(e);
 }
 
 //=========================================================================
@@ -357,7 +361,7 @@ void TreeGraphView::adjust_scene_boundaries()
 {
     QRectF rect = sceneRect();
     QRectF ibr = scene()->itemsBoundingRect();
-    rect.setHeight(ibr.height()+30);
+    rect.setHeight(ibr.height()+60);
     qreal sizew = size().width()-20;
     rect.setWidth(ibr.width() > sizew ? ibr.width() : sizew);
     setSceneRect(rect);
@@ -716,6 +720,7 @@ void TreeGraphView::hideNode(TreeTaxNode *node, bool resetCoordinates)
         NodeRemover(TreeGraphView *gv):TaxNodeVisitor(RootToLeaves, false, gv, false, false){}
         virtual void Action(TreeTaxNode *node)
         {
+            node->setVisible(false);
             TaxTreeGraphNode *gnode = node->getTaxTreeGNode();
             if ( gnode != NULL )
             {
@@ -728,6 +733,30 @@ void TreeGraphView::hideNode(TreeTaxNode *node, bool resetCoordinates)
     nr.Visit(node);
     if ( resetCoordinates )
         resetNodesCoordinates();
+}
+
+//=========================================================================
+void TreeGraphView::hideNodeCheckParents(TreeTaxNode *node, bool resetCoordinates)
+{
+    TreeTaxNode *p = node->parent;
+    while ( p != NULL )
+    {
+        bool has_visible_ch = false;
+        ChildrenList &list = p->children;
+        for ( TaxNodeIterator it = list.begin(); it < list.end(); it++ )
+        {
+            if ( (*it)->visible() )
+            {
+                has_visible_ch = true;
+                break;
+            }
+        }
+        if ( has_visible_ch )
+            break;
+        else
+            hideNode(p, resetCoordinates);
+        p = p->parent;
+    }
 }
 
 //=========================================================================
@@ -754,28 +783,10 @@ void TreeGraphView::showNode(TreeTaxNode *node)
 //=========================================================================
 void TreeGraphView::hideCurrent()
 {
-   NodePositionKeeper keeper(this, ((TreeTaxNode *)curNode)->parent);
+    NodePositionKeeper keeper(this, ((TreeTaxNode *)curNode)->parent);
 
     setNodeInvisible(curNode);
-    TreeTaxNode *p = getCurNode()->parent;
-    while ( p != NULL )
-    {
-        bool has_visible_ch = false;
-        ChildrenList &list = p->children;
-        for ( TaxNodeIterator it = list.begin(); it < list.end(); it++ )
-        {
-            if ( (*it)->visible() )
-            {
-                has_visible_ch = true;
-                break;
-            }
-        }
-        if ( has_visible_ch )
-            break;
-        else
-            hideNode(p);
-        p = p->parent;
-    }
+    hideNodeCheckParents(getCurNode());
 }
 
 //=========================================================================
@@ -842,7 +853,7 @@ void TreeGraphView::onNodeVisibilityChanged(BaseTaxNode *node, bool node_visible
     if ( node_visible )
         showNode(ttn);
     else
-        hideNode(ttn);
+        hideNodeCheckParents(ttn);
 }
 
 
@@ -860,7 +871,9 @@ void DirtyGNodesList::Add(TaxTreeGraphNode *node)
 BlastGraphView::BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidget *parent, TaxNode *taxTree):
     TreeGraphView(parent, taxTree),
     reads_threshold(0)
-{    
+{
+    flags |= DGF_BUBBLES|DGF_READS;
+    config = new BubbledGraphViewConfig();
     taxDataProvider = (TaxDataProvider*)blastTaxDataProvider;
     if ( blastTaxDataProvider != NULL )
     {
@@ -966,7 +979,13 @@ void BlastGraphView::onReadsThresholdChanged(quint32 oldT, quint32 newT)
     else
         unhideNodes(oldT, newT);
     getTaxNodeSignalSender(NULL)->sendSignals = true;
-    getTaxNodeSignalSender(NULL)->bigChangesHappened();
+}
+
+//=========================================================================
+void BlastGraphView::onBubbleSizeChanged(quint32, quint32 newSize)
+{
+    getConfig()->bubbleSize = newSize;
+    scene()->update(mapToScene(viewport()->geometry()).boundingRect());
 }
 
 //=========================================================================
@@ -979,8 +998,11 @@ NodePositionKeeper::NodePositionKeeper(TreeGraphView *gv, BaseTaxNode *n):
     pos = graphView->mapFromScene(gnode->pos());
 }
 
+//=========================================================================
 NodePositionKeeper::~NodePositionKeeper()
 {
+    if ( gnode == NULL )
+        return;
     QPointF p_new = graphView->mapFromScene(gnode->pos());
     graphView->verticalScrollBar()->setValue(graphView->verticalScrollBar()->value()+p_new.y()-pos.y());
     graphView->update();

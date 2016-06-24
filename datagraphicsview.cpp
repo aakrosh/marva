@@ -12,9 +12,11 @@
 DataGraphicsView::DataGraphicsView(TaxDataProvider *_dataProvider, QWidget *parent):
     QGraphicsView(parent),
     curNode(NULL),
+    config(NULL),
     taxDataProvider(_dataProvider),
     persistant(false)
 {
+    flags = DGF_NONE;
     setAttribute(Qt::WA_DeleteOnClose);
     printAction = popupMenu.addAction("Print...");
     screenshotAction = popupMenu.addAction("Screenshot...");
@@ -23,6 +25,13 @@ DataGraphicsView::DataGraphicsView(TaxDataProvider *_dataProvider, QWidget *pare
 
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, SIGNAL(customContextMenuRequested(const QPoint&)),this, SLOT(showContextMenu(const QPoint&)));
+}
+
+//=========================================================================
+DataGraphicsView::~DataGraphicsView()
+{
+    if ( config != NULL )
+        delete config;
 }
 
 //=========================================================================

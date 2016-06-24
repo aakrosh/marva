@@ -5,6 +5,7 @@
 #include "graphview.h"
 #include "blast_data.h"
 #include "ui_components/statuslistpanel.h"
+#include "ui_components/sliderwithedit.h"
 #include "bubblechartview.h"
 #include "history.h"
 
@@ -26,7 +27,10 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     StatusListPanel *statusList;
-    LabeledDoubleSpinBox *readsSB;
+    SliderWithEdit *readsSlider;
+    SliderWithEdit *bubbleSlider;
+    QAction *readSliderAction;
+    QAction *bubbleSliderAction;
 
     void addGraphView(QWidget *gv, QString label);
     void setActiveGraphView(DataGraphicsView *gv);

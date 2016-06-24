@@ -59,6 +59,15 @@ public:
     virtual void Add(TaxTreeGraphNode *node);
 };
 
+#define MAX_NODE_SIZE 60
+class BubbledGraphViewConfig : public GraphicsViewConfig
+{
+public:
+    BubbledGraphViewConfig(): bubbleSize(MAX_NODE_SIZE), maxBubbleSize(MAX_NODE_SIZE*2){}
+    int bubbleSize;
+    quint32 maxBubbleSize;
+};
+
 class TreeGraphView : public DataGraphicsView
 {
     Q_OBJECT
@@ -95,6 +104,7 @@ public:
     DirtyGNodesList dirtyList;
 
     void hideNode(TreeTaxNode *node, bool resetCoordinates=true);
+    void hideNodeCheckParents(TreeTaxNode *node, bool resetCoordinates=true);
     void showNode(TreeTaxNode *node);
 
     inline TreeTaxNode *getCurNode() { return (TreeTaxNode*) curNode; }
@@ -156,11 +166,13 @@ public:
     inline BlastTaxDataProvider *blastTaxDataProvider() const { return (BlastTaxDataProvider *)taxDataProvider; }
     virtual void toJson(QJsonObject &json) const;
     virtual void fromJson(QJsonObject &json);
+    BubbledGraphViewConfig *getConfig() { return (BubbledGraphViewConfig *)config; }
 private slots:
     void blastLoadingProgress(void *bdata);
     void blastIsLoaded(void *bdata);
 public slots:
     virtual void onReadsThresholdChanged(quint32 oldT, quint32 newT);
+    virtual void onBubbleSizeChanged(quint32 /*oldS*/, quint32 /*newS*/);
     virtual void onColorChanged(BaseTaxNode *);
 
 signals:
