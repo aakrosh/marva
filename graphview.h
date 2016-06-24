@@ -105,7 +105,7 @@ public:
 
     void hideNode(TreeTaxNode *node, bool resetCoordinates=true);
     void hideNodeCheckParents(TreeTaxNode *node, bool resetCoordinates=true);
-    void showNode(TreeTaxNode *node);
+    void showNode(TreeTaxNode *node, bool resetCoordinates=true);
 
     inline TreeTaxNode *getCurNode() { return (TreeTaxNode*) curNode; }
 

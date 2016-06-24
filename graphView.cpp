@@ -738,6 +738,7 @@ void TreeGraphView::hideNode(TreeTaxNode *node, bool resetCoordinates)
 //=========================================================================
 void TreeGraphView::hideNodeCheckParents(TreeTaxNode *node, bool resetCoordinates)
 {
+    hideNode(node, resetCoordinates);
     TreeTaxNode *p = node->parent;
     while ( p != NULL )
     {
@@ -760,7 +761,7 @@ void TreeGraphView::hideNodeCheckParents(TreeTaxNode *node, bool resetCoordinate
 }
 
 //=========================================================================
-void TreeGraphView::showNode(TreeTaxNode *node)
+void TreeGraphView::showNode(TreeTaxNode *node, bool resetCoordinates)
 {
     TaxTreeGraphNode *gnode = node->getTaxTreeGNode();
     if ( gnode == NULL || !scene()->items().contains(gnode) )
@@ -775,7 +776,8 @@ void TreeGraphView::showNode(TreeTaxNode *node)
         if ( pnode == NULL || !pnode->isCollapsed() )
         {
             AddNodeToScene(node);
-            resetNodesCoordinates();
+            if ( resetCoordinates )
+                resetNodesCoordinates();
         }
     }
 }
@@ -851,9 +853,10 @@ void TreeGraphView::onNodeVisibilityChanged(BaseTaxNode *node, bool node_visible
 
     TreeTaxNode *ttn = (TreeTaxNode *)node;
     if ( node_visible )
-        showNode(ttn);
+        showNode(ttn, false);
     else
-        hideNodeCheckParents(ttn);
+        hideNodeCheckParents(ttn, false);
+    resetNodesCoordinates();
 }
 
 
@@ -986,6 +989,16 @@ void BlastGraphView::onBubbleSizeChanged(quint32, quint32 newSize)
 {
     getConfig()->bubbleSize = newSize;
     scene()->update(mapToScene(viewport()->geometry()).boundingRect());
+    QList<QGraphicsItem *> items = scene()->items(mapToScene(viewport()->geometry()));
+    foreach( QGraphicsItem *item, items)
+    {
+        if ( item->type() == BlastGraphNode::Type )
+        {
+            BlastGraphNode *gnode = (BlastGraphNode *)item;
+            if ( gnode->getTaxNode()->reads > 0 )
+                gnode->update();
+        }
+    }
 }
 
 //=========================================================================

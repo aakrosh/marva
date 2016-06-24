@@ -41,7 +41,8 @@ HEADERS += edge.h \
     ui_components/configurationdialog.h \
     blastfileloader.h \
     logging.h \
-    ui_components/sliderwithedit.h
+    ui_components/sliderwithedit.h \
+    ui_components/blastnodedetails.h
 FORMS += \
     main_window.ui \
     ui_components/taxlistwidget.ui \
@@ -51,7 +52,8 @@ FORMS += \
     ui_components/bubblechartproperties.ui \
     ui_components/start_dialog.ui \
     ui_components/configurationdialog.ui \
-    ui_components/sliderwithedit.ui
+    ui_components/sliderwithedit.ui \
+    ui_components/blastnodedetails.ui
 SOURCES += edge.cpp \
     blast_record.cpp \
     blast_data.cpp \
@@ -84,4 +86,5 @@ SOURCES += edge.cpp \
     ui_components/configurationdialog.cpp \
     blastfileloader.cpp \
     logging.cpp \
-    ui_components/sliderwithedit.cpp
+    ui_components/sliderwithedit.cpp \
+    ui_components/blastnodedetails.cpp

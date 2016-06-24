@@ -5,14 +5,15 @@
 #include "blast_data.h"
 
 #include <QList>
+#include <QVector>
 #include <QMap>
 
 struct TaxPos
 {
    quint32 tax_id;
-   QList<qint64> pos;
+   QVector<qint64> pos;
    TaxPos(quint32 t, qint64 p):tax_id(t) {pos.append(p);}
-   TaxPos(quint32 t, QList<qint64> _pos):tax_id(t), pos(_pos){}
+   TaxPos(quint32 t, QVector<qint64> _pos):tax_id(t), pos(_pos){}
    inline bool operator==(const TaxPos &otherTaxPos) { return tax_id == otherTaxPos.tax_id; }
 };
 
@@ -29,7 +30,7 @@ public:
         TaxPos q(id, 0);
         return QList<TaxPos>::indexOf(q);
     }
-    void append(quint32 id, QList<qint64> positions)
+    void append(quint32 id, QVector<qint64> positions)
     {
         TaxPos q(id, positions);
         QList<TaxPos>::append(q);
@@ -55,7 +56,7 @@ private:
     TaxPosList queryTaxList;
 
     void ProcessFinishedQuery();
-    void addTaxNode(quint32 taxa_id, QList<qint64> pos);
+    void addTaxNode(quint32 taxa_id, QVector<qint64> pos);
 public:
     BlastFileLoader(QObject *parent, QString fileName, BlastTaxDataProvider *dp, BlastFileType _type);
     ~BlastFileLoader();

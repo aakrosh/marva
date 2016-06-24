@@ -217,13 +217,13 @@ void BlastTaxDataProvider::removeParent()
 //=========================================================================
 BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, qint64 pos)
 {
-    QList<qint64> positions;
+    QVector<qint64> positions;
     positions.append(pos);
     return addTaxNode(id, reads, positions);
 }
 
 //=========================================================================
-BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, QList<qint64> pos)
+BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, QVector<qint64> pos)
 {
     TaxMapIterator it = taxMap.find(id);
     if ( it == taxMap.end() )

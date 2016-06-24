@@ -8,6 +8,7 @@
 #include "tree_tax_node.h"
 
 #include <QList>
+#include <QVector>
 #include <QMap>
 #include <QReadWriteLock>
 
@@ -29,7 +30,7 @@ class BlastTaxNode : public TreeTaxNode
 public:
     quint32 reads;
     TreeTaxNode *tNode;
-    QList<qint64> positions;
+    QVector<qint64> positions;
     BlastTaxNode(TreeTaxNode *refNode, int _count, BlastNodeMap *map);
     virtual ~BlastTaxNode(){}
     BlastTaxNode *createPathToNode(BlastNodeMap *blastNodeMap);

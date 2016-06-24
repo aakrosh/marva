@@ -352,7 +352,7 @@ void MainWindow::open_tab_blast_file(QString fileName)
     ui->taxListDockWidget->setVisible(true);
     addGraphView(blastView, blastTaxDataProvider->name);
 
-    readsSlider->setEnabled(false);
+    //readsSlider->setEnabled(false);
 
     connect(bdtl, SIGNAL(progress(void *)), this, SLOT(blastLoadingProgress(void *)));
     connect(bdtl, SIGNAL(progress(void *)), blastView, SLOT(blastLoadingProgress(void *)));

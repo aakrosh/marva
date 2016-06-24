@@ -25,7 +25,7 @@ BlastFileLoader::~BlastFileLoader()
 }
 
 //=========================================================================
-void BlastFileLoader::addTaxNode(quint32 taxa_id, QList<qint64> pos)
+void BlastFileLoader::addTaxNode(quint32 taxa_id, QVector<qint64> pos)
 {
     dataProvider->addTaxNode(taxa_id, -1, pos);
     if ( result == NULL )
@@ -48,7 +48,7 @@ void BlastFileLoader::ProcessFinishedQuery()
             moveToParent = moveToParent && queryTaxList.contains(p->children[c]->getId());
         if ( moveToParent )
         {
-            QList<qint64> positions;
+            QVector<qint64> positions;
             for ( qint32 c = 0 ; c < p->children.count(); c++ )
             {
                 TreeTaxNode *child = p->children[c];
@@ -56,9 +56,8 @@ void BlastFileLoader::ProcessFinishedQuery()
                 qint32 index = queryTaxList.indexOf(id);
                 if ( index >= 0 )
                 {
-                    QList<qint64> pos = queryTaxList.at(index).pos;
+                    positions.append(queryTaxList.at(index).pos);
                     queryTaxList.removeAt(index);
-                    positions.append(pos);
                 }
             }
             queryTaxList.append(p->getId(), positions);

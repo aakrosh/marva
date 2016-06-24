@@ -353,7 +353,7 @@ int BlastGraphNode::size() const
     quint32 reads = bgv->taxDataProvider->readsById(tax_node->getId());
     if ( reads == 0 )
         return 0;
-    bgv->getConfig()->bubbleSize;
+
     return reads * bgv->getConfig()->bubbleSize/maxReads;
 }
 
