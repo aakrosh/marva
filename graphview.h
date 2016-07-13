@@ -107,7 +107,7 @@ public:
     void hideNodeCheckParents(TreeTaxNode *node, bool resetCoordinates=true);
     void showNode(TreeTaxNode *node, bool resetCoordinates=true);
 
-    inline TreeTaxNode *getCurNode() { return (TreeTaxNode*) curNode; }
+    inline TreeTaxNode *getCurNode() { return (TreeTaxNode*) currentNode(); }
 
 protected:
 #ifndef QT_NO_WHEELEVENT

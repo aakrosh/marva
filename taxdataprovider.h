@@ -39,13 +39,17 @@ protected:
 public:
     IdTaxNodeList idTaxNodeList;
     QString name;
+    quint32 current_tax_id;
     TaxDataProvider(QObject *parent, TaxDataProviderType type = UNKNOWN);
     virtual ~TaxDataProvider();
     virtual quint32 count();
     virtual qint32 id(quint32 index);
     virtual BaseTaxNode *taxNode(quint32 index);
+    virtual BaseTaxNode *taxNodeById(qint32 id);
+    virtual BaseTaxNode *currentTaxNode() { return taxNodeById(current_tax_id); }
     virtual quint32 reads(quint32 index);
     virtual quint32 sum(quint32 index);
+    virtual quint32 sumById(quint32 id);
     virtual QString text(quint32 index);
     virtual quint32 readsById(quint32 id);
     virtual quint32 indexOf(qint32 id);
@@ -91,8 +95,9 @@ public:
     BlastTaxDataProvider(QObject *parent);
     ~BlastTaxDataProvider();
     virtual quint32 reads(quint32 index);
-    virtual quint32 sum(quint32 index);
     virtual quint32 readsById(quint32 id);
+    virtual quint32 sum(quint32 index);
+    virtual quint32 sumById(quint32 id);
     virtual void updateCache(bool values_only);
     virtual QColor color(int index);
     virtual void sort(int column, Qt::SortOrder order);

@@ -40,6 +40,9 @@ void TaxListWidget::setTaxDataProvider(TaxDataProvider *tdp)
     if ( tdp == model->taxDataProvider )
         return;
     model->taxDataProvider = tdp;
+    quint32 row = tdp->indexOf(tdp->current_tax_id);
+    QModelIndex index = model->createIndex(row, 0, Q_NULLPTR);
+    ui->tableView->selectionModel()->setCurrentIndex(index, QItemSelectionModel::SelectCurrent);
     reset();
 }
 
@@ -157,7 +160,7 @@ void TaxListWidget::taxChanged(QModelIndex index, QModelIndex)
 //=========================================================================
 void TaxListWidget::onCurrentTaxChanged(BaseTaxNode *node)
 {
-    if ( model->taxDataProvider == NULL )
+    if ( model->taxDataProvider == NULL || node == NULL )
         return;
     qint32 index = model->taxDataProvider->indexOf(node->getId());
     if ( index < 0 )

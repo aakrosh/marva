@@ -346,11 +346,17 @@ void BlastGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *op
 //=========================================================================
 int BlastGraphNode::size() const
 {
-    BlastGraphView * bgv = (BlastGraphView *)view;
+    BlastGraphView *bgv = (BlastGraphView *)view;
     quint32 maxReads = bgv->taxDataProvider->getMaxReads();
     if ( maxReads == 0 )
         return 0;
-    quint32 reads = bgv->taxDataProvider->readsById(tax_node->getId());
+    quint32 reads = 0;
+    BlastTaxNode *btn = getTaxNode();
+    if ( btn->children.size() == 0 )
+        reads = bgv->taxDataProvider->readsById(btn->getId());
+    else if ( btn->isCollapsed() )
+        reads = bgv->taxDataProvider->sumById(btn->getId());
+
     if ( reads == 0 )
         return 0;
 

@@ -50,7 +50,7 @@ TreeGraphView::TreeGraphView(QWidget *parent, TaxNode *taxTree)
       create_nodes(true),
       treeDepth(0)
 {
-    curNode = NULL; // Do not change it. It must be NULL at the beginning
+//    curNode = NULL; // Do not change it. It must be NULL at the beginning
     QGraphicsScene *scene = new QGraphicsScene(this);
     scene->setItemIndexMethod(QGraphicsScene::NoIndex);
     setScene(scene);
@@ -148,7 +148,8 @@ void TreeGraphView::expandPathTo(TreeTaxNode *node)
 //=========================================================================
 void TreeGraphView::goUp()
 {
-    if ( getCurNode()->parent == NULL )
+    TreeTaxNode *curNode = getCurNode();
+    if ( curNode->parent == NULL )
         return;
     QPointF p = curNode->getGnode()->pos();
     qreal y = p.y() + 1 - get_vert_interval();
@@ -179,7 +180,8 @@ void TreeGraphView::goUp()
 //=========================================================================
 void TreeGraphView::goDown()
 {
-    if ( getCurNode()->parent == NULL )
+    TreeTaxNode *curNode = getCurNode();
+    if ( curNode->parent == NULL )
         return;
     QPointF p = curNode->getGnode()->pos();
     qreal y = p.y() - 1 + get_vert_interval();
@@ -472,6 +474,7 @@ void TreeGraphView::wheelEvent(QWheelEvent *event)
 //=========================================================================
 void TreeGraphView::keyPressEvent(QKeyEvent *event)
 {
+    TreeTaxNode *curNode = getCurNode();
     switch( event->key() )
     {
         case Qt::Key_Right:
@@ -490,7 +493,7 @@ void TreeGraphView::keyPressEvent(QKeyEvent *event)
         case Qt::Key_Return:
             {
                 if ( curNode != NULL )
-                    getCurNode()->setCollapsed(!getCurNode()->isCollapsed(), true);
+                    curNode->setCollapsed(!getCurNode()->isCollapsed(), true);
             }
             return;
         case Qt::Key_Minus:
@@ -499,7 +502,7 @@ void TreeGraphView::keyPressEvent(QKeyEvent *event)
             else
             {
                 if ( curNode != NULL )
-                    getCurNode()->setCollapsed(true, true);
+                    curNode->setCollapsed(true, true);
             }
             return;
         case Qt::Key_Plus:
@@ -507,7 +510,7 @@ void TreeGraphView::keyPressEvent(QKeyEvent *event)
                 expand_vertically();
             else
                 if ( curNode != NULL )
-                    getCurNode()->setCollapsed(false, true);
+                    curNode->setCollapsed(false, true);
             return;
     }
     QGraphicsView::keyPressEvent(event);
@@ -681,19 +684,19 @@ void TreeGraphView::createMissedGraphNodes()
 //=========================================================================
 void TreeGraphView::onCurrentNodeChanged(BaseTaxNode *node)
 {
-    if ( curNode == node )
+    TreeTaxNode *oldNode = getCurNode();
+    if ( oldNode == node )
         return;
     TreeTaxNode *ttn = (TreeTaxNode *)node;
     expandPathTo(ttn);
-    TreeTaxNode *oldNode = getCurNode();
-    curNode = node;
+    taxDataProvider->current_tax_id = node->getId();
     if ( oldNode != NULL)
     {
         TaxTreeGraphNode *oldGNode = oldNode->getTaxTreeGNode();
         if ( oldGNode != NULL )
             oldGNode->update();
     }
-    TaxTreeGraphNode *gnode = getCurNode()->getTaxTreeGNode();
+    TaxTreeGraphNode *gnode = ((TreeTaxNode *)node)->getTaxTreeGNode();
     if ( gnode == NULL )
         return;
     gnode->update();
@@ -785,15 +788,17 @@ void TreeGraphView::showNode(TreeTaxNode *node, bool resetCoordinates)
 //=========================================================================
 void TreeGraphView::hideCurrent()
 {
+    TreeTaxNode *curNode = getCurNode();
     NodePositionKeeper keeper(this, ((TreeTaxNode *)curNode)->parent);
 
     setNodeInvisible(curNode);
-    hideNodeCheckParents(getCurNode());
+    hideNodeCheckParents(curNode);
 }
 
 //=========================================================================
 void TreeGraphView::hideAllButCurrent()
 {
+    TreeTaxNode *curNode = getCurNode();
     NodePositionKeeper keeper(this, curNode);
     curNode->setVisible(true);
     TreeTaxNode *vNode = ((TreeTaxNode *)curNode);
@@ -837,7 +842,7 @@ void TreeGraphView::showAllNodes()
 //=========================================================================
 void TreeGraphView::changeCurrentTaxColor()
 {
-    colors->pickColor(curNode->getId());
+    colors->pickColor(taxDataProvider->current_tax_id);
 }
 
 //=========================================================================
@@ -849,7 +854,7 @@ void TreeGraphView::onNodeVisiblityChanged()
 //=========================================================================
 void TreeGraphView::onNodeVisibilityChanged(BaseTaxNode *node, bool node_visible)
 {
-    NodePositionKeeper keeper(this, curNode);
+    NodePositionKeeper keeper(this, getCurNode());
 
     TreeTaxNode *ttn = (TreeTaxNode *)node;
     if ( node_visible )

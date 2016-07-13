@@ -11,7 +11,7 @@
 
 DataGraphicsView::DataGraphicsView(TaxDataProvider *_dataProvider, QWidget *parent):
     QGraphicsView(parent),
-    curNode(NULL),
+//    curNode(NULL),
     config(NULL),
     taxDataProvider(_dataProvider),
     persistant(false)
@@ -37,10 +37,16 @@ DataGraphicsView::~DataGraphicsView()
 //=========================================================================
 void DataGraphicsView::setCurrentNode(BaseTaxNode *node)
 {
-    if ( curNode == node )
+    if ( currentNode() == node )
         return;
     TaxNodeSignalSender *tnss = getTaxNodeSignalSender(node);
     tnss->makeCurrent();
+}
+
+//=========================================================================
+BaseTaxNode *DataGraphicsView::currentNode()
+{
+    return taxDataProvider == NULL ? NULL : taxDataProvider->currentTaxNode();
 }
 
 //=========================================================================

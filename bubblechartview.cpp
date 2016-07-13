@@ -238,10 +238,11 @@ void BubbleChartView::compareNodesAndUpdate(ChartGraphNode *chartGraphNode, Base
 //=========================================================================
 void BubbleChartView::onCurrentNodeChanged(BaseTaxNode *node)
 {
+    BaseTaxNode *curNode = currentNode();
     if ( curNode == node )
         return;
     BaseTaxNode *oldCurNode = curNode;
-    curNode = node;
+    taxDataProvider->current_tax_id = node->getId();
     foreach(QGraphicsItem *item, scene()->items())
     {
         if ( item->type() == GraphNode::Type )
@@ -530,14 +531,14 @@ void BubbleChartView::onColorChanged(BaseTaxNode *node)
 //=========================================================================
 void BubbleChartView::hideCurrentTax()
 {
-    TaxNodeSignalSender *tnss = getTaxNodeSignalSender(curNode);
+    TaxNodeSignalSender *tnss = getTaxNodeSignalSender(currentNode());
     tnss->VisibilityChanged(false);
 }
 
 //=========================================================================
 void BubbleChartView::setCurrentTaxColor()
 {
-    colors->pickColor(curNode->getId());
+    colors->pickColor(taxDataProvider->current_tax_id);
 }
 
 //=========================================================================
@@ -862,6 +863,8 @@ void ChartDataProvider::fromJson(QJsonObject &json)
 //=========================================================================
 BaseTaxNode *ChartDataProvider::taxNode(quint32 index)
 {
+    if ( ((qint32)index) < 0 )
+        return NULL;
     BlastTaxNodes btns = data[index].tax_nodes;
     for ( int i = 0; i < btns.count(); i++ )
     {

@@ -24,7 +24,7 @@ class DataGraphicsView : public QGraphicsView
     QAction *printAction;
     QAction *screenshotAction;
 protected:
-    BaseTaxNode *curNode;
+//    BaseTaxNode *curNode;
     QMenu popupMenu;
     quint64 flags;
 public:
@@ -34,7 +34,7 @@ public:
     DataGraphicsView(TaxDataProvider *_dataProvider, QWidget *parent = 0);
     virtual ~DataGraphicsView();
     virtual void setCurrentNode(BaseTaxNode *);
-    inline BaseTaxNode *currentNode() { return curNode; }
+    BaseTaxNode *currentNode();
     virtual void toJson(QJsonObject &) const {}
     virtual void fromJson(QJsonObject &) {}
     static DataGraphicsView *createViewByType(QWidget *parent, QString &type);

@@ -185,7 +185,6 @@ void MainWindow::connectGraphView(DataGraphicsView *oldGV, DataGraphicsView *new
     connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), newGV, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
     connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), newGV, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
     connect(tnss, SIGNAL(bigChangesHappened()), newGV, SLOT(reset()));
-    connect(tnss, SIGNAL(bigChangesHappened()), newGV, SLOT(reset()));
     connect(tnss, SIGNAL(colorChanged(BaseTaxNode*)), newGV, SLOT(onColorChanged(BaseTaxNode*)));
 
     connect(newGV, SIGNAL(destroyed(QObject*)), this, SLOT(activeGraphViewDestroyed()));
@@ -481,6 +480,8 @@ void MainWindow::setActiveGraphView(DataGraphicsView *newGV)
     if ( activeGraphView == newGV )
         return;
     DataGraphicsView *oldGV = activeGraphView;
+    if ( oldGV != NULL )
+        newGV->setCurrentNode(oldGV->currentNode());
     activeGraphView = newGV;
     connectGraphView(oldGV, newGV);
     leftPanel->setTaxDataProvider(newGV->taxDataProvider);

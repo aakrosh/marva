@@ -131,6 +131,7 @@ public:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
     int size() const;
     inline BlastTaxNode *getTaxNode() { return (BlastTaxNode *)tax_node; }
+    inline BlastTaxNode *getTaxNode() const { return (BlastTaxNode *)tax_node; }
 protected:
     virtual void updateToolTip();
 };

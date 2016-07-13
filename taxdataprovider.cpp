@@ -14,7 +14,8 @@ GlobalTaxMapDataProvider *globalTaxDataProvider;
 //=========================================================================
 TaxDataProvider::TaxDataProvider(QObject *parent, TaxDataProviderType _type)
     : QObject(parent),
-      type(_type)
+      type(_type),
+      current_tax_id(0)
 {
 
 }
@@ -44,9 +45,17 @@ qint32 TaxDataProvider::id(quint32 index)
 //=========================================================================
 BaseTaxNode *TaxDataProvider::taxNode(quint32 index)
 {
+    if ( ((qint32)index) < 0 )
+        return NULL;
     QReadWriteLocker locker(&lock);
 
     return idTaxNodeList.at(index).node;
+}
+
+//=========================================================================
+BaseTaxNode *TaxDataProvider::taxNodeById(qint32 id)
+{
+    return taxNode(indexOf(id));
 }
 
 //=========================================================================
@@ -57,6 +66,12 @@ quint32 TaxDataProvider::reads(quint32)
 
 //=========================================================================
 quint32 TaxDataProvider::sum(quint32)
+{
+    return 0;
+}
+
+//=========================================================================
+quint32 TaxDataProvider::sumById(quint32)
 {
     return 0;
 }
@@ -347,6 +362,18 @@ quint32 BlastTaxDataProvider::sum(quint32 index)
     if ( (int)index >= idTaxNodeList.count() )
         return 0;
     BlastTaxNode *node = ((BlastTaxNode *)idTaxNodeList.at(index).node);
+    if ( node == NULL )
+        return 0;
+    return node->sum();
+}
+
+//=========================================================================
+quint32 BlastTaxDataProvider::sumById(quint32 id)
+{
+    if ( blastNodeMap->empty() )
+        return 0;
+
+    BlastTaxNode *node = blastNodeMap->value(id);
     if ( node == NULL )
         return 0;
     return node->sum();
