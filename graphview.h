@@ -86,7 +86,6 @@ public:
 
     int hiddenNodes;
 
-
     void adjust_scene_boundaries();
     inline void set_vert_interval(int interval) { vert_interval = interval; }
     inline int get_vert_interval() const { return vert_interval; }
@@ -158,8 +157,9 @@ public slots:
 class BlastGraphView : public TreeGraphView
 {
     Q_OBJECT
-public:
+public:    
     quint32 reads_threshold;
+    QAction *nodeDetailsAction;
     BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidget *parent, TaxNode *taxTree);
     ~BlastGraphView();
     inline BlastTaxDataProvider *blastTaxDataProvider() { return (BlastTaxDataProvider *)taxDataProvider; }
@@ -174,7 +174,7 @@ public slots:
     virtual void onReadsThresholdChanged(quint32 oldT, quint32 newT);
     virtual void onBubbleSizeChanged(quint32 /*oldS*/, quint32 /*newS*/);
     virtual void onColorChanged(BaseTaxNode *);
-
+    virtual void showCurrentNodeDetails();
 signals:
     blast_view_closed();
 };

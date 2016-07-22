@@ -259,30 +259,31 @@ QVariant TaxListTableModel::data(const QModelIndex &index, int role) const
     if ( !index.isValid() )
       return QVariant();
 
-    if (role == Qt::DisplayRole)
+    switch ( role )
     {
-        qint32 i = index.row();
-        if ( !cache.contains(i) )
-            cache.addRecord(i, taxDataProvider->text(i), taxDataProvider->id(i), taxDataProvider->reads(i));
-        TaxListCacheData *data = cache.value(i);
-        switch( index.column() )
+        case Qt::DisplayRole:
         {
-            case 0:
-                return data->text;
-            case 1:
-                return data->id;
-            case 2:
-                return data->reads;
+            qint32 i = index.row();
+            if ( !cache.contains(i) )
+                cache.addRecord(i, taxDataProvider->text(i), taxDataProvider->id(i), taxDataProvider->reads(i));
+            TaxListCacheData *data = cache.value(i);
+            switch( index.column() )
+            {
+                case 0:
+                    return data->text;
+                case 1:
+                    return data->id;
+                case 2:
+                    return data->reads;
+            }
         }
-
-    }
-    else if (role == Qt::BackgroundColorRole)
-    {
-        return QVariant(taxDataProvider->color(index.row()));
-    }
-    else if (role == Qt::CheckStateRole && index.column() == 0 )
-    {
-        return QVariant(taxDataProvider->checkState(index.row()));
+        break;
+        case Qt::BackgroundColorRole:
+            return QVariant(taxDataProvider->color(index.row()));
+        case Qt::CheckStateRole:
+            if ( index.column() == 0 )
+                return QVariant(taxDataProvider->checkState(index.row()));
+        break;
     }
     return QVariant();
 }

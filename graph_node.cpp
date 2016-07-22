@@ -352,10 +352,11 @@ int BlastGraphNode::size() const
         return 0;
     quint32 reads = 0;
     BlastTaxNode *btn = getTaxNode();
-    if ( btn->children.size() == 0 )
-        reads = bgv->taxDataProvider->readsById(btn->getId());
-    else if ( btn->isCollapsed() )
+
+    if ( btn->isCollapsed() )
         reads = bgv->taxDataProvider->sumById(btn->getId());
+    else
+        reads = bgv->taxDataProvider->readsById(btn->getId());
 
     if ( reads == 0 )
         return 0;

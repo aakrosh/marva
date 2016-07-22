@@ -92,6 +92,7 @@ class BlastTaxDataProvider : public TaxDataProvider
     quint32 parent_count;
 public:
     BlastTaxNode *root;
+    QString fileName;
     BlastTaxDataProvider(QObject *parent);
     ~BlastTaxDataProvider();
     virtual quint32 reads(quint32 index);

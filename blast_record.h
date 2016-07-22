@@ -13,7 +13,7 @@ class QStringList;
 class BlastRecord
 {
 public:
-    BlastRecord(BlastFileType type, QStringList list);
+    BlastRecord(BlastFileType type, QStringList list, bool short_format=true);
     QString query_name;
     QString alligment_id;
     qreal identity;

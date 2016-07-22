@@ -14,8 +14,9 @@ GlobalTaxMapDataProvider *globalTaxDataProvider;
 //=========================================================================
 TaxDataProvider::TaxDataProvider(QObject *parent, TaxDataProviderType _type)
     : QObject(parent),
-      type(_type),
-      current_tax_id(0)
+      current_tax_id(0),
+      type(_type)
+
 {
 
 }
@@ -254,7 +255,6 @@ BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, QVector<
             root = res;
         if ( reads > 0 )
             blastNode->reads = reads;
-        blastNode->positions.append(pos);
     }
     else
     {
@@ -265,7 +265,9 @@ BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, QVector<
         TaxTreeGraphNode *gn = (TaxTreeGraphNode *)bit.value()->getGnode();
         if ( gn != NULL )
             gn->markDirty(DIRTY_NAME);
+        blastNode = bit.value();
     }
+    blastNode->positions.append(pos);
     if ( (qint32)blastNodeMap->max_reads < reads )
         blastNodeMap->max_reads = reads;
     return blastNode;
@@ -275,9 +277,9 @@ BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, QVector<
 void BlastTaxDataProvider::toJson(QJsonObject &json)
 {
     json["Name"] = name;
+    json["Filename"] = fileName;
     QJsonArray dpArray;
     QReadWriteLocker locker(&lock);
-
     for (int i = 0 ; i < idTaxNodeList.count(); i++ )
     {
         const IdTaxNodePair &pair = idTaxNodeList[i];
@@ -304,6 +306,7 @@ void BlastTaxDataProvider::fromJson(QJsonObject &json)
     try
     {
         name = json["Name"].toString();
+        fileName = json["Filename"].toString();
         QJsonArray dpArr = json["Arr"].toArray();
         for (int i = 0; i < dpArr.size(); ++i)
         {

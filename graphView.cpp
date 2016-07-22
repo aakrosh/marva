@@ -18,6 +18,7 @@
 #include "taxdataprovider.h"
 #include "taxnodesignalsender.h"
 #include "colors.h"
+#include "ui_components/blastnodedetails.h"
 
 #define RIGHT_NODE_MARGIN   150
 #define MIN_DX 70
@@ -892,6 +893,10 @@ BlastGraphView::BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidg
     scene()->clear();
     root = NULL;
 
+    nodeDetailsAction = new QAction("Node details...", this);
+    nodePopupMenu->addAction(nodeDetailsAction);
+    connect(nodeDetailsAction, SIGNAL(triggered()), this, SLOT(showCurrentNodeDetails()));
+
 }
 
 //=========================================================================
@@ -939,6 +944,15 @@ void BlastGraphView::onColorChanged(BaseTaxNode *n)
     if ( gn == NULL )
         return;
     gn->update();
+}
+
+//=========================================================================
+void BlastGraphView::showCurrentNodeDetails()
+{
+
+    BlastNodeDetails *bnd = new BlastNodeDetails(this, (BlastTaxNode *)getCurNode(), blastTaxDataProvider()->fileName);
+
+    bnd->show();
 }
 
 //=========================================================================

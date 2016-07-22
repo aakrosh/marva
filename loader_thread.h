@@ -8,16 +8,16 @@ class LoaderThread : public QThread
 {
     Q_OBJECT
 private:
-    QString fileName;
-    int progressCounter;
-    QListWidgetItem *statusListItem;
-    bool ignoreRepeated;
-    bool trackPosition;
 public:
     LoaderThread(QObject *parent, QString fileName, const char *caption, void *resultObj = NULL, int progressCounter=1000, bool _ignoreRepeated =false, bool trackPosition=false);
     void Stop();
     static void StopRunningThreads();
 protected:
+    QString fileName;
+    int progressCounter;
+    QListWidgetItem *statusListItem;
+    bool ignoreRepeated;
+    bool trackPosition;
     QString caption;
     void *result;
     bool must_stop;

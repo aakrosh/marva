@@ -342,6 +342,7 @@ void MainWindow::closeAllViews()
 void MainWindow::open_tab_blast_file(QString fileName)
 {
     BlastTaxDataProvider *blastTaxDataProvider = new BlastTaxDataProvider(NULL);
+    blastTaxDataProvider->fileName = fileName;
     BlastGraphView *blastView = new BlastGraphView(blastTaxDataProvider, this, NULL);
     BlastFileLoader *bdtl = new BlastFileLoader(this, fileName, blastTaxDataProvider, tabular);
 

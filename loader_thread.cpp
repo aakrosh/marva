@@ -61,6 +61,7 @@ void LoaderThread::run()
         {
             if ( must_stop )
                 break;
+            curPos = file.pos();
             QString line(file.readLine(MAX_LINE_SIZE));
             if ( line == NULL || line.isEmpty() )
                 continue;
@@ -71,7 +72,6 @@ void LoaderThread::run()
                 if ( line == pl )
                     continue;
             }
-            curPos = file.pos();
             processLine(line);
             if ( ++p == progressCounter )
             {
