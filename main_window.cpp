@@ -71,6 +71,9 @@ void generateDefaultNodes()
 
     taxMap.insert(28384, (TaxNode *)globalTaxDataProvider->taxTree->addChildById(28384));
     taxMap.setName(28384, "other sequences");
+
+    taxMap.insert(-2, (TaxNode *)globalTaxDataProvider->taxTree->addChildById(-2));
+    taxMap.setName(-2, "unassigned");
 }
 
 //=========================================================================
@@ -100,9 +103,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(globalTaxDataProvider, SIGNAL(dataChanged()), taxListWidget, SLOT(refresh()));
     TreeLoaderThread *tlThread = new TreeLoaderThread(this, globalTaxDataProvider, true);
-    connect(tlThread, SIGNAL(resultReady(void *)), globalTaxDataProvider, SLOT(onTreeLoaded()));
-    connect(tlThread, SIGNAL(resultReady(void *)), this, SLOT(treeIsLoaded(void *)));
-    connect(tlThread, SIGNAL(resultReady(void *)), taxListWidget, SLOT(reset()));
+    connect(tlThread, SIGNAL(resultReady(LoaderThread *)), globalTaxDataProvider, SLOT(onTreeLoaded()));
+    connect(tlThread, SIGNAL(resultReady(LoaderThread *)), this, SLOT(treeIsLoaded(LoaderThread *)));
+    connect(tlThread, SIGNAL(resultReady(LoaderThread *)), taxListWidget, SLOT(reset()));
     connect(tlThread, SIGNAL(finished()), tlThread, SLOT(deleteLater()));
     tlThread->start();
 
@@ -344,7 +347,7 @@ void MainWindow::open_tab_blast_file(QString fileName)
     BlastTaxDataProvider *blastTaxDataProvider = new BlastTaxDataProvider(NULL);
     blastTaxDataProvider->fileName = fileName;
     BlastGraphView *blastView = new BlastGraphView(blastTaxDataProvider, this, NULL);
-    BlastFileLoader *bdtl = new BlastFileLoader(this, fileName, blastTaxDataProvider, tabular);
+    BlastFileLoader *bdtl = new BlastFileLoader(this, fileName, blastTaxDataProvider);
 
     connect(blastView, SIGNAL(blast_view_closed()), bdtl, SLOT(stop_thread()));
 
@@ -352,14 +355,12 @@ void MainWindow::open_tab_blast_file(QString fileName)
     ui->taxListDockWidget->setVisible(true);
     addGraphView(blastView, blastTaxDataProvider->name);
 
-    //readsSlider->setEnabled(false);
-
-    connect(bdtl, SIGNAL(progress(void *)), this, SLOT(blastLoadingProgress(void *)));
-    connect(bdtl, SIGNAL(progress(void *)), blastView, SLOT(blastLoadingProgress(void *)));
-    connect(bdtl, SIGNAL(progress(void *)), taxListWidget, SLOT(refresh()));
-    connect(bdtl, SIGNAL(resultReady(void *)), taxListWidget, SLOT(refreshAll()));
-    connect(bdtl, SIGNAL(resultReady(void *)), this, SLOT(blastIsLoaded(void *)));
-    connect(bdtl, SIGNAL(resultReady(void *)), blastView, SLOT(blastIsLoaded(void *)));
+    connect(bdtl, SIGNAL(progress(LoaderThread *)), this, SLOT(blastLoadingProgress(LoaderThread *)));
+    connect(bdtl, SIGNAL(progress(LoaderThread *)), blastView, SLOT(blastLoadingProgress(LoaderThread *)));
+    connect(bdtl, SIGNAL(progress(LoaderThread *)), taxListWidget, SLOT(refresh()));
+    connect(bdtl, SIGNAL(resultReady(LoaderThread *)), taxListWidget, SLOT(refreshAll()));
+    connect(bdtl, SIGNAL(resultReady(LoaderThread *)), this, SLOT(blastIsLoaded(LoaderThread *)));
+    connect(bdtl, SIGNAL(resultReady(LoaderThread *)), blastView, SLOT(blastIsLoaded(LoaderThread *)));
     connect(bdtl, SIGNAL(finished()), bdtl, SLOT(deleteLater()));
 
     bdtl->start();
@@ -410,9 +411,9 @@ BubbleChartView *MainWindow::createChartView()
 }
 
 //=========================================================================
-void MainWindow::treeIsLoaded(void *obj)
+void MainWindow::treeIsLoaded(LoaderThread *loader)
 {
-    TaxNode *tree = (TaxNode *)obj;
+    TaxNode *tree = (TaxNode *)loader->getResult();
     qDebug() << "Tree Loading is finished";
     globalTaxDataProvider->taxTree->mergeWith(tree, taxonomyTreeView);
     ui->action_Tab_separated_BLAST_file->setEnabled(true);
@@ -422,12 +423,12 @@ void MainWindow::treeIsLoaded(void *obj)
 
     MapLoaderThread *mlThread = new MapLoaderThread(this, true, globalTaxDataProvider);
 
-    connect(mlThread, SIGNAL(progress(void *)), this, SLOT(updateLoadedNames()));
-    connect(mlThread, SIGNAL(progress(void *)), taxListWidget, SLOT(refreshValues()));
-    connect(mlThread, SIGNAL(progress(void*)), globalTaxDataProvider, SLOT(onMapChanged()));
+    connect(mlThread, SIGNAL(progress(LoaderThread *)), this, SLOT(updateLoadedNames()));
+    connect(mlThread, SIGNAL(progress(LoaderThread *)), taxListWidget, SLOT(refreshValues()));
+    connect(mlThread, SIGNAL(progress(LoaderThread *)), globalTaxDataProvider, SLOT(onMapChanged()));
 
-    connect(mlThread, SIGNAL(resultReady(void*)), globalTaxDataProvider, SLOT(onMapChanged()));
-    connect(mlThread, SIGNAL(resultReady(void *)), taxListWidget, SLOT(refresh()));
+    connect(mlThread, SIGNAL(resultReady(LoaderThread *)), globalTaxDataProvider, SLOT(onMapChanged()));
+    connect(mlThread, SIGNAL(resultReady(LoaderThread *)), taxListWidget, SLOT(refresh()));
 
     connect(mlThread, SIGNAL(finished()), mlThread, SLOT(deleteLater()));
     mlThread->start();
@@ -461,7 +462,7 @@ void MainWindow::mapIsLoaded()
 }
 
 //=========================================================================
-void MainWindow::blastLoadingProgress(void *)
+void MainWindow::blastLoadingProgress(LoaderThread *)
 {
     readsSlider->setMaxValue(activeGraphView->taxDataProvider->getMaxReads());
     readsSlider->setValue(0);
@@ -524,7 +525,13 @@ void MainWindow::openOptionsDialog()
 }
 
 //=========================================================================
-void MainWindow::blastIsLoaded(void *)
+QString MainWindow::getOpenFileName(QString text, QString filters)
+{
+    return QFileDialog::getOpenFileName(this, text, QString(), filters);
+}
+
+//=========================================================================
+void MainWindow::blastIsLoaded(LoaderThread *)
 {
     blastLoadingProgress(NULL);
 }

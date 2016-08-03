@@ -18,6 +18,7 @@ public:                                         \
 
 #define TOJSON(_JVAR_, _NAME_) _JVAR_[#_NAME_] = _ ## _NAME_;
 #define INTFROMJSON(_JVAR_, _NAME_) _ ## _NAME_ = _JVAR_[#_NAME_].toInt();
+#define STRFROMJSON(_JVAR_, _NAME_) _ ## _NAME_ = _JVAR_[#_NAME_].toString();
 #define INITPROPERTY(__NAME__, __VAL__) _ ## __NAME__ = __VAL__
 
 class AbstractConfigBlock : public QObject
@@ -44,7 +45,8 @@ virtual void fromJson(QJsonObject &json);
 #define BLOCKCONFIGCLASS_END };
 
 #define GETBLOCK(__X__) __X__ ## Config * __X__() { return (__X__ ## Config *)blocks[#__X__];}
-#define ADDBLOCK(__X__) blocks.insert(#__X__, new __X__ ## Config())
+#define ADDBLOCK(__X__) blocks.insert(#__X__, new __X__ ## Config()); \
+    connect(blocks.value(#__X__), SIGNAL(dataChanged()), this, SLOT(save()));
 
 class AbstractConfigFile : public QObject
 {

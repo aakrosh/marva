@@ -1,7 +1,9 @@
 #include "blastnodedetails.h"
 #include "blast_data.h"
+#include "blast_record.h"
 #include "ui_blastnodedetails.h"
 #include "taxdataprovider.h"
+#include "gi2taxmaptxtloader.h"
 
 #include <QFile>
 #include <QTextStream>
@@ -11,7 +13,7 @@
 #define COLUMN_QUERY        0
 
 //=========================================================================
-BlastNodeDetails::BlastNodeDetails(QWidget *parent, BlastTaxNode *n, QString &fileName) :
+BlastNodeDetails::BlastNodeDetails(QWidget *parent, BlastTaxNode *n, QString &fileName, BlastFileType type) :
     QDialog(parent),
     ui(new Ui::BlastNodeDetails)
 {
@@ -19,7 +21,7 @@ BlastNodeDetails::BlastNodeDetails(QWidget *parent, BlastTaxNode *n, QString &fi
     model = new BlastNodeDetailsModel();
     ui->treeView->setModel(model);
     setNode(n);
-    NodeDetailsLoaderThread *ndlt = new NodeDetailsLoaderThread(this, fileName, n);
+    NodeDetailsLoaderThread *ndlt = new NodeDetailsLoaderThread(this, fileName, n, type);
     ndlt->nodeDetails = &model->nodeDetails;
     connect(ndlt, SIGNAL(finished()), ndlt, SLOT(deleteLater()));
     connect(ndlt, SIGNAL(progress(void*)), this, SLOT(refresh()));
@@ -123,7 +125,6 @@ QVariant BlastNodeDetailsModel::data(const QModelIndex &index, int role) const
 {
     if ( role == Qt::DisplayRole && index.isValid() )
     {
-        qDebug() << (QString("Column %1").arg(index.column()));
         NodeDetailNode *ndn = static_cast<NodeDetailNode *>(index.internalPointer());
         return ndn->data(index.column());
     }
@@ -154,11 +155,22 @@ QVariant BlastNodeDetailsModel::headerData(int section, Qt::Orientation orientat
 }
 
 //=========================================================================
-NodeDetailsLoaderThread::NodeDetailsLoaderThread(QObject *parent, QString fileName, BlastTaxNode *_node):
+NodeDetailsLoaderThread::NodeDetailsLoaderThread(QObject *parent, QString fileName, BlastTaxNode *_node, BlastFileType _type):
     LoaderThread(parent, fileName, "Node details", NULL, 50),
-    node(_node)
+    node(_node),
+    type(_type)
 {
 
+}
+
+NodeDetailsLoaderThread::~NodeDetailsLoaderThread()
+{
+    if ( gi2TaxProvider != NULL )
+    {
+        gi2TaxProvider->close();
+        delete gi2TaxProvider;
+        gi2TaxProvider = NULL;
+    }
 }
 
 //=========================================================================
@@ -173,9 +185,15 @@ void NodeDetailsLoaderThread::run()
         return;
     }
     int p = 0;
-    QString prevLine;
+
     QTextStream in(&file);
     qint32 nposition = 0;
+
+    if ( type == sequence )
+    {
+        gi2TaxProvider = new Gi2TaxMapBinProvider(&gi2taxmap);
+        gi2TaxProvider->open();
+    }
 
     while( !in.atEnd() && nposition < node->positions.size() )
     {
@@ -189,7 +207,7 @@ void NodeDetailsLoaderThread::run()
         processLine(line);
         if ( ++p == progressCounter )
         {
-            emit progress(result);
+            emit progress(this);
             p = 0;
         }
     }
@@ -201,7 +219,7 @@ void NodeDetailsLoaderThread::run()
 //=========================================================================
 void NodeDetailsLoaderThread::processLine(QString &line)
 {
-    BlastRecord *br = new BlastRecord(tabular, line.split("\t", QString::SkipEmptyParts), false);
+    BlastRecord *br = new BlastRecord(type, line, false);
     nodeDetails->addQuery(br);
 }
 

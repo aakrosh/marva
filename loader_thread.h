@@ -7,11 +7,11 @@ class QListWidgetItem;
 class LoaderThread : public QThread
 {
     Q_OBJECT
-private:
 public:
     LoaderThread(QObject *parent, QString fileName, const char *caption, void *resultObj = NULL, int progressCounter=1000, bool _ignoreRepeated =false, bool trackPosition=false);
     void Stop();
     static void StopRunningThreads();
+    virtual void *getResult() { return result; }
 protected:
     QString fileName;
     int progressCounter;
@@ -22,12 +22,13 @@ protected:
     void *result;
     bool must_stop;
     quint64 curPos;
-    virtual void run();
     virtual void processLine(QString &line) = 0;
     virtual void finishProcessing();
+public:
+    virtual void run();
 signals:
-    void resultReady(void *result);
-    void progress(void *result);
+    void resultReady(LoaderThread *loader);
+    void progress(LoaderThread *loader);
 private slots:
     void addToList();
     void removeFromList();

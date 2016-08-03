@@ -2,9 +2,13 @@
 #define BLAST_RECORD
 
 #include <QString>
+#include <QMap>
+
 enum BlastFileType
 {
-    tabular,
+    tabular     = 0,
+    sequence    = 1,
+    last,
     rapsearch,
 };
 
@@ -13,7 +17,7 @@ class QStringList;
 class BlastRecord
 {
 public:
-    BlastRecord(BlastFileType type, QStringList list, bool short_format=true);
+    BlastRecord(BlastFileType type, QString &line, bool short_format=true);
     QString query_name;
     QString alligment_id;
     qreal identity;
@@ -26,8 +30,10 @@ public:
     quint64 ref_end;
     qreal e_value;
     qreal bitscore;
-    quint32 taxa_id;
+    qint32 taxa_id;
 };
+
+extern QMap<quint32, quint32> gi2taxmap;
 
 #endif // BLAST_RECORD
 

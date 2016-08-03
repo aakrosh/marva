@@ -75,6 +75,34 @@ void GraphNodeConfig::fromJson(QJsonObject &json)
     }
 }
 
+//=========================================================================
+PathsConfig::PathsConfig():
+    AbstractConfigBlock("Paths")
+{
+    INITPROPERTY(gi2taxmap, "");
+}
+
+//=========================================================================
+void PathsConfig::toJson(QJsonObject &json) const
+{
+    QJsonObject jPaths;
+    TOJSON(jPaths, gi2taxmap);
+    json["Paths"] = jPaths;
+}
+
+//=========================================================================
+void PathsConfig::fromJson(QJsonObject &json)
+{
+    try
+    {
+        QJsonObject jPaths = json["Paths"].toObject();
+        STRFROMJSON(jPaths, gi2taxmap)
+    }
+    catch(...)
+    {
+        QMessageBox::warning(NULL, "Cannot restore config", "Cannot restore pathes from configuration");
+    }
+}
 
 //=========================================================================
 Config::Config(QObject *parent):
@@ -82,11 +110,13 @@ Config::Config(QObject *parent):
 {
     ADDBLOCK(BubbleChart);
     ADDBLOCK(GraphNode);
+    ADDBLOCK(Paths);
 }
 
 //=========================================================================
 void Config::init()
 {    
 }
+
 
 

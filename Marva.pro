@@ -42,7 +42,8 @@ HEADERS += edge.h \
     blastfileloader.h \
     logging.h \
     ui_components/sliderwithedit.h \
-    ui_components/blastnodedetails.h
+    ui_components/blastnodedetails.h \
+    gi2taxmaptxtloader.h
 FORMS += \
     main_window.ui \
     ui_components/taxlistwidget.ui \
@@ -87,4 +88,5 @@ SOURCES += edge.cpp \
     blastfileloader.cpp \
     logging.cpp \
     ui_components/sliderwithedit.cpp \
-    ui_components/blastnodedetails.cpp
+    ui_components/blastnodedetails.cpp \
+    gi2taxmaptxtloader.cpp

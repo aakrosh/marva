@@ -19,6 +19,7 @@
 #include "taxnodesignalsender.h"
 #include "colors.h"
 #include "ui_components/blastnodedetails.h"
+#include "blastfileloader.h"
 
 #define RIGHT_NODE_MARGIN   150
 #define MIN_DX 70
@@ -857,6 +858,9 @@ void TreeGraphView::onNodeVisibilityChanged(BaseTaxNode *node, bool node_visible
 {
     NodePositionKeeper keeper(this, getCurNode());
 
+    if ( getCurNode() == node )
+        keeper.gnode = NULL;
+
     TreeTaxNode *ttn = (TreeTaxNode *)node;
     if ( node_visible )
         showNode(ttn, false);
@@ -896,7 +900,6 @@ BlastGraphView::BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidg
     nodeDetailsAction = new QAction("Node details...", this);
     nodePopupMenu->addAction(nodeDetailsAction);
     connect(nodeDetailsAction, SIGNAL(triggered()), this, SLOT(showCurrentNodeDetails()));
-
 }
 
 //=========================================================================
@@ -907,15 +910,16 @@ BlastGraphView::~BlastGraphView()
 }
 
 //=========================================================================
-void BlastGraphView::blastLoadingProgress(void *obj)
+void BlastGraphView::blastLoadingProgress(LoaderThread *loader)
 {
     static bool updating = false;
-    if ( updating || obj == NULL )
+    if ( updating || loader == NULL )
         return;
     updating = true;
     bool centeron = root == NULL;
-    if ( root != obj )
-        root = (BlastTaxNode *)obj;
+    type = ((BlastFileLoader *)loader)->type;
+    if ( root != loader->getResult() )
+        root = (BlastTaxNode *)loader->getResult();
     createMissedGraphNodes();
     if ( centeron )
         centerOn(root->getGnode());
@@ -924,10 +928,11 @@ void BlastGraphView::blastLoadingProgress(void *obj)
 }
 
 //=========================================================================
-void BlastGraphView::blastIsLoaded(void *obj)
+void BlastGraphView::blastIsLoaded(LoaderThread *loader)
 {
-    if ( root != obj )
-        root = (BlastTaxNode *)obj;
+    type = ((BlastFileLoader *)loader)->type;
+    if ( root != loader->getResult() )
+        root = (BlastTaxNode *)loader->getResult();
     if ( root == NULL )
         return;
     createMissedGraphNodes();
@@ -950,15 +955,14 @@ void BlastGraphView::onColorChanged(BaseTaxNode *n)
 void BlastGraphView::showCurrentNodeDetails()
 {
 
-    BlastNodeDetails *bnd = new BlastNodeDetails(this, (BlastTaxNode *)getCurNode(), blastTaxDataProvider()->fileName);
-
+    BlastNodeDetails *bnd = new BlastNodeDetails(this, (BlastTaxNode *)getCurNode(), blastTaxDataProvider()->fileName, type);
     bnd->show();
 }
 
 //=========================================================================
 void BlastGraphView::toJson(QJsonObject &json) const
 {
-    json["Type"] = "BlastGraphView";
+    json["Type"] = type == tabular ? "BlastGraphViewTabular" : "BlastGraphViewSequence";
     json["Threshold"] = (int)reads_threshold;
     json["DataProvider"] = blastTaxDataProvider()->name;
 }

@@ -27,6 +27,16 @@ public:
     virtual void fromJson(QJsonObject &json);
 };
 
+class PathsConfig : public AbstractConfigBlock
+{
+    Q_OBJECT
+public:
+    PathsConfig();
+    CONFIG_PROPERTY(QString, gi2taxmap)             // Path to GI to Taxonomy mapping file
+    virtual void toJson(QJsonObject &json) const;
+    virtual void fromJson(QJsonObject &json);
+};
+
 
 class Config : public AbstractConfigFile
 {
@@ -35,6 +45,7 @@ public:
     virtual void init();
     GETBLOCK(BubbleChart)
     GETBLOCK(GraphNode)
+    GETBLOCK(Paths)
 };
 
 extern Config *configuration;

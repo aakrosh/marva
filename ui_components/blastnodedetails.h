@@ -23,7 +23,7 @@ class BlastNodeDetails : public QDialog
     BlastNodeDetailsModel *model;
     QFile *file;
 public:
-    explicit BlastNodeDetails(QWidget *parent, BlastTaxNode *n, QString &fileName);
+    explicit BlastNodeDetails(QWidget *parent, BlastTaxNode *n, QString &fileName, BlastFileType type);
     ~BlastNodeDetails();
     inline void setNode(BlastTaxNode *n);
 
@@ -86,10 +86,11 @@ public:
 class NodeDetailsLoaderThread : public LoaderThread
 {
     BlastTaxNode *node;
+    BlastFileType type;
 public:
     NodeDetails *nodeDetails;
-    NodeDetailsLoaderThread(QObject *parent, QString fileName, BlastTaxNode *_node);
-
+    NodeDetailsLoaderThread(QObject *parent, QString fileName, BlastTaxNode *_node, BlastFileType _type);
+    ~NodeDetailsLoaderThread();
     virtual void run();
     virtual void processLine(QString &line);
 };

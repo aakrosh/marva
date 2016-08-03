@@ -52,8 +52,18 @@ BaseTaxNode *DataGraphicsView::currentNode()
 //=========================================================================
 DataGraphicsView *DataGraphicsView::createViewByType(QWidget *parent, QString &type)
 {
-    if ( type == "BlastGraphView" )
-        return new BlastGraphView(NULL, parent, NULL);
+    if ( type == "BlastGraphViewTabular" )
+    {
+        BlastGraphView *gview = new BlastGraphView(NULL, parent, NULL);
+        gview->type = tabular;
+        return gview;
+    }
+    if ( type == "BlastGraphViewSequence" )
+    {
+        BlastGraphView *gview = new BlastGraphView(NULL, parent, NULL);
+        gview->type = sequence;
+        return gview;
+    }
     if ( type == "ChartView" )
         return new BubbleChartView(NULL, parent);
     return NULL;

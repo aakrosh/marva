@@ -75,7 +75,7 @@ void LoaderThread::run()
             processLine(line);
             if ( ++p == progressCounter )
             {
-                emit progress(result);
+                emit progress(this);
                 p = 0;
             }
         }
@@ -100,7 +100,7 @@ void LoaderThread::run()
             processLine(line);
             if ( ++p == progressCounter )
             {
-                emit progress(result);
+                emit progress(this);
                 p = 0;
             }
         }
@@ -113,7 +113,7 @@ void LoaderThread::run()
 //=========================================================================
 void LoaderThread::finishProcessing()
 {
-    emit resultReady(result);
+    emit resultReady(this);
 }
 
 //=========================================================================

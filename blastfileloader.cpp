@@ -2,16 +2,20 @@
 #include "blast_data.h"
 #include "blast_record.h"
 #include "taxdataprovider.h"
+#include "gi2taxmaptxtloader.h"
+#include "blastfileloader.h"
 
 #include <QTextStream>
 #include <QFileInfo>
 #include <exception>
+#include <QDebug>
+
 using namespace std;
 
 //=========================================================================
-BlastFileLoader::BlastFileLoader(QObject *parent, QString fileName, BlastTaxDataProvider *dp, BlastFileType _type) :
+BlastFileLoader::BlastFileLoader(QObject *parent, QString fileName, BlastTaxDataProvider *dp) :
     LoaderThread(parent, fileName, NULL, NULL, 1000, true, true),
-    type(_type),
+    parser(NULL),
     root(NULL),
     dataProvider(dp)
 {
@@ -40,6 +44,12 @@ void BlastFileLoader::ProcessFinishedQuery()
         TaxPos &tp = queryTaxList.first();
         quint32 tax_id = tp.tax_id;
         TreeTaxNode *n = globalTaxDataProvider->taxMap->value(tax_id);
+        if ( n == NULL )
+        {
+            qDebug() << QString("Taxonomy id %1 is unknown").arg(tax_id);
+            queryTaxList.removeFirst();
+            continue;
+        }
         TreeTaxNode *p = n->parent;
 
         quint32 ch_count = p == NULL ? 0 : p->children.count();
@@ -73,25 +83,32 @@ void BlastFileLoader::ProcessFinishedQuery()
 //=========================================================================
 void BlastFileLoader::processLine(QString &line)
 {
-    switch ( type )
+    if ( parser == NULL )
     {
-        case tabular:
+        for ( int t = (int)tabular; t < (int)last; ++t )
         {
-            QStringList list = line.split("\t", QString::SkipEmptyParts);
-            BlastRecord rec(type, list);
-            if ( lastQueryName != rec.query_name )
+            parser = BlastParserFactory::createParser((BlastFileType)t);
+            if ( parser->accept(line) )
             {
-                ProcessFinishedQuery();
-                lastQueryName = rec.query_name;
+                type = parser->getType();
+                break;
             }
-            queryTaxList.append(rec.taxa_id, curPos);
-        }
-        break;
-        default:
-        {
-            throw("Unknown file format");
+            delete parser;
+            parser = NULL;
         }
     }
+    if ( parser == NULL )
+        return;
+    BlastRecord *rec = parser->parse(line);
+    if ( rec == NULL )
+        return;
+    if ( lastQueryName != rec->query_name )
+    {
+        ProcessFinishedQuery();
+        lastQueryName = rec->query_name;
+    }
+    queryTaxList.append(rec->taxa_id, curPos);
+    delete rec;
 }
 
 //=========================================================================
@@ -99,7 +116,48 @@ void BlastFileLoader::finishProcessing()
 {
     ProcessFinishedQuery();
     dataProvider->updateCache(false);
-    LoaderThread::finishProcessing();
+    if ( parser != NULL )
+        delete parser;
+    LoaderThread::finishProcessing();    
 }
 
+//=========================================================================
+bool TabSeparatedBlastParser::accept(QString &line)
+{
+    return line.count('\t') == 12;
+}
 
+//=========================================================================
+BlastRecord *BlastParser::parse(QString &line)
+{
+    return new BlastRecord(getType(), line);
+}
+
+//=========================================================================
+SequenceBlastParser::SequenceBlastParser():
+    BlastParser()
+{
+    gi2TaxProvider = new Gi2TaxMapBinProvider(&gi2taxmap);
+    gi2TaxProvider->open();
+}
+
+SequenceBlastParser::~SequenceBlastParser()
+{
+    gi2TaxProvider->close();
+    delete gi2TaxProvider;
+    gi2TaxProvider = NULL;
+}
+
+//=========================================================================
+bool SequenceBlastParser::accept(QString &line)
+{
+    return line.at(0) == '>' && line.count(' ') == 9;
+}
+
+//=========================================================================
+BlastRecord *SequenceBlastParser::parse(QString &line)
+{
+    if ( !accept(line) )
+        return NULL;
+    return BlastParser::parse(line);
+}

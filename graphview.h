@@ -160,6 +160,7 @@ class BlastGraphView : public TreeGraphView
 public:    
     quint32 reads_threshold;
     QAction *nodeDetailsAction;
+    BlastFileType type;
     BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidget *parent, TaxNode *taxTree);
     ~BlastGraphView();
     inline BlastTaxDataProvider *blastTaxDataProvider() { return (BlastTaxDataProvider *)taxDataProvider; }
@@ -168,8 +169,8 @@ public:
     virtual void fromJson(QJsonObject &json);
     BubbledGraphViewConfig *getConfig() { return (BubbledGraphViewConfig *)config; }
 private slots:
-    void blastLoadingProgress(void *bdata);
-    void blastIsLoaded(void *bdata);
+    void blastLoadingProgress(LoaderThread *loader);
+    void blastIsLoaded(LoaderThread *loader);
 public slots:
     virtual void onReadsThresholdChanged(quint32 oldT, quint32 newT);
     virtual void onBubbleSizeChanged(quint32 /*oldS*/, quint32 /*newS*/);
@@ -181,10 +182,10 @@ signals:
 
 class NodePositionKeeper
 {
+public:
     TreeGraphView *graphView;
     GraphNode *gnode;
     QPointF pos;
-public:
     NodePositionKeeper(TreeGraphView *gv, BaseTaxNode *node);
     ~NodePositionKeeper();
 };

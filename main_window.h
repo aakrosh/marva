@@ -67,13 +67,14 @@ private slots:
     TreeGraphView *openTaxonomyTreeView();
     BlastTaxDataProviders *getAllBlastDataProviders();
     BubbleChartView *createChartView();
-    void treeIsLoaded(void *obj);
-    void blastIsLoaded(void *obj);
-    void blastLoadingProgress(void *obj);
+    void treeIsLoaded(LoaderThread *loader);
+    void blastIsLoaded(LoaderThread *loader);
+    void blastLoadingProgress(LoaderThread *loader);
     void closeGraphView(int);
     void onCurrentTabCnaged(int);
     void activeGraphViewDestroyed();
     void openOptionsDialog();
+    QString getOpenFileName(QString text, QString filters);
 };
 extern MainWindow *mainWindow;
 
