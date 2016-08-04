@@ -49,12 +49,16 @@ BlastRecord::BlastRecord(BlastFileType type, QString &line, bool short_format)
             if ( !short_format )
             {
                 alligment_id = list[2];
-                bitscore = list[3].toDouble();
-                e_value = list[4].toDouble();
-                identity = list[5].toDouble();
-                allignment_len = list[6].toUInt();
-                mismatch_count = list[7].toUInt();
-                gapopens_count = list[8].toUInt();
+                bitscore = list[3].midRef(5).toDouble();
+                e_value = list[4].midRef(13).toDouble();
+                identity = list[5].midRef(9).toDouble();
+                allignment_len = list[6].midRef(8).toUInt();
+                mismatch_count = list[7].midRef(9).toUInt();
+                gapopens_count = list[8].midRef(13).toUInt();
+                query_start = 0;
+                query_end = 0;
+                ref_start = 0;
+                ref_end = 0;
             }
             quint32 gi = list[2].split('|').at(1).toUInt();
             taxa_id = gi2TaxProvider->get(gi);

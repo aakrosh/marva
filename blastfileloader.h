@@ -8,44 +8,6 @@
 #include <QVector>
 #include <QMap>
 
-struct TaxPos
-{
-   qint32 tax_id;
-   qreal max_score;
-   QVector<qint64> pos;
-   TaxPos(qint32 t, qint64 p):tax_id(t) {pos.append(p);}
-   TaxPos(qint32 t, QVector<qint64> _pos):tax_id(t), pos(_pos){}
-   inline bool operator==(const TaxPos &otherTaxPos) { return tax_id == otherTaxPos.tax_id; }
-};
-
-class TaxPosList : public QList<TaxPos>
-{
-public:
-    bool contains(qint32 id)
-    {
-        TaxPos q(id, 0);
-        return QList<TaxPos>::contains(q);
-    }
-    int indexOf(qint32 id)
-    {
-        TaxPos q(id, 0);
-        return QList<TaxPos>::indexOf(q);
-    }
-    void append(qint32 id, QVector<qint64> positions)
-    {
-        TaxPos q(id, positions);
-        QList<TaxPos>::append(q);
-    }
-    void append(qint32 id, qint64 position)
-    {
-        TaxPos q(id, position);
-        QList<TaxPos>::append(q);
-    }
-};
-
-typedef QList<quint32> TaxList;
-typedef QMap<QString, TaxList> AllignmentMap;
-
 class QFile;
 
 class BlastParser
@@ -78,6 +40,60 @@ public:
     virtual BlastRecord *parse(QString &line);
 };
 
+#include <QDebug>
+
+class TaxDetails
+{
+public:
+    qreal   score;
+    qreal   e_value;
+    quint64 pos;
+    TaxDetails( qreal s, qreal e, quint64 p) : score(s), e_value(e), pos(p){}
+    ~TaxDetails()
+    {
+        qDebug() << "Destructor is called";
+    }
+};
+
+class TaxDetailsMap : public QMap<qint32, TaxDetails *>
+{
+public:
+    void add(BlastRecord *br, quint64 pos)
+    {
+        if ( contains(br->taxa_id) )
+        {
+            TaxDetails *td = value(br->taxa_id);
+            if ( td->score > br->bitscore )
+                return;
+            td->score = br->bitscore;
+            td->pos = pos;
+            td->e_value = br->e_value;
+        }
+        else
+        {
+            insert(br->taxa_id, new TaxDetails(br->bitscore, br->e_value, pos));
+        }
+    }
+    void positions(QVector<quint64> *positions)
+    {
+        QList<TaxDetails *> vals = values();
+
+        for ( int i = 0; i < vals.count(); i++ )
+            positions->append(vals[i]->pos);
+    }
+};
+
+class QueryDetails
+{
+public:
+    QString queryName;
+    TaxDetailsMap tax_details_map;
+    void clean();
+    void add(QString newQueryName, BlastRecord *br, quint32 pos);
+
+    quint32 lca_id();
+};
+
 class BlastParserFactory
 {
 public:
@@ -102,12 +118,10 @@ private:
     BlastParser *parser;
     BlastTaxNode *root;
     BlastTaxDataProvider *dataProvider;
-    AllignmentMap allignment_tax_ids;
-    QString lastQueryName;
-    TaxPosList queryTaxList;
+    QueryDetails lastQuery;
 
     void ProcessFinishedQuery();
-    void addTaxNode(quint32 taxa_id, QVector<qint64> pos);
+    void addTaxNode(quint32 taxa_id, QVector<quint64> pos);
 public:
     BlastFileType type;
     BlastFileLoader(QObject *parent, QString fileName, BlastTaxDataProvider *dp);

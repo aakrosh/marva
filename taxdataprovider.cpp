@@ -231,15 +231,15 @@ void BlastTaxDataProvider::removeParent()
 }
 
 //=========================================================================
-BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, qint64 pos)
+BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, quint64 pos)
 {
-    QVector<qint64> positions;
+    QVector<quint64> positions;
     positions.append(pos);
     return addTaxNode(id, reads, positions);
 }
 
 //=========================================================================
-BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, QVector<qint64> pos)
+BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, QVector<quint64> pos)
 {
     TaxMapIterator it = taxMap.find(id);
     if ( it == taxMap.end() )
@@ -293,7 +293,7 @@ void BlastTaxDataProvider::toJson(QJsonObject &json)
         jnode.append(node->isCollapsed() ? 1: 0);
         QJsonArray jpos;
         for ( int j = 0; j < node->positions.count(); j++)
-            jpos.append(node->positions[j]);
+            jpos.append((qint64)node->positions[j]);
         jnode.append(jpos);
         dpArray.append(jnode);
     }
@@ -315,16 +315,17 @@ void BlastTaxDataProvider::fromJson(QJsonObject &json)
             quint32 reads = jNode[1].toInt();
             bool visible = jNode[2].toInt() == 1;
             bool collapsed = jNode[3].toInt() == 1;
-            BlastTaxNode *node = addTaxNode(id, reads > 0 ? reads : -1);
+            QJsonArray jPos = jNode[4].toArray();
+            QVector<quint64> positions;
+            for ( int j = 0; j < jPos.count(); j++ )
+                positions.append(jPos[j].toInt());
+            BlastTaxNode *node = addTaxNode(id, reads > 0 ? reads : -1, positions);
             if ( node != NULL )
             {
                 node->setVisible(visible);
                 if ( collapsed )
                     node->setCollapsed(true, false);
             }
-            QJsonArray jPos = jNode[4].toArray();
-            for ( int j = 0; j < jPos.count(); j++ )
-                node->positions.append(jPos[j].toInt());
         }
         updateCache(false);
     }

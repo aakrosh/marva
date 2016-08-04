@@ -30,7 +30,7 @@ class BlastTaxNode : public TreeTaxNode
 public:
     quint32 reads;
     TreeTaxNode *tNode;
-    QVector<qint64> positions;
+    QVector<quint64> positions;
     BlastTaxNode(TreeTaxNode *refNode, int _count, BlastNodeMap *map);
     virtual ~BlastTaxNode(){}
     BlastTaxNode *createPathToNode(BlastNodeMap *blastNodeMap);

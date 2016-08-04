@@ -105,8 +105,8 @@ public:
     virtual quint32 getMaxReads();
     virtual void addParent();
     virtual void removeParent();
-    BlastTaxNode *addTaxNode(qint32 id, qint32 reads, qint64 pos = -1);
-    BlastTaxNode *addTaxNode(qint32 id, qint32 reads, QVector<qint64> pos);
+    BlastTaxNode *addTaxNode(qint32 id, qint32 reads, quint64 pos);
+    BlastTaxNode *addTaxNode(qint32 id, qint32 reads, QVector<quint64> pos);
     virtual void toJson(QJsonObject &json);
     virtual void fromJson(QJsonObject &json);
     BlastTaxNode *nodeById(qint32 id);

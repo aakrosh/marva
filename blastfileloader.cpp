@@ -4,6 +4,7 @@
 #include "taxdataprovider.h"
 #include "gi2taxmaptxtloader.h"
 #include "blastfileloader.h"
+#include "taxdataprovider.h"
 
 #include <QTextStream>
 #include <QFileInfo>
@@ -29,7 +30,7 @@ BlastFileLoader::~BlastFileLoader()
 }
 
 //=========================================================================
-void BlastFileLoader::addTaxNode(quint32 taxa_id, QVector<qint64> pos)
+void BlastFileLoader::addTaxNode(quint32 taxa_id, QVector<quint64> pos)
 {
     dataProvider->addTaxNode(taxa_id, -1, pos);
     if ( result == NULL )
@@ -39,45 +40,15 @@ void BlastFileLoader::addTaxNode(quint32 taxa_id, QVector<qint64> pos)
 //=========================================================================
 void BlastFileLoader::ProcessFinishedQuery()
 {
-    while ( queryTaxList.count() > 0 )
-    {
-        TaxPos &tp = queryTaxList.first();
-        quint32 tax_id = tp.tax_id;
-        TreeTaxNode *n = globalTaxDataProvider->taxMap->value(tax_id);
-        if ( n == NULL )
-        {
-            qDebug() << QString("Taxonomy id %1 is unknown").arg(tax_id);
-            queryTaxList.removeFirst();
-            continue;
-        }
-        TreeTaxNode *p = n->parent;
-
-        quint32 ch_count = p == NULL ? 0 : p->children.count();
-        bool moveToParent = ch_count > 1;
-        for ( qint32 c = 0 ; moveToParent && (c < p->children.count()); c++ )
-            moveToParent = moveToParent && queryTaxList.contains(p->children[c]->getId());
-        if ( moveToParent )
-        {
-            QVector<qint64> positions;
-            for ( qint32 c = 0 ; c < p->children.count(); c++ )
-            {
-                TreeTaxNode *child = p->children[c];
-                quint32 id = child->getId();
-                qint32 index = queryTaxList.indexOf(id);
-                if ( index >= 0 )
-                {
-                    positions.append(queryTaxList.at(index).pos);
-                    queryTaxList.removeAt(index);
-                }
-            }
-            queryTaxList.append(p->getId(), positions);
-        }
-        else
-        {
-            addTaxNode(tax_id, tp.pos);
-            queryTaxList.removeFirst();
-        }
-    }
+    if ( lastQuery.tax_details_map.empty() )
+        return;
+    // Save positions
+    QVector<quint64> poss;
+    lastQuery.tax_details_map.positions(&poss);
+    // Find LCA
+    qint32 lca_id = lastQuery.lca_id();
+    addTaxNode(lca_id, poss);
+    lastQuery.clean();
 }
 
 //=========================================================================
@@ -102,12 +73,9 @@ void BlastFileLoader::processLine(QString &line)
     BlastRecord *rec = parser->parse(line);
     if ( rec == NULL )
         return;
-    if ( lastQueryName != rec->query_name )
-    {
+    if ( lastQuery.queryName != rec->query_name )
         ProcessFinishedQuery();
-        lastQueryName = rec->query_name;
-    }
-    queryTaxList.append(rec->taxa_id, curPos);
+    lastQuery.add(rec->query_name, rec, curPos);
     delete rec;
 }
 
@@ -160,4 +128,54 @@ BlastRecord *SequenceBlastParser::parse(QString &line)
     if ( !accept(line) )
         return NULL;
     return BlastParser::parse(line);
+}
+
+//=========================================================================
+void QueryDetails::clean()
+{
+    queryName.clear();
+    qDeleteAll(tax_details_map);
+    tax_details_map.clear();
+}
+
+//=========================================================================
+void QueryDetails::add(QString newQueryName, BlastRecord *br, quint32 pos)
+{
+    queryName = newQueryName;
+    tax_details_map.add(br, pos);
+}
+
+//=========================================================================
+quint32 QueryDetails::lca_id()
+{
+    QList<qint32> tax_ids = tax_details_map.keys();
+    qint32 i = 0;
+    qint32 cur_id = tax_ids[i++];
+    TaxNode *cur_node = globalTaxDataProvider->taxMap->value(cur_id);
+    while ( ( cur_id < 0 || cur_node == NULL ) && i < tax_ids.count() )
+    {
+        cur_id = tax_ids[i++];
+        if ( cur_id < 0 )
+            continue;
+        cur_node = globalTaxDataProvider->taxMap->value(cur_id);
+    }
+    while ( i < tax_ids.count() )
+    {
+        qint32  next_id = tax_ids[i++];
+        if ( next_id < 0 )
+            continue;
+        TaxNode *next_node = globalTaxDataProvider->taxMap->value(next_id);
+        if ( next_node == NULL )
+            continue;
+        while ( next_node->getLevel() > cur_node->getLevel() )
+            next_node = (TaxNode *)next_node->parent;
+        while ( next_node->getLevel() < cur_node->getLevel() )
+            cur_node = (TaxNode *)cur_node->parent;
+        while ( next_node != cur_node )
+        {
+            next_node = (TaxNode *)next_node->parent;
+            cur_node = (TaxNode *)cur_node->parent;
+        }
+    }
+    return cur_node == NULL ? -2 : cur_node->getId();
 }

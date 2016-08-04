@@ -52,11 +52,11 @@ GraphNodeConfig::GraphNodeConfig():
 //=========================================================================
 void GraphNodeConfig::toJson(QJsonObject &json) const
 {
-    QJsonObject jBubbleChart;
-    TOJSON(jBubbleChart, nodeCircleSize);
-    TOJSON(jBubbleChart, halfPlusSize);
-    TOJSON(jBubbleChart, maxNodeRadius);
-    json["GraphNode"] = jBubbleChart;
+    QJsonObject jGNode;
+    TOJSON(jGNode, nodeCircleSize);
+    TOJSON(jGNode, halfPlusSize);
+    TOJSON(jGNode, maxNodeRadius);
+    json["GraphNode"] = jGNode;
 }
 
 //=========================================================================
@@ -64,10 +64,10 @@ void GraphNodeConfig::fromJson(QJsonObject &json)
 {
     try
     {
-        QJsonObject jBubbleChart = json["BubbleChart"].toObject();
-        INTFROMJSON(jBubbleChart, nodeCircleSize)
-        INTFROMJSON(jBubbleChart, halfPlusSize)
-        INTFROMJSON(jBubbleChart, maxNodeRadius)
+        QJsonObject jGNode = json["GraphNode"].toObject();
+        INTFROMJSON(jGNode, nodeCircleSize)
+        INTFROMJSON(jGNode, halfPlusSize)
+        INTFROMJSON(jGNode, maxNodeRadius)
     }
     catch(...)
     {

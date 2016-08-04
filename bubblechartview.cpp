@@ -176,7 +176,7 @@ void BubbleChartView::showChart(bool forceNodeUpdate)
                 continue;
             qreal x1 = (column++)*columnWidth;
             BlastTaxNode *node = btns.at(i);
-            if ( node == NULL )
+            if ( node == NULL || node->reads == 0 )
                 continue;
             ChartGraphNode *gnode = (ChartGraphNode*)node->getGnode();
             Q_ASSERT_X(gnode != NULL, "showChart", "GraphNode must be created here");            

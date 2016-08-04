@@ -930,7 +930,8 @@ void BlastGraphView::blastLoadingProgress(LoaderThread *loader)
 //=========================================================================
 void BlastGraphView::blastIsLoaded(LoaderThread *loader)
 {
-    type = ((BlastFileLoader *)loader)->type;
+    BlastFileLoader *bfLoader = (BlastFileLoader *)loader;
+    type = bfLoader->type;
     if ( root != loader->getResult() )
         root = (BlastTaxNode *)loader->getResult();
     if ( root == NULL )

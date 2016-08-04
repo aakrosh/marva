@@ -24,8 +24,8 @@ BlastNodeDetails::BlastNodeDetails(QWidget *parent, BlastTaxNode *n, QString &fi
     NodeDetailsLoaderThread *ndlt = new NodeDetailsLoaderThread(this, fileName, n, type);
     ndlt->nodeDetails = &model->nodeDetails;
     connect(ndlt, SIGNAL(finished()), ndlt, SLOT(deleteLater()));
-    connect(ndlt, SIGNAL(progress(void*)), this, SLOT(refresh()));
-    connect(ndlt, SIGNAL(resultReady(void*)), this, SLOT(refresh()));
+    connect(ndlt, SIGNAL(progress(LoaderThread *)), this, SLOT(refresh()));
+    connect(ndlt, SIGNAL(resultReady(LoaderThread *)), this, SLOT(refresh()));
     ndlt->run();
 }
 
