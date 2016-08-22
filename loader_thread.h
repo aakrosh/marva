@@ -24,14 +24,16 @@ protected:
     quint64 curPos;
     virtual void processLine(QString &line) = 0;
     virtual void finishProcessing();
+    virtual void reportProgress(qreal val);
 public:
     virtual void run();
 signals:
     void resultReady(LoaderThread *loader);
-    void progress(LoaderThread *loader);
+    void progress(LoaderThread *loader, qreal val);
 private slots:
     void addToList();
     void removeFromList();
+    void onProgress(LoaderThread*, qreal val);
     void stop_thread();
 };
 

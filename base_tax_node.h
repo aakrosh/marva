@@ -13,7 +13,6 @@ class BaseTaxNode
 {
 public:
     GraphNode *gnode;
-    bool is_visible;
 
     BaseTaxNode();
     virtual ~BaseTaxNode(){}
@@ -27,6 +26,8 @@ public:
     virtual QString getText() = 0;
     virtual void setVisible(bool v, bool force=false);
     virtual bool visible() { return is_visible; }
+protected:
+    bool is_visible;
 
     friend class TaxTreeGraphNode;
     friend class GraphNode;

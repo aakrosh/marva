@@ -105,18 +105,49 @@ void PathsConfig::fromJson(QJsonObject &json)
 }
 
 //=========================================================================
+TreeViewConfig::TreeViewConfig():
+    AbstractConfigBlock("TreeView")
+{
+    INITPROPERTY(edgeStyle, 1);
+}
+
+void TreeViewConfig::toJson(QJsonObject &json) const
+{
+    QJsonObject jTreeView;
+    TOJSON(jTreeView, edgeStyle);
+    json["TreeView"] = jTreeView;
+}
+
+//=========================================================================
+void TreeViewConfig::fromJson(QJsonObject &json)
+{
+    try
+    {
+        QJsonObject jTreeView = json["TreeView"].toObject();
+        INTFROMJSON(jTreeView, edgeStyle)
+    }
+    catch(...)
+    {
+        QMessageBox::warning(NULL, "Cannot restore config", "Cannot restore Tree View Configuration from configuration");
+    }
+}
+
+//=========================================================================
 Config::Config(QObject *parent):
     AbstractConfigFile("cfg", "configuration", parent)
 {
     ADDBLOCK(BubbleChart);
     ADDBLOCK(GraphNode);
     ADDBLOCK(Paths);
+    ADDBLOCK(TreeView)
 }
 
 //=========================================================================
 void Config::init()
 {    
 }
+
+
 
 
 

@@ -96,8 +96,6 @@ void BubbleChartView::prepareScene()
     grid.clear();
     for ( int i = 0; i < dp->providers->size(); i++ )
     {
-        qreal x1 = i*columnWidth;
-        grid.append(scene()->addRect(chartRect.x()+x1, chartRect.y(), columnWidth, chartRect.height(), pen, brush));
         for ( int j = 0; j < dp->data.count(); j++)
         {
                 if ( !dp->data.at(j).checked )
@@ -112,6 +110,8 @@ void BubbleChartView::prepareScene()
                     CreateGraphNode(node);
                 }
         }
+        qreal x1 = i*columnWidth;
+        grid.append(scene()->addRect(chartRect.x()+x1, chartRect.y(), columnWidth, chartRect.height(), pen, brush));
         // Create horizontal axe labels
         BlastTaxDataProvider *p = dp->providers->at(i);
         QString stxt = p->name;
@@ -128,24 +128,26 @@ void BubbleChartView::prepareScene()
     for ( int j = 0; j < dp->data.count(); j++)
     {
         const BlastTaxNodes &btns = dp->data.at(j).tax_nodes;
+        QString txt;
         for ( int i = 0 ; i < btns.size(); i++ )
         {
             if ( btns[i] == NULL )
                 continue;
-            QString txt = btns[i]->getText();
-            QString stxt = txt;
-            if ( stxt.length() > 30 )
-            {
-                stxt.truncate(27);
-                stxt.append("...");
-            }
-            QGraphicsTextItem *item = scene()->addText(stxt);
-            item->setToolTip(txt);
-            item->setVisible(dp->data.at(j).checked);
-            verticalLegend.append(item);
+            txt = btns[i]->getText();
             break;
         }
+        QString stxt = txt;
+        if ( stxt.length() > 30 )
+        {
+            stxt.truncate(27);
+            stxt.append("...");
+        }
+        QGraphicsTextItem *item = scene()->addText(stxt);
+        item->setToolTip(txt);
+        item->setVisible(dp->data.at(j).checked);
+        verticalLegend.append(item);
     }
+
     header->setPos(0, 10-MARGIN);
     header->setTextWidth(dp->providers->count()*columnWidth);
 }
@@ -170,6 +172,9 @@ void BubbleChartView::showChart(bool forceNodeUpdate)
         if ( !chartDataProvider->data.at(j).checked )
             continue;
         column = 0;
+        // In some corner cases if not all the data providers are correctly restored
+        // it is possible that no nodes should be created for the spices
+        bool has_node = false;
         for ( int i = 0; i < btns.size(); i++ )
         {
             if ( !chartDataProvider->getBlastTaxDataProviders()->isVisible(i) )
@@ -178,6 +183,7 @@ void BubbleChartView::showChart(bool forceNodeUpdate)
             BlastTaxNode *node = btns.at(i);
             if ( node == NULL || node->reads == 0 )
                 continue;
+            has_node = true;
             ChartGraphNode *gnode = (ChartGraphNode*)node->getGnode();
             Q_ASSERT_X(gnode != NULL, "showChart", "GraphNode must be created here");            
             gnode->setMaxNodeSize(bubbleSize);
@@ -185,8 +191,11 @@ void BubbleChartView::showChart(bool forceNodeUpdate)
             if ( forceNodeUpdate )
                 gnode->update();
         }
-        verticalLegend[j]->setPos(chartRect.x()-verticalLegend[j]->boundingRect().width(), rnum*maxBubbleSize);
-        ++rnum;
+        if ( has_node )
+        {
+            verticalLegend[j]->setPos(chartRect.x()-verticalLegend[j]->boundingRect().width(), rnum*maxBubbleSize);
+            ++rnum;
+        }
     }
     quint32 rectHeight = rnum*maxBubbleSize + maxBubbleSize/2;
     chartRectGI->setRect(chartRect.x(), chartRect.y(), column*columnWidth, rectHeight);
@@ -745,7 +754,7 @@ bool ChartDataProvider::contains(quint32 id)
 }
 
 //=========================================================================
-quint32 ChartDataProvider::indexOf(qint32 id)
+qint32 ChartDataProvider::indexOf(qint32 id)
 {
     for( int i = 0; i < data.size(); i++ )
         if ( data[i].id == (quint32)id )
@@ -861,9 +870,9 @@ void ChartDataProvider::fromJson(QJsonObject &json)
 }
 
 //=========================================================================
-BaseTaxNode *ChartDataProvider::taxNode(quint32 index)
+BaseTaxNode *ChartDataProvider::taxNode(qint32 index)
 {
-    if ( ((qint32)index) < 0 )
+    if ( index < 0 )
         return NULL;
     BlastTaxNodes btns = data[index].tax_nodes;
     for ( int i = 0; i < btns.count(); i++ )

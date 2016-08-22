@@ -323,7 +323,6 @@ void TaxListTableModel::sort(int column, Qt::SortOrder order)
 {
     emit layoutAboutToBeChanged();
     taxDataProvider->sort(column, order);
-    //TaxNodeSignalSender *tnss = getTaxNodeSignalSender();
     clearCache();
     emit layoutChanged();
 }

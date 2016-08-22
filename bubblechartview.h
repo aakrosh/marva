@@ -38,13 +38,13 @@ public:
     virtual qint32 id(quint32 index);
     virtual quint32 reads(quint32 index);
     virtual quint32 readsById(quint32 id);
-    virtual BaseTaxNode *taxNode(quint32 index);
+    virtual BaseTaxNode *taxNode(qint32 index);
     virtual void updateCache(bool values_only);
     virtual QColor color(int index);
     virtual void sort(int column, Qt::SortOrder order);
     virtual quint32 getMaxReads();
     bool contains(quint32 id);
-    virtual quint32 indexOf(qint32 id);
+    virtual qint32 indexOf(qint32 id);
     virtual QVariant checkState(int index);
     virtual void setCheckedState(int index, QVariant value);
     quint32 visibleTaxNumber();

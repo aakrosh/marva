@@ -2,6 +2,9 @@
 #define MAIN_WINDOW_H
 
 #include <QMainWindow>
+#include <QJsonObject>
+#include <QJsonArray>
+
 #include "graphview.h"
 #include "blast_data.h"
 #include "ui_components/statuslistpanel.h"
@@ -22,7 +25,11 @@ class LabeledDoubleSpinBox;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-
+private:
+    QJsonArray jProviders;
+//    QFile saveFile;
+    quint32 serializingProviders;
+    QJsonObject big_json;
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
@@ -34,6 +41,9 @@ public:
 
     void addGraphView(QWidget *gv, QString label);
     void setActiveGraphView(DataGraphicsView *gv);
+
+    void serialize(QFile &saveFile);
+    void deserialize(QFile &loadFile);
 
 protected:
     virtual void closeEvent(QCloseEvent *event);
@@ -52,6 +62,7 @@ private:
 
 signals:
     activeGraphViewChanged(DataGraphicsView *oldGV, DataGraphicsView *newGV);
+    void allProvidersSerialized();
 private slots:
     void mapIsLoaded();
     void updateLoadedNames();
@@ -61,7 +72,7 @@ private slots:
     void save_project();
     void close_project();
     void openProject(QString fileName);
-    void toJson(QJsonObject &json) const;
+    void toJson();
     void fromJson(QJsonObject &json);
     void closeAllViews();
     TreeGraphView *openTaxonomyTreeView();
@@ -75,6 +86,8 @@ private slots:
     void activeGraphViewDestroyed();
     void openOptionsDialog();
     QString getOpenFileName(QString text, QString filters);
+    void onProviderSerialized(ProvidersSerializationThread *);
+    void finishSerialization();
 };
 extern MainWindow *mainWindow;
 

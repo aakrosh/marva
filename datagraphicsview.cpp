@@ -8,10 +8,10 @@
 #include <QPrintDialog>
 #include <QPrintPreviewDialog>
 #include <QFileDialog>
+#include <QJsonDocument>
 
 DataGraphicsView::DataGraphicsView(TaxDataProvider *_dataProvider, QWidget *parent):
     QGraphicsView(parent),
-//    curNode(NULL),
     config(NULL),
     taxDataProvider(_dataProvider),
     persistant(false)
@@ -67,6 +67,18 @@ DataGraphicsView *DataGraphicsView::createViewByType(QWidget *parent, QString &t
     if ( type == "ChartView" )
         return new BubbleChartView(NULL, parent);
     return NULL;
+}
+
+//=========================================================================
+void DataGraphicsView::serialize(QFile &file)
+{
+    QJsonObject json;
+    toJson(json);
+    QJsonDocument jDoc(json);
+    const QByteArray &ba = jDoc.toBinaryData();
+    qint32 size = ba.size();
+    file.write((const char *)&size, sizeof(size));
+    file.write(ba);
 }
 
 //=========================================================================

@@ -16,6 +16,6 @@ void MapLoaderThread::processLine(QString &line)
 {
     QStringList list = line.split("\t", QString::SkipEmptyParts);
     if ( list.size() < 2 )
-        throw(QString("Bad .map file record ").append(line).toLocal8Bit().constData());
+        throw(QString("Bad .map file record ").append(line).toLocal8Bit().constData());    
     globalTaxDataProvider->taxMap->setName(list[0].toInt(), list[1].toLocal8Bit().constData());
 }

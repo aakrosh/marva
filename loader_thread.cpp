@@ -1,5 +1,6 @@
 #include "loader_thread.h"
 #include "main_window.h"
+#include "logging.h"
 
 #include <QString>
 #include <QFile>
@@ -23,6 +24,7 @@ LoaderThread::LoaderThread(QObject *parent, QString _fileName, const char *_capt
     curPos(-1)
 {
     connect(this, SIGNAL(started()), this, SLOT(addToList()));
+    connect(this, SIGNAL(progress(LoaderThread* ,qreal)), this, SLOT(onProgress(LoaderThread* ,qreal)));
     connect(this, SIGNAL(finished()), this, SLOT(removeFromList()));
 }
 
@@ -54,28 +56,30 @@ void LoaderThread::run()
     }    
     int p = 0;
     QString prevLine;
+    quint64 fileSize = file.size();
     if ( trackPosition )
     {
-        QTextStream in(&file);
         while( !file.atEnd() )
         {
             if ( must_stop )
                 break;
             curPos = file.pos();
-            QString line(file.readLine(MAX_LINE_SIZE));
-            if ( line == NULL || line.isEmpty() )
+            char buf[MAX_LINE_SIZE];
+            if ( file.readLine(buf, MAX_LINE_SIZE) == 0 )
+                continue;
+            QString line(buf);
+            if ( line.isEmpty() )
                 continue;
             if ( ignoreRepeated )
             {
-                QString pl = prevLine;
-                prevLine = line;
-                if ( line == pl )
+                if ( line == prevLine )
                     continue;
+                prevLine = line;
             }
             processLine(line);
             if ( ++p == progressCounter )
             {
-                emit progress(this);
+                reportProgress(((qreal)curPos)/fileSize);
                 p = 0;
             }
         }
@@ -100,7 +104,7 @@ void LoaderThread::run()
             processLine(line);
             if ( ++p == progressCounter )
             {
-                emit progress(this);
+                reportProgress(-1);
                 p = 0;
             }
         }
@@ -117,6 +121,12 @@ void LoaderThread::finishProcessing()
 }
 
 //=========================================================================
+void LoaderThread::reportProgress(qreal val)
+{
+    emit progress(this, val);
+}
+
+//=========================================================================
 void LoaderThread::addToList()
 {
     activeThreads.append(this);
@@ -127,8 +137,27 @@ void LoaderThread::addToList()
 void LoaderThread::removeFromList()
 {
     activeThreads.removeOne(this);
-    mainWindow->statusList->RemoveItem(statusListItem);
+    statusListItem->setText(caption);
+    mainWindow->statusList->RemoveItem(statusListItem);     
     statusListItem = NULL;
+}
+
+//=========================================================================
+void LoaderThread::onProgress(LoaderThread *, qreal val)
+{    
+    if ( val < 0 )
+        return;
+    int percents = 100 * val;
+    /*QString txt = statusListItem->text();
+    int b = txt.indexOf(" ( ");
+    if ( b > 0 )
+        txt = txt.left(b);
+    txt.append(QString(" ( %1% )").arg(percents));
+    */
+    QString txt = QString("%1 (%2%)").arg(caption).arg(percents);
+    if ( statusListItem != NULL )
+        statusListItem->setText(txt);
+    mlog.log(txt);
 }
 
 //=========================================================================

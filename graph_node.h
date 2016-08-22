@@ -103,6 +103,7 @@ public:
     void clearDirtyFlag(qint32 dirty_flag);
 
     inline TreeTaxNode *getTaxNode() const { return (TreeTaxNode *)tax_node; }
+    inline TreeGraphView *getView() const { return (TreeGraphView *)view; }
 
     virtual void addEdge(Edge *edge);
     void adjustAdges();

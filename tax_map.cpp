@@ -48,7 +48,9 @@ bool TaxNodeVisitor::shouldVisitChildren(TreeTaxNode *node)
         return false;
     else if ( !visitCollapsed && node->isCollapsed() )
         return false;
-    else if ( !visit_invisible && !node->is_visible )
+    else if ( !visit_invisible && !node->visible() )
+        return false;
+    else if ( !visit_invisible && !node->hasVisibleChildren() )
         return false;
     return true;
 }

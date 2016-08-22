@@ -108,6 +108,7 @@ public:
 
     inline TreeTaxNode *getCurNode() { return (TreeTaxNode*) currentNode(); }
 
+    int hor_interval;
 protected:
 #ifndef QT_NO_WHEELEVENT
     virtual void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE;
@@ -115,7 +116,6 @@ protected:
     virtual void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
     virtual void showContextMenu(const QPoint&);
 private:
-    int hor_interval;
     int vert_interval;
     bool create_nodes;
     int treeDepth;
@@ -131,7 +131,7 @@ private:
     void goRight();
 
 protected:
-    void setNodeInvisible(BaseTaxNode *bnode);
+    void setNodeInvisible(TreeTaxNode *bnode);
     void hideNodes(quint32 oldT, quint32 newT);
     void unhideNodes(quint32 oldT, quint32 newT);
 
@@ -161,6 +161,7 @@ public:
     quint32 reads_threshold;
     QAction *nodeDetailsAction;
     BlastFileType type;
+    bool dirty;
     BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidget *parent, TaxNode *taxTree);
     ~BlastGraphView();
     inline BlastTaxDataProvider *blastTaxDataProvider() { return (BlastTaxDataProvider *)taxDataProvider; }
@@ -168,6 +169,10 @@ public:
     virtual void toJson(QJsonObject &json) const;
     virtual void fromJson(QJsonObject &json);
     BubbledGraphViewConfig *getConfig() { return (BubbledGraphViewConfig *)config; }
+    void updateView();
+
+protected:
+    virtual void showEvent(QShowEvent * event);
 private slots:
     void blastLoadingProgress(LoaderThread *loader);
     void blastIsLoaded(LoaderThread *loader);

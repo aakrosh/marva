@@ -8,6 +8,7 @@
 #include "colors.h"
 #include "config.h"
 #include "blastfileloader.h"
+#include "logging.h"
 
 #include "ui_components/taxlistwidget.h"
 #include "ui_components/leftpanel.h"
@@ -21,6 +22,8 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QMessageBox>
+
+#define VERSION 1
 
 TaxMap taxMap;
 MainWindow *mainWindow;
@@ -86,6 +89,7 @@ void MainWindow::addGraphView(QWidget *gv, QString label)
 //=========================================================================
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
+    serializingProviders(0),
     ui(new Ui::MainWindow),
     activeGraphView(NULL),
     taxonomyTreeView(NULL)
@@ -226,10 +230,13 @@ void MainWindow::openProject(QString fileName)
     QString status = QString("Loading project file %1").arg(loadFile.fileName());
     QListWidgetItem *statusListItem = statusList->AddItem(status);
     QCoreApplication::processEvents();
+    deserialize(loadFile);
+    /*
     QByteArray saveData = loadFile.readAll();
     QJsonDocument loadDoc = QJsonDocument::fromJson(saveData);
     QJsonObject jobj = loadDoc.object();
     fromJson(jobj);
+    */
     loadFile.close();
     statusList->RemoveItem(statusListItem);
     history->addProject(fileName);
@@ -249,24 +256,111 @@ void MainWindow::open_project()
 }
 
 //=========================================================================
+void MainWindow::serialize(QFile &saveFile)
+{
+    const char header[] = "MARVA";
+    saveFile.write(header, sizeof(header)-1);
+    qint32 version = VERSION;
+    saveFile.write((const char *)&version, sizeof(version));
+
+    qint32 size = blastTaxDataProviders.count();
+    saveFile.write((const char *)&size, sizeof(size));
+
+    for ( int  i = 0; i < size; i++ )
+        blastTaxDataProviders[i]->serialize(saveFile);
+
+    size = 0;
+    for ( int i = 0; i < ui->tabWidget->count(); i++ )
+    {
+        DataGraphicsView *dgv = (DataGraphicsView *)ui->tabWidget->widget(i);
+        if ( dgv != NULL && !dgv->persistant )
+            ++size;
+    }
+
+    saveFile.write((const char *)&size, sizeof(size));
+
+    for ( int i = 0; i < ui->tabWidget->count(); i++ )
+    {
+        DataGraphicsView *dgv = (DataGraphicsView *)ui->tabWidget->widget(i);
+        if ( dgv != NULL && !dgv->persistant )
+        {
+            mlog.log(QString("Start saving view %1 to json").arg(dgv->taxDataProvider->name));
+            dgv->serialize(saveFile);
+            mlog.log(QString("End saving view %1 to json").arg(dgv->taxDataProvider->name));
+        }
+    }
+}
+
+//=========================================================================
+void MainWindow::deserialize(QFile &loadFile)
+{
+    char header[5];
+    loadFile.read((char *)&header, 5);
+    if ( strncmp(header, "MARVA", 5) != 0 )
+    {
+        qWarning("Wrong .marva file format.");
+        return;
+    }
+    qint32 version;
+    loadFile.read((char *)&version, sizeof(version));
+
+    quint32 size;
+    loadFile.read((char *)&size, sizeof(size));
+
+    for ( quint32  i = 0; i < size; i++ )
+    {
+        BlastTaxDataProvider *provider = new BlastTaxDataProvider(NULL);
+        provider->deserialize(loadFile, version);
+        blastTaxDataProviders.addProvider(provider);
+    }
+
+    loadFile.read((char *)&size, sizeof(size));
+
+    for ( quint32 i = 0; i < size; i++ )
+    {
+
+  /*      TaxDataProviderType dpType;
+        loadFile.read((char *)&dpType, sizeof(TaxDataProviderType));*/
+        quint32 dgvsize;
+        loadFile.read((char *)&dgvsize, sizeof(dgvsize));
+        QByteArray ba = loadFile.read(dgvsize);
+        QJsonDocument jdoc = QJsonDocument::fromBinaryData(ba);
+        QJsonObject jView = jdoc.object();
+
+        QString type = jView["Type"].toString();
+        DataGraphicsView *dgv = DataGraphicsView::createViewByType(this, type);
+        if ( dgv == NULL )
+        {
+            QMessageBox::warning(0, "Cannot create view", QString("Unknown view type %1").arg(type));
+            continue;
+        }
+        dgv->fromJson(jView);
+        if ( dgv->taxDataProvider == NULL )
+            continue;
+        addGraphView(dgv, dgv->taxDataProvider->name);
+        leftPanel->setTaxDataProvider(dgv->taxDataProvider);
+    }
+}
+
+//=========================================================================
 void MainWindow::save_project()
 {
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save project"),
-                                                          QString(),
-                                                          tr("Marva project (*.marva)"));
+                                                          QString(),                                                          tr("Marva project (*.marva)"));
     if ( fileName.isEmpty() )
         return;
     QFile saveFile(fileName);
 
     if ( !saveFile.open(QIODevice::WriteOnly ))
+    {
         qWarning("Couldn't open project file for writing.");
+        return;
+    }
+    serialize(saveFile);
 
-    QJsonObject saveObject;
-    toJson(saveObject);
-    QJsonDocument saveDoc(saveObject);
-    saveFile.write(saveDoc.toJson(QJsonDocument::Compact));
-    saveFile.close();
     history->addProject(fileName);
+
+    saveFile.close();
 }
 
 //=========================================================================
@@ -276,21 +370,16 @@ void MainWindow::close_project()
 }
 
 //=========================================================================
-void MainWindow::toJson(QJsonObject &json) const
+void MainWindow::toJson()
 {
-    blastTaxDataProviders.toJson(json);
-    QJsonArray jViewArr;
-    for ( int i = 0; i < ui->tabWidget->count(); i++ )
+    connect(this, SIGNAL(allProvidersSerialized()), this, SLOT(finishSerialization()));
+    for ( int  i = 0; i < blastTaxDataProviders.count(); i++ )
     {
-        DataGraphicsView *dgv = (DataGraphicsView *)ui->tabWidget->widget(i);
-        if ( dgv != NULL && !dgv->persistant )
-        {
-            QJsonObject jview;
-            dgv->toJson(jview);
-            jViewArr.append(jview);
-        }
+        ProvidersSerializationThread *pst = new ProvidersSerializationThread(blastTaxDataProviders.at(i));
+        mainWindow->connect(pst, SIGNAL(completed(ProvidersSerializationThread*)), mainWindow, SLOT(onProviderSerialized(ProvidersSerializationThread*)));
+        pst->start();
+        serializingProviders++;
     }
-    json["views"] = jViewArr;
 }
 
 //=========================================================================
@@ -299,9 +388,7 @@ void MainWindow::fromJson(QJsonObject &json)
     try
     {
         QCoreApplication::processEvents();
-        blastTaxDataProviders.clear();
         blastTaxDataProviders.fromJson(json);
-        QCoreApplication::processEvents();
         if ( blastTaxDataProviders.size() == 0 )
         {
             QMessageBox::warning(0, "Cannot open project", QString("UNo data providers are found in the project file"));
@@ -311,7 +398,7 @@ void MainWindow::fromJson(QJsonObject &json)
         for ( int i = 0; i < jViewArr.size(); i++ )
         {
             QCoreApplication::processEvents();
-            QJsonObject jView = jViewArr[i].toObject();;
+            QJsonObject jView = jViewArr[i].toObject();
             QString type = jView["Type"].toString();
             DataGraphicsView *dgv = DataGraphicsView::createViewByType(this, type);
             if ( dgv == NULL )
@@ -320,6 +407,8 @@ void MainWindow::fromJson(QJsonObject &json)
                 continue;
             }
             dgv->fromJson(jView);
+            if ( dgv->taxDataProvider == NULL )
+                continue;
             addGraphView(dgv, dgv->taxDataProvider->name);
             leftPanel->setTaxDataProvider(dgv->taxDataProvider);
         }
@@ -355,9 +444,9 @@ void MainWindow::open_tab_blast_file(QString fileName)
     ui->taxListDockWidget->setVisible(true);
     addGraphView(blastView, blastTaxDataProvider->name);
 
-    connect(bdtl, SIGNAL(progress(LoaderThread *)), this, SLOT(blastLoadingProgress(LoaderThread *)));
-    connect(bdtl, SIGNAL(progress(LoaderThread *)), blastView, SLOT(blastLoadingProgress(LoaderThread *)));
-    connect(bdtl, SIGNAL(progress(LoaderThread *)), taxListWidget, SLOT(refresh()));
+    connect(bdtl, SIGNAL(progress(LoaderThread *, qreal)), this, SLOT(blastLoadingProgress(LoaderThread *)));
+    connect(bdtl, SIGNAL(progress(LoaderThread *, qreal)), blastView, SLOT(blastLoadingProgress(LoaderThread *)));
+    connect(bdtl, SIGNAL(progress(LoaderThread *, qreal)), taxListWidget, SLOT(refresh()));
     connect(bdtl, SIGNAL(resultReady(LoaderThread *)), taxListWidget, SLOT(refreshAll()));
     connect(bdtl, SIGNAL(resultReady(LoaderThread *)), this, SLOT(blastIsLoaded(LoaderThread *)));
     connect(bdtl, SIGNAL(resultReady(LoaderThread *)), blastView, SLOT(blastIsLoaded(LoaderThread *)));
@@ -423,9 +512,9 @@ void MainWindow::treeIsLoaded(LoaderThread *loader)
 
     MapLoaderThread *mlThread = new MapLoaderThread(this, true, globalTaxDataProvider);
 
-    connect(mlThread, SIGNAL(progress(LoaderThread *)), this, SLOT(updateLoadedNames()));
-    connect(mlThread, SIGNAL(progress(LoaderThread *)), taxListWidget, SLOT(refreshValues()));
-    connect(mlThread, SIGNAL(progress(LoaderThread *)), globalTaxDataProvider, SLOT(onMapChanged()));
+    connect(mlThread, SIGNAL(progress(LoaderThread *, qreal)), this, SLOT(updateLoadedNames()));
+    connect(mlThread, SIGNAL(progress(LoaderThread *, qreal)), taxListWidget, SLOT(refreshValues()));
+    connect(mlThread, SIGNAL(progress(LoaderThread *, qreal)), globalTaxDataProvider, SLOT(onMapChanged()));
 
     connect(mlThread, SIGNAL(resultReady(LoaderThread *)), globalTaxDataProvider, SLOT(onMapChanged()));
     connect(mlThread, SIGNAL(resultReady(LoaderThread *)), taxListWidget, SLOT(refresh()));
@@ -534,4 +623,41 @@ QString MainWindow::getOpenFileName(QString text, QString filters)
 void MainWindow::blastIsLoaded(LoaderThread *)
 {
     blastLoadingProgress(NULL);
+}
+
+//=========================================================================
+void MainWindow::onProviderSerialized(ProvidersSerializationThread *thr)
+{
+    jProviders.append(thr->json);
+    if ( --serializingProviders == 0 )
+    {
+        big_json["BlastTaxDataProviders"] = jProviders;
+        emit allProvidersSerialized();
+    }
+    thr->deleteLater();
+}
+
+//=========================================================================
+void MainWindow::finishSerialization()
+{
+ /*   QJsonArray jViewArr;
+    for ( int i = 0; i < ui->tabWidget->count(); i++ )
+    {
+        DataGraphicsView *dgv = (DataGraphicsView *)ui->tabWidget->widget(i);
+        if ( dgv != NULL && !dgv->persistant )
+        {
+            mlog.log(QString("Start saving view %1 to json").arg(dgv->taxDataProvider->name));
+            QJsonObject jview;
+            dgv->toJson(jview);
+            jViewArr.append(jview);
+            mlog.log(QString("End saving view %1 to json").arg(dgv->taxDataProvider->name));
+        }
+    }
+    big_json["views"] = jViewArr;
+    QJsonDocument saveDoc(big_json);
+    saveFile.write(saveDoc.toJson(QJsonDocument::Compact));
+    saveFile.close();
+    QString fName = saveFile.fileName();
+    history->addProject(fName);*/
+
 }

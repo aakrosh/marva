@@ -2,11 +2,14 @@
 #include "blast_data.h"
 #include "graph_node.h"
 #include "colors.h"
+#include "logging.h"
+#include "main_window.h"
 
 #include <QColor>
 #include <QObject>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QMessageBox>
 
 BlastTaxDataProviders blastTaxDataProviders;
@@ -44,7 +47,7 @@ qint32 TaxDataProvider::id(quint32 index)
 }
 
 //=========================================================================
-BaseTaxNode *TaxDataProvider::taxNode(quint32 index)
+BaseTaxNode *TaxDataProvider::taxNode(qint32 index)
 {
     if ( ((qint32)index) < 0 )
         return NULL;
@@ -90,7 +93,7 @@ quint32 TaxDataProvider::readsById(quint32)
 }
 
 //=========================================================================
-quint32 TaxDataProvider::indexOf(qint32 id)
+qint32 TaxDataProvider::indexOf(qint32 id)
 {
     QReadWriteLocker locker(&lock);
 
@@ -239,7 +242,7 @@ BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, quint64 
 }
 
 //=========================================================================
-BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, QVector<quint64> pos)
+BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, QVector<quint64> &pos)
 {
     TaxMapIterator it = taxMap.find(id);
     if ( it == taxMap.end() )
@@ -276,10 +279,11 @@ BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, QVector<
 //=========================================================================
 void BlastTaxDataProvider::toJson(QJsonObject &json)
 {
+    mlog.log(QString("Start saving data provider %1 to json").arg(name));
     json["Name"] = name;
     json["Filename"] = fileName;
     QJsonArray dpArray;
-    QReadWriteLocker locker(&lock);
+    /*
     for (int i = 0 ; i < idTaxNodeList.count(); i++ )
     {
         const IdTaxNodePair &pair = idTaxNodeList[i];
@@ -289,7 +293,7 @@ void BlastTaxDataProvider::toJson(QJsonObject &json)
         QJsonArray jnode;
         jnode.append(pair.id);
         jnode.append((qint64)node->reads);
-        jnode.append(node->is_visible ? 1 : 0);
+        jnode.append(node->visible() ? 1 : 0);
         jnode.append(node->isCollapsed() ? 1: 0);
         QJsonArray jpos;
         for ( int j = 0; j < node->positions.count(); j++)
@@ -298,6 +302,42 @@ void BlastTaxDataProvider::toJson(QJsonObject &json)
         dpArray.append(jnode);
     }
     json["Arr"] = dpArray;
+*/
+    QStringList snodes;
+    QReadWriteLocker locker(&lock);
+    QJsonArray jArrays;
+    for ( int i=0; i < idTaxNodeList.count(); i++ )
+    {
+        const IdTaxNodePair &pair = idTaxNodeList[i];
+        BlastTaxNode *node = ((BlastTaxNode *)pair.node);
+        if ( node->reads == 0 && node->visible() && !node->isCollapsed() )
+            continue;           // This nodes will be generated during the loading automatically
+        QStringList sposes;
+        for ( int j = 0; j < node->positions.count(); j++)
+            sposes.append(QString::number((qint64)node->positions[j]));
+        QString snode = QString("[%1,%2,%3,%4,[%5]]")
+                .arg(pair.id)
+                .arg((quint64)node->reads)
+                .arg(node->visible() ? 1 : 0)
+                .arg(node->isCollapsed() ? 1 : 0)
+                .arg(sposes.join(','));
+        snodes.append(snode);
+        if ( snodes.count() == 100 )
+        {
+            QJsonDocument jd = QJsonDocument::fromJson(QString("[%1]").arg(snodes.join(',')).toUtf8());
+            QJsonArray jArr = jd.array();
+            jArrays.append(jArr);
+            snodes.clear();
+        }
+    }
+    if ( snodes.count() > 0 )
+    {
+        QJsonDocument jd = QJsonDocument::fromJson(QString("[%1]").arg(snodes.join(',')).toUtf8());
+        QJsonArray jArr = jd.array();
+        jArrays.append(jArr);
+    }
+    json["Arr"] = jArrays;
+    mlog.log(QString("End saving data provider %1 to json").arg(name));
 }
 
 //=========================================================================
@@ -339,6 +379,116 @@ void BlastTaxDataProvider::fromJson(QJsonObject &json)
 BlastTaxNode *BlastTaxDataProvider::nodeById(qint32 id)
 {
     return blastNodeMap->value(id);
+}
+
+static void writeByteArrayToFile(const QByteArray &ba, QFile &file)
+{
+    quint32 size = ba.size();
+    file.write((const char *)&size, sizeof(size));
+    file.write(ba);
+}
+
+static void readByteArrayFromFile(QByteArray &ba, QFile &file)
+{
+    quint32 size;
+    file.read((char *)&size, sizeof(size));
+    ba = file.read(size);
+}
+
+static void writeJsonObjectToFile(QJsonObject &jobj, QFile &file)
+{
+    QJsonDocument jdoc(jobj);
+    writeByteArrayToFile(jdoc.toBinaryData(), file);
+}
+
+static void readJsonObjectFromFile(QJsonObject &jobj, QFile &file)
+{
+    QByteArray ba;
+    readByteArrayFromFile(ba, file);
+    QJsonDocument jdoc = QJsonDocument::fromBinaryData(ba);
+    jobj = jdoc.object();
+}
+
+static void writeJsonArrayToFile(QJsonArray &jarr, QFile &file)
+{
+    QJsonDocument jdoc(jarr);
+    writeByteArrayToFile(jdoc.toBinaryData(), file);
+}
+
+static void readJsonArrayFromFile(QJsonArray &jarr, QFile &file)
+{
+    QByteArray ba;
+    readByteArrayFromFile(ba, file);
+    QJsonDocument jdoc = QJsonDocument::fromBinaryData(ba);
+    jarr = jdoc.array();
+}
+
+void BlastTaxDataProvider::serialize(QFile &file)
+{
+    mlog.log(QString("Start saving data provider %1 to json").arg(name));
+    QJsonObject json;
+    json["Name"] = name;
+    json["Filename"] = fileName;
+    writeJsonObjectToFile(json, file);
+
+    quint32 size = idTaxNodeList.count();
+    file.write((const char *)&size, sizeof(size));
+    for (int i = 0 ; i < idTaxNodeList.count(); i++ )
+    {
+        const IdTaxNodePair &pair = idTaxNodeList[i];
+        BlastTaxNode *node = ((BlastTaxNode *)pair.node);
+        QJsonArray jnode;
+        jnode.append(pair.id);
+        jnode.append((qint64)node->reads);
+        jnode.append(node->visible() ? 1 : 0);
+        jnode.append(node->isCollapsed() ? 1: 0);
+        writeJsonArrayToFile(jnode, file);
+
+        quint64 *data = node->positions.data();
+        size = node->positions.size() * sizeof(node->positions[0]);
+        file.write((const char *)&size, sizeof(size));
+        file.write((const char *)data, size);
+    }
+    mlog.log(QString("Finished saving data provider %1 to json").arg(name));
+}
+
+//=========================================================================
+void BlastTaxDataProvider::deserialize(QFile &file, qint32 /*version*/)
+{
+    QJsonObject json;
+    readJsonObjectFromFile(json, file);
+    name = json["Name"].toString();
+    fileName = json["Filename"].toString();
+
+    quint32 size;
+    file.read((char *)&size, sizeof(size));
+    for (quint32  i = 0; i < size; ++i)
+    {
+        QJsonArray jNode;
+        readJsonArrayFromFile(jNode, file);
+        qint32 id = jNode[0].toInt();
+        quint32 reads = jNode[1].toInt();
+        bool visible = jNode[2].toInt() == 1;
+        bool collapsed = jNode[3].toInt() == 1;
+
+        quint32 psize;
+        file.read((char *)&psize, sizeof(psize));
+
+        QVector<quint64> positions;
+        QByteArray ba = file.read(psize);
+        std::vector<quint64> tmp;
+        tmp.assign(ba.data(), ba.data() + psize/sizeof(quint64));
+        positions.fromStdVector(tmp);
+
+        BlastTaxNode *node = addTaxNode(id, reads > 0 ? reads : -1, positions);
+        if ( node != NULL )
+        {
+            node->setVisible(visible);
+            if ( collapsed )
+                node->setCollapsed(true, false);
+        }
+    }
+    updateCache(false);
 }
 
 //=========================================================================
@@ -474,21 +624,15 @@ void BlastTaxDataProvider::onBlastLoaded(void *)
 //=========================================================================
 BlastTaxDataProviders::BlastTaxDataProviders() :
     QList<BlastTaxDataProvider *>(),
-    visibility_mask(0)
+    visibility_mask(0),
+    serializingProviders(0)
 {
 }
 
 //=========================================================================
 void BlastTaxDataProviders::toJson(QJsonObject &json)
 {
-    QJsonArray jProviders;
-    for ( int  i = 0; i < count(); i++ )
-    {
-        QJsonObject jProvider;
-        at(i)->toJson(jProvider);
-        jProviders.append(jProvider);
-    }
-    json["BlastTaxDataProviders"] = jProviders;
+
 }
 
 //=========================================================================
@@ -538,8 +682,30 @@ bool BlastTaxDataProviders::isVisible(quint8 index)
     return ((visibility_mask >> index) & 1) != 0;
 }
 
+//=========================================================================
 void BlastTaxDataProviders::addProvider(BlastTaxDataProvider *p)
 {
     append(p);
     setVisible(count()-1, true);
+}
+
+//=========================================================================
+void BlastTaxDataProviders::serialize(QFile &file)
+{
+
+}
+
+//=========================================================================
+ProvidersSerializationThread::ProvidersSerializationThread(BlastTaxDataProvider *p):
+    QThread(),
+    provider(p)
+{
+
+}
+
+//=========================================================================
+void ProvidersSerializationThread::run()
+{
+    provider->toJson(json);
+    emit completed(this);
 }

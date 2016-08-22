@@ -4,6 +4,7 @@
 #include <QGraphicsView>
 #include <QPrinter>
 #include <QMenu>
+#include <QFile>
 
 class TaxDataProvider;
 class BaseTaxNode;
@@ -39,6 +40,8 @@ public:
     virtual void fromJson(QJsonObject &) {}
     static DataGraphicsView *createViewByType(QWidget *parent, QString &type);
     inline quint64 getFlags() { return flags; }
+    virtual void serialize(QFile &file);
+    virtual void deserialize(QFile & /*file*/, int /*version*/){}
 protected slots:
     virtual void onCurrentNodeChanged(BaseTaxNode *) {}
     virtual void print();

@@ -15,10 +15,11 @@ using namespace std;
 
 //=========================================================================
 BlastFileLoader::BlastFileLoader(QObject *parent, QString fileName, BlastTaxDataProvider *dp) :
-    LoaderThread(parent, fileName, NULL, NULL, 1000, true, true),
+    LoaderThread(parent, fileName, NULL, NULL, 6000, true, true),
     parser(NULL),
     root(NULL),
-    dataProvider(dp)
+    dataProvider(dp),
+    oldCount(0)
 {
     dp->name = QFileInfo(fileName).fileName();
     caption = QString("Importing blast file: ").append(dp->name);
@@ -30,7 +31,7 @@ BlastFileLoader::~BlastFileLoader()
 }
 
 //=========================================================================
-void BlastFileLoader::addTaxNode(quint32 taxa_id, QVector<quint64> pos)
+void BlastFileLoader::addTaxNode(quint32 taxa_id, QVector<quint64> &pos)
 {
     dataProvider->addTaxNode(taxa_id, -1, pos);
     if ( result == NULL )
@@ -43,8 +44,7 @@ void BlastFileLoader::ProcessFinishedQuery()
     if ( lastQuery.tax_details_map.empty() )
         return;
     // Save positions
-    QVector<quint64> poss;
-    lastQuery.tax_details_map.positions(&poss);
+    QVector<quint64> &poss = lastQuery.tax_details_map.positions();
     // Find LCA
     qint32 lca_id = lastQuery.lca_id();
     addTaxNode(lca_id, poss);
@@ -70,13 +70,17 @@ void BlastFileLoader::processLine(QString &line)
     }
     if ( parser == NULL )
         return;
-    BlastRecord *rec = parser->parse(line);
-    if ( rec == NULL )
+    BlastRecord rec;
+    //BlastRecord *rec = parser->parse(line);
+    parser->parse(line, rec);
+//    if ( rec == NULL )
+//        return;
+    if ( rec.bitscore < 70 )           // TODO: Configure
         return;
-    if ( lastQuery.queryName != rec->query_name )
+    if ( lastQuery.queryName != rec.query_name )
         ProcessFinishedQuery();
-    lastQuery.add(rec->query_name, rec, curPos);
-    delete rec;
+    lastQuery.add(rec.query_name, &rec, curPos);
+//    delete rec;
 }
 
 //=========================================================================
@@ -86,7 +90,22 @@ void BlastFileLoader::finishProcessing()
     dataProvider->updateCache(false);
     if ( parser != NULL )
         delete parser;
-    LoaderThread::finishProcessing();    
+    LoaderThread::finishProcessing();
+}
+
+//=========================================================================
+void BlastFileLoader::reportProgress(qreal val)
+{
+    updateDataProviderCache();
+    LoaderThread::reportProgress(val);
+}
+
+//=========================================================================
+void BlastFileLoader::updateDataProviderCache()
+{
+    quint32 newCount = dataProvider->count();
+    dataProvider->updateCache(oldCount != newCount);
+    oldCount = newCount;
 }
 
 //=========================================================================
@@ -102,18 +121,25 @@ BlastRecord *BlastParser::parse(QString &line)
 }
 
 //=========================================================================
+void BlastParser::parse(QString &line, BlastRecord &rec)
+{
+    r.parse(getType(), line, rec);
+}
+
+
+//=========================================================================
 SequenceBlastParser::SequenceBlastParser():
     BlastParser()
 {
-    gi2TaxProvider = new Gi2TaxMapBinProvider(&gi2taxmap);
+    if ( gi2TaxProvider == NULL )
+        gi2TaxProvider = new Gi2TaxMapBinProvider(&gi2taxmap);
     gi2TaxProvider->open();
 }
 
+//=========================================================================
 SequenceBlastParser::~SequenceBlastParser()
 {
     gi2TaxProvider->close();
-    delete gi2TaxProvider;
-    gi2TaxProvider = NULL;
 }
 
 //=========================================================================
@@ -134,8 +160,7 @@ BlastRecord *SequenceBlastParser::parse(QString &line)
 void QueryDetails::clean()
 {
     queryName.clear();
-    qDeleteAll(tax_details_map);
-    tax_details_map.clear();
+    tax_details_map.clean();
 }
 
 //=========================================================================

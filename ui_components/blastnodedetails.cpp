@@ -24,7 +24,7 @@ BlastNodeDetails::BlastNodeDetails(QWidget *parent, BlastTaxNode *n, QString &fi
     NodeDetailsLoaderThread *ndlt = new NodeDetailsLoaderThread(this, fileName, n, type);
     ndlt->nodeDetails = &model->nodeDetails;
     connect(ndlt, SIGNAL(finished()), ndlt, SLOT(deleteLater()));
-    connect(ndlt, SIGNAL(progress(LoaderThread *)), this, SLOT(refresh()));
+    connect(ndlt, SIGNAL(progress(LoaderThread *, qreal)), this, SLOT(refresh()));
     connect(ndlt, SIGNAL(resultReady(LoaderThread *)), this, SLOT(refresh()));
     ndlt->run();
 }
@@ -41,17 +41,6 @@ void BlastNodeDetails::setNode(BlastTaxNode *n) { model->node = n; }
 void BlastNodeDetails::refresh()
 {
     model->reset();
-/*    QModelIndex i1 = ui->tableView->indexAt(ui->tableView->rect().topLeft());
-    QModelIndex i2 = ui->tableView->indexAt(ui->tableView->rect().bottomRight());
-//    quint32 new_count = model->
-    if ( old_count < new_count )
-    {
-        model->beginInsertRows(QModelIndex(), old_count, new_count-1);
-        model->endInsertRows();
-        old_count = new_count;
-    }
-    model->dataChanged(i1, i2);
-    */
 }
 
 //=========================================================================
@@ -113,11 +102,6 @@ int BlastNodeDetailsModel::rowCount(const QModelIndex &parent) const
 int BlastNodeDetailsModel::columnCount(const QModelIndex &) const
 {
     return 10;
-    /*if ( !parent.isValid() )
-        return 12;
-    NodeDetailNode *ndn = static_cast<NodeDetailNode *>(parent.internalPointer());
-
-    return ndn->type == ND_QUERY ? 1 : 12;*/
 }
 
 //=========================================================================
@@ -194,7 +178,7 @@ void NodeDetailsLoaderThread::run()
         gi2TaxProvider = new Gi2TaxMapBinProvider(&gi2taxmap);
         gi2TaxProvider->open();
     }
-
+    quint64 fSize = file.size();
     while( !in.atEnd() && nposition < node->positions.size() )
     {
         qint64 pos = node->positions[nposition++];
@@ -207,7 +191,7 @@ void NodeDetailsLoaderThread::run()
         processLine(line);
         if ( ++p == progressCounter )
         {
-            emit progress(this);
+            reportProgress(((qreal)pos)/fSize);
             p = 0;
         }
     }

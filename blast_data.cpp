@@ -20,7 +20,7 @@ BlastTaxNode::BlastTaxNode(TreeTaxNode *refNode, int _count, BlastNodeMap *blast
 BlastTaxNode *BlastTaxNode::clone()
 {
     BlastTaxNode *n = new BlastTaxNode(tNode, reads, NULL);
-    n->collapsed = collapsed;
+    n->flags = flags;
     n->gnode = NULL;
     n->is_visible = is_visible;
     return n;

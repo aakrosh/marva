@@ -6,6 +6,7 @@
 #include <QAction>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QMessageBox>
 
 #include "graphview.h"
@@ -106,6 +107,7 @@ void TreeGraphView::updateXCoord()
     qreal dx = max_w/treeDepth;
     if ( dx < MIN_DX )
         dx = MIN_DX;
+    hor_interval = dx;
     class NodeXChanger: public TaxNodeVisitor
     {
         public:
@@ -151,6 +153,8 @@ void TreeGraphView::expandPathTo(TreeTaxNode *node)
 void TreeGraphView::goUp()
 {
     TreeTaxNode *curNode = getCurNode();
+    if ( curNode == NULL )
+        return;
     if ( curNode->parent == NULL )
         return;
     QPointF p = curNode->getGnode()->pos();
@@ -228,9 +232,9 @@ void TreeGraphView::goRight()
 }
 
 //=========================================================================
-void TreeGraphView::setNodeInvisible(BaseTaxNode *bnode)
+void TreeGraphView::setNodeInvisible(TreeTaxNode *bnode)
 {
-    if  ( !bnode->is_visible )
+    if  ( !bnode->visible() )
         return;
     bnode->setVisible(false);
     hiddenNodes++;
@@ -244,7 +248,7 @@ void TreeGraphView::hideNodes(quint32 oldT, quint32 newT)
     {
         quint32 oldT;
         quint32 newT;
-        bool has_visible;
+//        bool has_visible;
     public:
         NodeHider(TreeGraphView *gv, quint32 _oldT, quint32 _newT):
             TaxNodeVisitor(LeavesToRoot, false, gv, false, true),
@@ -257,15 +261,16 @@ void TreeGraphView::hideNodes(quint32 oldT, quint32 newT)
         virtual void Action(TreeTaxNode *node)
         {
             BlastTaxNode *bnode = dynamic_cast<BlastTaxNode *>(node);
-            if ( bnode->reads == 0 )
+//            if ( bnode->reads == 0 )
+              if ( bnode->sum() == 0 )
             {
-                if ( !has_visible )
+                if ( /*!has_visible */ bnode->hasVisibleChildren() )
                     graphView->setNodeInvisible(bnode);
             }
-            else if ( bnode->is_visible && bnode->reads < newT )
+            else if ( bnode->visible() && bnode->sum() < newT )
                 graphView->setNodeInvisible(bnode);
         }
-        virtual void afterVisitChildren(TreeTaxNode *node)
+       /* virtual void afterVisitChildren(TreeTaxNode *node)
         {
             QList<TreeTaxNode *> &list = node->children;
             has_visible = false;
@@ -277,7 +282,9 @@ void TreeGraphView::hideNodes(quint32 oldT, quint32 newT)
                     break;
                 }
             }
-        }
+            //node->markChildrenDirty();
+//            bnode->hasVisibleChildren();
+        }*/
     };
     NodeHider nh(this, oldT, newT); // Mark nodes as non-visible
     nh.Visit(root);
@@ -316,15 +323,13 @@ void TreeGraphView::unhideNodes(quint32 oldT, quint32 newT)
         virtual void Action(TreeTaxNode *node)
         {
             BlastTaxNode *bnode = dynamic_cast<BlastTaxNode *>(node);
-            if ( bnode->reads == 0 )
-            {
-                if ( has_visible )
-                    bnode->setVisible(true);
-            }
-            else if ( bnode->reads > newT && bnode->reads <= oldT )
+            quint32 bnsum = bnode->sum();
+            if ( bnode->hasVisibleChildren() )
+               bnode->setVisible(true);
+            else if ( bnsum > newT && bnsum <= oldT )
                bnode->setVisible(true);
         }
-        virtual void afterVisitChildren(TreeTaxNode *node)
+        /*virtual void afterVisitChildren(TreeTaxNode *node)
         {
             QList<TreeTaxNode *> &list = node->children;
             has_visible = false;
@@ -336,7 +341,7 @@ void TreeGraphView::unhideNodes(quint32 oldT, quint32 newT)
                     break;
                 }
             }
-        }
+        }*/
     };
     NodeUnHider nh(this, oldT, newT);
     nh.Visit(root);
@@ -621,6 +626,7 @@ void TreeGraphView::resetNodesCoordinates()
     int dx = treeDepth == 0 ? 0 : w/treeDepth;
     if ( dx < MIN_DX )
         dx = MIN_DX;
+    hor_interval = dx;
     class NodeXSetter : public TaxNodeVisitor
     {
         int dx;
@@ -633,7 +639,16 @@ void TreeGraphView::resetNodesCoordinates()
             if ( node->getLevel() == 0 )
                 x = 0;
             else if ( shouldVisitChildren(node) )
-                x = node->getLevel()*dx;
+            {
+                for ( ChildrenList::iterator it = node->children.begin(); it != node->children.end(); it++ )
+                {
+                    if ( (*it)->visible() )
+                    {
+                        x = node->getLevel()*dx;
+                        break;
+                    }
+                }
+            }
             node->getGnode()->setX(x);
         }
     };
@@ -646,7 +661,6 @@ void TreeGraphView::resetNodesCoordinates()
 //=========================================================================
 void TreeGraphView::updateDirtyNodes(quint32 flag)
 {
-//    for (DirtyGNodesList::iterator it = dirtyList.begin(); it < dirtyList.end(); it++ )
     for (DirtyGNodesList::iterator it = dirtyList.end()-1; it >= dirtyList.begin(); it-- )
     {
         TaxTreeGraphNode *n = *it;
@@ -692,6 +706,8 @@ void TreeGraphView::onCurrentNodeChanged(BaseTaxNode *node)
     TreeTaxNode *ttn = (TreeTaxNode *)node;
     expandPathTo(ttn);
     taxDataProvider->current_tax_id = node->getId();
+    if ( taxDataProvider->indexOf(taxDataProvider->current_tax_id) < 0 )
+        return;
     if ( oldNode != NULL)
     {
         TaxTreeGraphNode *oldGNode = oldNode->getTaxTreeGNode();
@@ -883,7 +899,8 @@ void DirtyGNodesList::Add(TaxTreeGraphNode *node)
 //=========================================================================
 BlastGraphView::BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidget *parent, TaxNode *taxTree):
     TreeGraphView(parent, taxTree),
-    reads_threshold(0)
+    reads_threshold(0),
+    dirty(false)
 {
     flags |= DGF_BUBBLES|DGF_READS;
     config = new BubbledGraphViewConfig();
@@ -910,34 +927,48 @@ BlastGraphView::~BlastGraphView()
 }
 
 //=========================================================================
-void BlastGraphView::blastLoadingProgress(LoaderThread *loader)
+void BlastGraphView::updateView()
 {
     static bool updating = false;
-    if ( updating || loader == NULL )
+    if ( updating )
         return;
     updating = true;
-    bool centeron = root == NULL;
-    type = ((BlastFileLoader *)loader)->type;
-    if ( root != loader->getResult() )
-        root = (BlastTaxNode *)loader->getResult();
+
     createMissedGraphNodes();
-    if ( centeron )
-        centerOn(root->getGnode());
+
     updateDirtyNodes(DIRTY_NAME);
     updating = false;
 }
 
 //=========================================================================
+void BlastGraphView::blastLoadingProgress(LoaderThread *loader)
+{
+    Q_ASSERT_X(loader != NULL, "BlastGraphView::blastLoadingProgress",  "Loader must not be NULL");
+    if ( root != loader->getResult() )
+    {
+        root = (BlastTaxNode *)loader->getResult();
+        type = ((BlastFileLoader *)loader)->type;
+    }
+    if ( !isVisible() )
+    {
+        dirty = true;
+        return;
+    }
+
+    updateView();
+}
+
+//=========================================================================
 void BlastGraphView::blastIsLoaded(LoaderThread *loader)
 {
+    Q_ASSERT_X(loader != NULL, "BlastGraphView::blastLoadingProgress",  "Loader must not be NULL");
     BlastFileLoader *bfLoader = (BlastFileLoader *)loader;
     type = bfLoader->type;
     if ( root != loader->getResult() )
-        root = (BlastTaxNode *)loader->getResult();
+       root = (BlastTaxNode *)loader->getResult();
     if ( root == NULL )
         return;
-    createMissedGraphNodes();
-    updateDirtyNodes(DIRTY_NAME);
+    updateView();
 }
 
 //=========================================================================
@@ -978,7 +1009,8 @@ void BlastGraphView::fromJson(QJsonObject &json)
         BlastTaxDataProvider *p = blastTaxDataProviders.providerByName(dpName);
         if ( p == NULL )
         {
-             close();
+             //close();
+            throw("Cannot found data provider");
              return;
         }
         p->addParent();
@@ -990,6 +1022,17 @@ void BlastGraphView::fromJson(QJsonObject &json)
     {
         QMessageBox::warning(this, "Error occured", "Cannot restore graph view");
     }
+}
+
+//=========================================================================
+void BlastGraphView::showEvent(QShowEvent *event)
+{
+    if ( dirty )
+    {
+        dirty = false;
+        updateView();
+    }
+    QGraphicsView::showEvent(event);
 }
 
 //=========================================================================

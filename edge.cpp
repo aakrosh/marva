@@ -42,6 +42,8 @@
 #include "graph_node.h"
 #include "tax_map.h"
 #include "tree_tax_node.h"
+#include "graphview.h"
+#include "config.h"
 
 #include <math.h>
 
@@ -80,10 +82,21 @@ void Edge::adjust()
         return;
 
     prepareGeometryChange();
-    points[0] = mapFromItem(source, 10, 0);
-    points[1] = mapFromItem(source, LINE_BREAK_X, 0);
-    points[2] = mapFromItem(source, LINE_BREAK_X+30, dest->y()-source->y());
-    points[3] = mapFromItem(dest, -10, 0);
+    if ( configuration->TreeView()->edgeStyle() == EDGE_CURVE )
+    {
+        points[0] = mapFromItem(source, 10, 0);
+        points[1] = mapFromItem(source, LINE_BREAK_X+30, dest->y()-source->y());
+        qreal dest_x = dest->getTaxNode()->getLevel()*dest->getView()->hor_interval;
+        points[2] = mapFromItem(dest, dest_x - dest->x() - 10, 0);
+        points[3] = mapFromItem(dest, -10, 0);
+    }
+    else
+    {
+        points[0] = mapFromItem(source, 10, 0);
+        points[1] = mapFromItem(source, LINE_BREAK_X, 0);
+        points[2] = mapFromItem(source, LINE_BREAK_X+30, dest->y()-source->y());
+        points[3] = mapFromItem(dest, -10, 0);
+    }
 }
 
 //=========================================================================
@@ -115,10 +128,22 @@ void Edge::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
     }
     else
     {
-        if ( dest->getTaxNode() != source->getTaxNode()->children[0] )
-            painter->drawPolyline(&points[1], 3);
+        if ( configuration->TreeView()->edgeStyle() == EDGE_CURVE )
+        {
+            QPainterPath p(points[0]);
+            p.cubicTo(points[1], points[1], points[2]);
+            if ( points[2].x() != points[3].x() )
+                p.lineTo(points[3]);
+            painter->drawPath(p);
+
+        }
         else
-            painter->drawPolyline(points, 4);
+        {
+            if ( dest->getTaxNode() != source->getTaxNode()->children[0] )
+                painter->drawPolyline(&points[1], 3);
+            else
+                painter->drawPolyline(points, 4);
+        }
         // Draw the arrows
         QPointF destArrowP1 = points[3] + QPointF(sin(-Pi / 2.5) * arrowSize,
                                                   cos(-Pi / 2.5) * arrowSize);

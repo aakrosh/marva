@@ -8,6 +8,10 @@
 #include <QColor>
 #include <QVariant>
 #include <QObject>
+#include <QThread>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QFile>
 
 class BaseTaxNode;
 class BlastNodeMap;
@@ -44,7 +48,7 @@ public:
     virtual ~TaxDataProvider();
     virtual quint32 count();
     virtual qint32 id(quint32 index);
-    virtual BaseTaxNode *taxNode(quint32 index);
+    virtual BaseTaxNode *taxNode(qint32 index);
     virtual BaseTaxNode *taxNodeById(qint32 id);
     virtual BaseTaxNode *currentTaxNode() { return taxNodeById(current_tax_id); }
     virtual quint32 reads(quint32 index);
@@ -52,7 +56,7 @@ public:
     virtual quint32 sumById(quint32 id);
     virtual QString text(quint32 index);
     virtual quint32 readsById(quint32 id);
-    virtual quint32 indexOf(qint32 id);
+    virtual qint32 indexOf(qint32 id);
     virtual void updateCache(bool /*ids_only*/) {}
     virtual QColor color(int /*index*/) { return Qt::white; }
     virtual QVariant checkState(int /*index*/);
@@ -73,6 +77,7 @@ class GlobalTaxMapDataProvider : public TaxDataProvider
     Q_OBJECT
 public:
     TaxMap *taxMap;
+    QReadWriteLock lock;
     TaxNode *taxTree;
     GlobalTaxMapDataProvider(QObject *parent, TaxMap *tm);
     virtual void updateCache(bool values_only);
@@ -106,10 +111,12 @@ public:
     virtual void addParent();
     virtual void removeParent();
     BlastTaxNode *addTaxNode(qint32 id, qint32 reads, quint64 pos);
-    BlastTaxNode *addTaxNode(qint32 id, qint32 reads, QVector<quint64> pos);
+    BlastTaxNode *addTaxNode(qint32 id, qint32 reads, QVector<quint64> &pos);
     virtual void toJson(QJsonObject &json);
     virtual void fromJson(QJsonObject &json);
     BlastTaxNode *nodeById(qint32 id);
+    void serialize(QFile &file);
+    void deserialize(QFile &file, qint32 version);
 
 public slots:
     void onBlastProgress(void *);
@@ -121,6 +128,9 @@ public slots:
 class BlastTaxDataProviders : public QList<BlastTaxDataProvider *>
 {
     quint64 visibility_mask;
+    QJsonArray jProviders;
+    QJsonObject *big_json;
+    int serializingProviders;
 public:
     BlastTaxDataProviders();
     virtual void toJson(QJsonObject &json);
@@ -129,6 +139,19 @@ public:
     void setVisible(quint8 index, bool visible);
     bool isVisible(quint8 index);
     void addProvider(BlastTaxDataProvider *);
+    void serialize(QFile &file);
+};
+
+class ProvidersSerializationThread : public QThread
+{
+    Q_OBJECT
+    BlastTaxDataProvider *provider;
+public:
+    QJsonObject json;
+    ProvidersSerializationThread(BlastTaxDataProvider *p);
+    virtual void run();
+signals:
+    void completed(ProvidersSerializationThread *);
 };
 
 extern BlastTaxDataProviders blastTaxDataProviders;

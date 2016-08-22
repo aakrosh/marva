@@ -37,6 +37,19 @@ public:
     virtual void fromJson(QJsonObject &json);
 };
 
+#define EDGE_LINE   0
+#define EDGE_CURVE  1
+
+class TreeViewConfig : public AbstractConfigBlock
+{
+    Q_OBJECT
+public:
+    TreeViewConfig();
+    CONFIG_PROPERTY(int, edgeStyle)
+    virtual void toJson(QJsonObject &json) const;
+    virtual void fromJson(QJsonObject &json);
+};
+
 
 class Config : public AbstractConfigFile
 {
@@ -46,6 +59,7 @@ public:
     GETBLOCK(BubbleChart)
     GETBLOCK(GraphNode)
     GETBLOCK(Paths)
+    GETBLOCK(TreeView)
 };
 
 extern Config *configuration;
