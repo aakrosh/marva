@@ -43,7 +43,8 @@ HEADERS += edge.h \
     logging.h \
     ui_components/sliderwithedit.h \
     ui_components/blastnodedetails.h \
-    gi2taxmaptxtloader.h
+    gi2taxmaptxtloader.h \
+    ui_components/taxrankchooser.h
 FORMS += \
     main_window.ui \
     ui_components/taxlistwidget.ui \
@@ -54,7 +55,8 @@ FORMS += \
     ui_components/start_dialog.ui \
     ui_components/configurationdialog.ui \
     ui_components/sliderwithedit.ui \
-    ui_components/blastnodedetails.ui
+    ui_components/blastnodedetails.ui \
+    ui_components/taxrankchooser.ui
 SOURCES += edge.cpp \
     blast_record.cpp \
     blast_data.cpp \
@@ -89,4 +91,5 @@ SOURCES += edge.cpp \
     logging.cpp \
     ui_components/sliderwithedit.cpp \
     ui_components/blastnodedetails.cpp \
-    gi2taxmaptxtloader.cpp
+    gi2taxmaptxtloader.cpp \
+    ui_components/taxrankchooser.cpp

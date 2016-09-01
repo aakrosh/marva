@@ -26,7 +26,7 @@ BlastNodeDetails::BlastNodeDetails(QWidget *parent, BlastTaxNode *n, QString &fi
     connect(ndlt, SIGNAL(finished()), ndlt, SLOT(deleteLater()));
     connect(ndlt, SIGNAL(progress(LoaderThread *, qreal)), this, SLOT(refresh()));
     connect(ndlt, SIGNAL(resultReady(LoaderThread *)), this, SLOT(refresh()));
-    ndlt->run();
+    ndlt->start();
 }
 
 //=========================================================================
@@ -243,7 +243,11 @@ QVariant NDBlastRecord::data(int column)
     switch( column )
     {
         case 0: return br->alligment_id;
-        case 1: return taxMap.value(br->taxa_id)->getText();
+        case 1:
+            {
+                TaxNode *tn = taxMap.value(br->taxa_id);
+                return tn == NULL ? "" : tn->getText();
+            }
         case 2: return br->identity;
         case 3: return br->allignment_len;
         case 4: return br->mismatch_count;

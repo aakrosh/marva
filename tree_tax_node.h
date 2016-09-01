@@ -33,7 +33,31 @@ public:
     virtual TreeTaxNode *addChild(TreeTaxNode *node);
     virtual void mergeWith(TreeTaxNode *other, TreeGraphView *gview);
     virtual inline TaxTreeGraphNode *getTaxTreeGNode() { return (TaxTreeGraphNode *) getGnode(); }
+};
 
+typedef QList<TreeTaxNode *>::iterator TaxNodeIterator;
+
+enum VisitorDirection{ RootToLeaves, LeavesToRoot };
+
+class TaxNodeVisitor
+{
+public:
+    TaxNodeVisitor(VisitorDirection _direction, bool visit_collapsed=false, TreeGraphView *gv=NULL, bool createGNodes=false, bool visitNullGnodes = true, bool _visit_invisible = true);
+    virtual void Action(TreeTaxNode *root) = 0;
+    void Visit(TreeTaxNode *node);
+private:
+    VisitorDirection direction;
+protected:
+    bool createGraphNodes;
+    bool visitCollapsed;
+    TreeGraphView *graphView;
+    bool visitNullGnodes;
+    bool visit_invisible;
+    void VisitRootToLeaves(TreeTaxNode *node);
+    void VisitLeavesToRoot(TreeTaxNode *node);
+    bool shouldVisitChildren(TreeTaxNode *node);
+    virtual void beforeVisitChildren(TreeTaxNode *){}
+    virtual void afterVisitChildren(TreeTaxNode *){}
 };
 
 #endif // TREETAXNODE_H

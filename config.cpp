@@ -12,6 +12,7 @@ BubbleChartConfig::BubbleChartConfig():
     INITPROPERTY(maxChartTaxes, 120);
     INITPROPERTY(defaultVisibleChartTaxes, 40);
     INITPROPERTY(defaultMaxBubbleSize, 60);
+    INITPROPERTY(bubbleSizeCalculationMethod, METHOD_LINEAR);
 }
 
 //=========================================================================
@@ -21,7 +22,8 @@ void BubbleChartConfig::toJson(QJsonObject &json) const
     TOJSON(jBubbleChart, maxChartTaxes);
     TOJSON(jBubbleChart, defaultVisibleChartTaxes);
     TOJSON(jBubbleChart, defaultMaxBubbleSize);
-    json["BubbleChart"] = jBubbleChart;
+    TOJSON(jBubbleChart, bubbleSizeCalculationMethod);
+    json["BubbleChart"] = jBubbleChart;    
 }
 
 //=========================================================================
@@ -33,6 +35,7 @@ void BubbleChartConfig::fromJson(QJsonObject &json)
         INTFROMJSON(jBubbleChart, maxChartTaxes)
         INTFROMJSON(jBubbleChart, defaultVisibleChartTaxes)
         INTFROMJSON(jBubbleChart, defaultMaxBubbleSize)
+        INTFROMJSON(jBubbleChart, bubbleSizeCalculationMethod)
     }
     catch(...)
     {
@@ -47,6 +50,7 @@ GraphNodeConfig::GraphNodeConfig():
     INITPROPERTY(nodeCircleSize, 8);
     INITPROPERTY(halfPlusSize, 3);
     INITPROPERTY(maxNodeRadius, 30);
+    INITPROPERTY(edgeStyle, EDGE_CURVE);
 }
 
 //=========================================================================
@@ -56,6 +60,7 @@ void GraphNodeConfig::toJson(QJsonObject &json) const
     TOJSON(jGNode, nodeCircleSize);
     TOJSON(jGNode, halfPlusSize);
     TOJSON(jGNode, maxNodeRadius);
+    TOJSON(jGNode, edgeStyle);
     json["GraphNode"] = jGNode;
 }
 
@@ -68,6 +73,7 @@ void GraphNodeConfig::fromJson(QJsonObject &json)
         INTFROMJSON(jGNode, nodeCircleSize)
         INTFROMJSON(jGNode, halfPlusSize)
         INTFROMJSON(jGNode, maxNodeRadius)
+        INTFROMJSON(jGNode, edgeStyle)
     }
     catch(...)
     {
@@ -76,55 +82,33 @@ void GraphNodeConfig::fromJson(QJsonObject &json)
 }
 
 //=========================================================================
-PathsConfig::PathsConfig():
-    AbstractConfigBlock("Paths")
+ImportDataConfig::ImportDataConfig():
+    AbstractConfigBlock("TreeView")
 {
+    INITPROPERTY(minBitscore, 50);
+    INITPROPERTY(topPercent, 10);
     INITPROPERTY(gi2taxmap, "");
 }
 
 //=========================================================================
-void PathsConfig::toJson(QJsonObject &json) const
+void ImportDataConfig::toJson(QJsonObject &json) const
 {
-    QJsonObject jPaths;
-    TOJSON(jPaths, gi2taxmap);
-    json["Paths"] = jPaths;
+    QJsonObject jImportData;
+    TOJSON(jImportData, minBitscore)
+    TOJSON(jImportData, topPercent)
+    TOJSON(jImportData, gi2taxmap)
+    json["ImportData"] = jImportData;
 }
 
 //=========================================================================
-void PathsConfig::fromJson(QJsonObject &json)
+void ImportDataConfig::fromJson(QJsonObject &json)
 {
     try
     {
-        QJsonObject jPaths = json["Paths"].toObject();
-        STRFROMJSON(jPaths, gi2taxmap)
-    }
-    catch(...)
-    {
-        QMessageBox::warning(NULL, "Cannot restore config", "Cannot restore pathes from configuration");
-    }
-}
-
-//=========================================================================
-TreeViewConfig::TreeViewConfig():
-    AbstractConfigBlock("TreeView")
-{
-    INITPROPERTY(edgeStyle, 1);
-}
-
-void TreeViewConfig::toJson(QJsonObject &json) const
-{
-    QJsonObject jTreeView;
-    TOJSON(jTreeView, edgeStyle);
-    json["TreeView"] = jTreeView;
-}
-
-//=========================================================================
-void TreeViewConfig::fromJson(QJsonObject &json)
-{
-    try
-    {
-        QJsonObject jTreeView = json["TreeView"].toObject();
-        INTFROMJSON(jTreeView, edgeStyle)
+        QJsonObject jImportData = json["ImportData"].toObject();
+        REALFROMJSON(jImportData, minBitscore)
+        REALFROMJSON(jImportData, topPercent)
+        STRFROMJSON(jImportData, gi2taxmap)
     }
     catch(...)
     {
@@ -138,8 +122,7 @@ Config::Config(QObject *parent):
 {
     ADDBLOCK(BubbleChart);
     ADDBLOCK(GraphNode);
-    ADDBLOCK(Paths);
-    ADDBLOCK(TreeView)
+    ADDBLOCK(ImportData)
 }
 
 //=========================================================================

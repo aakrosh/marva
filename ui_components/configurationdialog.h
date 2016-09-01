@@ -19,6 +19,7 @@ private:
     Ui::ConfigurationDialog *ui;
 private slots:
     void onConfigChanged();
+    void onGiToTaxMapPathClicked();
 };
 
 #endif // CONFIGURATIONDIALOG_H

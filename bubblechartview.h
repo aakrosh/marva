@@ -126,6 +126,7 @@ public slots:
     virtual void onBubbleSizeChanged(quint32 /*oldS*/, quint32 /*newS*/);
     virtual void toggleTitleVisibility(bool);
     virtual void onDataSourceVisibilityChanged(int);
+    virtual void onBubbleSizeCalcMethodChanged(int);
     virtual void onColorChanged(BaseTaxNode *);
 
     friend class MainWindow;

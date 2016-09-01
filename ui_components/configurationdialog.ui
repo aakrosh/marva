@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>458</width>
+    <width>465</width>
     <height>303</height>
    </rect>
   </property>
@@ -30,6 +30,21 @@
        <property name="textElideMode">
         <enum>Qt::ElideNone</enum>
        </property>
+       <item>
+        <property name="text">
+         <string>Bubble charts</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Tree views</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Import data</string>
+        </property>
+       </item>
       </widget>
      </item>
      <item>
@@ -142,53 +157,10 @@
         </widget>
         <widget class="QWidget" name="page_2">
          <layout class="QGridLayout" name="gridLayout_3">
-          <item row="0" column="2">
-           <widget class="QSpinBox" name="sbNodeCircleSize">
-            <property name="minimum">
-             <number>2</number>
-            </property>
-            <property name="value">
-             <number>8</number>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="1">
            <widget class="QLabel" name="label_4">
             <property name="text">
              <string>Node circle size</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1">
-           <spacer name="verticalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="1" column="1">
-           <widget class="QLabel" name="label_5">
-            <property name="text">
-             <string>Plus sign size</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="2">
-           <widget class="QSpinBox" name="sbMaxNodeRadius">
-            <property name="minimum">
-             <number>1</number>
-            </property>
-            <property name="maximum">
-             <number>120</number>
-            </property>
-            <property name="value">
-             <number>30</number>
             </property>
            </widget>
           </item>
@@ -199,16 +171,10 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="2">
-           <widget class="QSpinBox" name="sbPlusSignSize">
-            <property name="minimum">
-             <number>1</number>
-            </property>
-            <property name="maximum">
-             <number>70</number>
-            </property>
-            <property name="value">
-             <number>3</number>
+          <item row="1" column="1">
+           <widget class="QLabel" name="label_5">
+            <property name="text">
+             <string>Plus sign size</string>
             </property>
            </widget>
           </item>
@@ -225,29 +191,176 @@
             </property>
            </spacer>
           </item>
+          <item row="0" column="2">
+           <widget class="QSpinBox" name="sbNodeCircleSize">
+            <property name="minimum">
+             <number>2</number>
+            </property>
+            <property name="value">
+             <number>8</number>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QSpinBox" name="sbMaxNodeRadius">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>120</number>
+            </property>
+            <property name="value">
+             <number>30</number>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QSpinBox" name="sbPlusSignSize">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>70</number>
+            </property>
+            <property name="value">
+             <number>3</number>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="label_9">
+            <property name="text">
+             <string>Edge style:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="2">
+           <widget class="QRadioButton" name="rbLines">
+            <property name="text">
+             <string>&amp;Lines</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="3">
+           <widget class="QRadioButton" name="rbCurves">
+            <property name="text">
+             <string>&amp;Curves</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
         <widget class="QWidget" name="page_3">
          <layout class="QGridLayout" name="gridLayout_2">
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_7">
-            <property name="text">
-             <string>Min &amp;Bitscore</string>
+          <item row="4" column="3">
+           <widget class="QPushButton" name="bGiToTaxMapPath">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
-            <property name="buddy">
-             <cstring>doubleSpinBox</cstring>
+            <property name="minimumSize">
+             <size>
+              <width>30</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="baseSize">
+             <size>
+              <width>30</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>...</string>
             </property>
            </widget>
           </item>
-          <item row="0" column="1">
-           <widget class="QDoubleSpinBox" name="doubleSpinBox">
+          <item row="4" column="2">
+           <widget class="QLineEdit" name="leGiToTaxMapPath"/>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLabel" name="label_8">
+            <property name="text">
+             <string>&amp;Gi to taxonomy map</string>
+            </property>
+            <property name="buddy">
+             <cstring>bGiToTaxMapPath</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <spacer name="verticalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="2" column="2">
+           <widget class="QDoubleSpinBox" name="sbMinBitscore">
             <property name="value">
              <double>70.000000000000000</double>
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
-           <spacer name="verticalSpacer_3">
+          <item row="2" column="1">
+           <widget class="QLabel" name="label_7">
+            <property name="text">
+             <string>Min &amp;Bitscore</string>
+            </property>
+            <property name="buddy">
+             <cstring>sbMinBitscore</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="label_10">
+            <property name="text">
+             <string>&amp;Top percent</string>
+            </property>
+            <property name="buddy">
+             <cstring>sbTopPercent</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="2">
+           <widget class="QDoubleSpinBox" name="sbTopPercent"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="page_4">
+         <layout class="QGridLayout" name="gridLayout_4">
+          <item row="0" column="0">
+           <spacer name="verticalSpacer_4">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
             </property>
@@ -300,12 +413,12 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>288</x>
-     <y>39</y>
+     <x>349</x>
+     <y>38</y>
     </hint>
     <hint type="destinationlabel">
      <x>378</x>
-     <y>-6</y>
+     <y>0</y>
     </hint>
    </hints>
   </connection>
@@ -316,12 +429,12 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>288</x>
-     <y>39</y>
+     <x>349</x>
+     <y>64</y>
     </hint>
     <hint type="destinationlabel">
      <x>367</x>
-     <y>-19</y>
+     <y>0</y>
     </hint>
    </hints>
   </connection>
@@ -332,11 +445,11 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>288</x>
-     <y>39</y>
+     <x>349</x>
+     <y>90</y>
     </hint>
     <hint type="destinationlabel">
-     <x>534</x>
+     <x>464</x>
      <y>43</y>
     </hint>
    </hints>
@@ -348,12 +461,12 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>402</x>
-     <y>27</y>
+     <x>280</x>
+     <y>18</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
-     <y>-80</y>
+     <y>0</y>
     </hint>
    </hints>
   </connection>
@@ -364,11 +477,11 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>422</x>
-     <y>57</y>
+     <x>280</x>
+     <y>23</y>
     </hint>
     <hint type="destinationlabel">
-     <x>579</x>
+     <x>464</x>
      <y>7</y>
     </hint>
    </hints>
@@ -380,11 +493,11 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>414</x>
-     <y>86</y>
+     <x>280</x>
+     <y>28</y>
     </hint>
     <hint type="destinationlabel">
-     <x>505</x>
+     <x>464</x>
      <y>25</y>
     </hint>
    </hints>
@@ -401,7 +514,71 @@
     </hint>
     <hint type="destinationlabel">
      <x>418</x>
-     <y>379</y>
+     <y>302</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sbMinBitscore</sender>
+   <signal>valueChanged(double)</signal>
+   <receiver>ConfigurationDialog</receiver>
+   <slot>onConfigChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>385</x>
+     <y>29</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>457</x>
+     <y>302</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>leGiToTaxMapPath</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>ConfigurationDialog</receiver>
+   <slot>onConfigChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>409</x>
+     <y>91</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>391</x>
+     <y>321</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>rbLines</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>ConfigurationDialog</receiver>
+   <slot>onConfigChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>335</x>
+     <y>105</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>327</x>
+     <y>322</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sbTopPercent</sender>
+   <signal>valueChanged(double)</signal>
+   <receiver>ConfigurationDialog</receiver>
+   <slot>onConfigChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>340</x>
+     <y>57</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>349</x>
+     <y>339</y>
     </hint>
    </hints>
   </connection>

@@ -6,12 +6,15 @@
 #include <QMenu>
 #include <QFile>
 
+#include "tax_map.h"
+
 class TaxDataProvider;
 class BaseTaxNode;
 
 #define DGF_NONE        0x0
 #define DGF_READS       0x1
 #define DGF_BUBBLES     0x2
+#define DGF_RANKS       0x4
 
 class GraphicsViewConfig
 {
@@ -54,6 +57,7 @@ public slots:
     virtual void reset() {}
     virtual void onReadsThresholdChanged(quint32 /*oldT*/, quint32 /*newT*/) {}
     virtual void onBubbleSizeChanged(quint32 /*oldS*/, quint32 /*newS*/) {}
+    virtual void onTaxRankChanged(TaxRank) {}
     virtual void onColorChanged(BaseTaxNode *) {}
 
 };

@@ -43,7 +43,7 @@ BlastRecord::BlastRecord(BlastFileType type, QString &line, bool short_format)
             if ( !short_format )
             {
                 alligment_id = list[2];
-                e_value = list[4].midRef(13).toDouble();
+                e_value = exp(list[4].midRef(13).toDouble());
                 identity = list[5].midRef(9).toDouble();
                 allignment_len = list[6].midRef(8).toUInt();
                 mismatch_count = list[7].midRef(9).toUInt();
@@ -64,7 +64,7 @@ BlastRecord::BlastRecord(BlastFileType type, QString &line, bool short_format)
 }
 
 //=========================================================================
-void BlastRecord::parse(BlastFileType type, QString &line, BlastRecord &rec)
+bool BlastRecord::parse(BlastFileType type, QString &line, BlastRecord &rec)
 {
     switch ( type )
     {
@@ -94,7 +94,7 @@ void BlastRecord::parse(BlastFileType type, QString &line, BlastRecord &rec)
         case sequence:
         {
             if ( line[0] != '>' )
-                return;
+                return false;
             QStringList list = line.split(" ", QString::SkipEmptyParts);
             if ( list.size() < 10 )
                 throw("Bad allignment file format");
@@ -120,4 +120,5 @@ void BlastRecord::parse(BlastFileType type, QString &line, BlastRecord &rec)
         default:
             throw("Unknown file format");
     }
+    return true;
 }

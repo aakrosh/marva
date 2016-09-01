@@ -32,7 +32,7 @@ public:
     qreal e_value;
     qreal bitscore;
     qint32 taxa_id;
-    void parse(BlastFileType type, QString &line, BlastRecord &rec);
+    bool parse(BlastFileType type, QString &line, BlastRecord &rec);
 };
 
 extern QHash<quint32, quint32> gi2taxmap;

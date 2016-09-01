@@ -445,7 +445,7 @@ void BlastTaxDataProvider::serialize(QFile &file)
         writeJsonArrayToFile(jnode, file);
 
         quint64 *data = node->positions.data();
-        size = node->positions.size() * sizeof(node->positions[0]);
+        size = node->positions.size() * sizeof(quint64);
         file.write((const char *)&size, sizeof(size));
         file.write((const char *)data, size);
     }
@@ -474,11 +474,12 @@ void BlastTaxDataProvider::deserialize(QFile &file, qint32 /*version*/)
         quint32 psize;
         file.read((char *)&psize, sizeof(psize));
 
-        QVector<quint64> positions;
+
         QByteArray ba = file.read(psize);
+        quint64 *arr = (quint64 *)ba.data();
         std::vector<quint64> tmp;
-        tmp.assign(ba.data(), ba.data() + psize/sizeof(quint64));
-        positions.fromStdVector(tmp);
+        tmp.assign(arr, arr + psize/sizeof(quint64));
+        QVector<quint64> positions = QVector<quint64>::fromStdVector(tmp);
 
         BlastTaxNode *node = addTaxNode(id, reads > 0 ? reads : -1, positions);
         if ( node != NULL )
@@ -630,12 +631,6 @@ BlastTaxDataProviders::BlastTaxDataProviders() :
 }
 
 //=========================================================================
-void BlastTaxDataProviders::toJson(QJsonObject &json)
-{
-
-}
-
-//=========================================================================
 void BlastTaxDataProviders::fromJson(QJsonObject &json)
 {
     try
@@ -687,12 +682,6 @@ void BlastTaxDataProviders::addProvider(BlastTaxDataProvider *p)
 {
     append(p);
     setVisible(count()-1, true);
-}
-
-//=========================================================================
-void BlastTaxDataProviders::serialize(QFile &file)
-{
-
 }
 
 //=========================================================================

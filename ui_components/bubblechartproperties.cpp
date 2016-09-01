@@ -2,6 +2,7 @@
 #include "ui_bubblechartproperties.h"
 #include "datasourcesmodel.h"
 #include "bubblechartview.h"
+#include "config.h"
 
 BubbleChartProperties::BubbleChartProperties(QWidget *parent, BubbleChartParameters *_config, BlastTaxDataProviders *dp) :
     QDialog(parent),
@@ -14,6 +15,7 @@ BubbleChartProperties::BubbleChartProperties(QWidget *parent, BubbleChartParamet
     connect(ui->horizontalSlider, SIGNAL(valueChanged(int)), this, SLOT(onBubbleMaxSizeSliderValueChanged(int)));
     connect(ui->cbShowTitle, SIGNAL(toggled(bool)), this, SLOT(onShowTitleToggled(bool)));
     connect(ui->lvDataSources->model(), SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this, SLOT(onDataSourceCheckBoxTriggered(QModelIndex,QModelIndex,QVector<int>)));
+    connect(ui->rbLinear, SIGNAL(toggled(bool)), this, SLOT(onBubbleSizeCalcMethodChanged(bool)));
 }
 
 void BubbleChartProperties::setValues()
@@ -42,4 +44,9 @@ void BubbleChartProperties::onShowTitleToggled(bool val)
 void BubbleChartProperties::onDataSourceCheckBoxTriggered(QModelIndex start, QModelIndex, QVector<int>)
 {
     emit dataSourceVisibilityChanged(start.row());
+}
+
+void BubbleChartProperties::onBubbleSizeCalcMethodChanged(bool isLinear)
+{
+    emit bubbleSizeCalcMethodChanged(isLinear ? METHOD_LINEAR : METHOD_SQRT);
 }

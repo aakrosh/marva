@@ -18,7 +18,7 @@ public:
     virtual BlastFileType getType() = 0;
     virtual bool accept(QString &line) = 0;
     virtual BlastRecord *parse(QString &line);
-    virtual void parse(QString &line, BlastRecord &rec);
+    virtual bool parse(QString &line, BlastRecord &rec);
 protected:
     bool openFile();
     bool closeFile();
@@ -124,6 +124,7 @@ public:
     QueryDetails() {}
     QString queryName;
     TaxDetailsMap tax_details_map;
+    qreal maxBitscore;
     void clean();
     void add(QString newQueryName, BlastRecord *br, quint32 pos);
 

@@ -87,6 +87,7 @@ private slots:
     void onColorChanged(BaseTaxNode *);
     void showContextMenu(const QPoint&);
     void changeCurrentTaxColor();
+    void filterChanged(QString searchText);
 public slots:
     void reset();
     void onNodeVisibilityChanged(BaseTaxNode*,bool);

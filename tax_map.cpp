@@ -13,7 +13,7 @@
 TaxMap::TaxMap() : QMap<qint32, TaxNode *>(){}
 
 //=========================================================================
-void TaxMap::setName(qint32 tid, const char *name)
+void TaxMap::setName(qint32 tid, const char *name, TaxRank rank)
 {
     TaxMapIterator it = find(tid);
     if ( it == end() )
@@ -22,105 +22,20 @@ void TaxMap::setName(qint32 tid, const char *name)
         return;
     }
     it.value()->text = name;
-}
-
-//=========================================================================
-TaxNodeVisitor::TaxNodeVisitor(VisitorDirection _direction,
-        bool visit_collapsed,
-        TreeGraphView *gv,
-        bool createGNodes,
-        bool _visitNullGnodes,
-        bool _visit_invisible) :
-    direction(_direction),
-    createGraphNodes(createGNodes),
-    visitCollapsed(visit_collapsed),
-    graphView(gv),
-    visitNullGnodes(_visitNullGnodes),
-    visit_invisible(_visit_invisible)
-{
-
-}
-
-//=========================================================================
-bool TaxNodeVisitor::shouldVisitChildren(TreeTaxNode *node)
-{
-    if ( node->children.isEmpty() )
-        return false;
-    else if ( !visitCollapsed && node->isCollapsed() )
-        return false;
-    else if ( !visit_invisible && !node->visible() )
-        return false;
-    else if ( !visit_invisible && !node->hasVisibleChildren() )
-        return false;
-    return true;
-}
-
-//=========================================================================
-void TaxNodeVisitor::VisitRootToLeaves(TreeTaxNode *node)
-{
-    if ( node->getGnode() == NULL )
-    {
-        if ( createGraphNodes )
-            graphView->CreateGraphNode(node);
-        else if ( !visitNullGnodes )
-            return;
-
-    }
-    bool visit_children = shouldVisitChildren(node);
-    Action(node);
-    if ( visit_children )
-    {
-        beforeVisitChildren(node);
-        ThreadSafeListLocker<TreeTaxNode *> locker(&node->children);
-        for ( TaxNodeIterator it  = node->children.begin(); it != node->children.end(); it++ )
-            VisitRootToLeaves(*it);
-        afterVisitChildren(node);
-    }
-}
-
-//=========================================================================
-void TaxNodeVisitor::VisitLeavesToRoot(TreeTaxNode *node)
-{
-    if ( node->getGnode()  == NULL )
-    {
-        if ( createGraphNodes )
-            graphView->CreateGraphNode(node);
-        else if ( !visitNullGnodes )
-            return;
-    }
-    bool visit_children = shouldVisitChildren(node);
-    if ( visit_children )
-    {
-        beforeVisitChildren(node);
-        ThreadSafeListLocker<TreeTaxNode *> locker(&node->children);
-        for ( TaxNodeIterator it  = node->children.begin(); it != node->children.end(); it++ )
-            VisitLeavesToRoot(*it);
-        afterVisitChildren(node);
-    }
-    Action(node);
-}
-
-//=========================================================================
-void TaxNodeVisitor::Visit(TreeTaxNode *node)
-{
-    if ( node == NULL )
-        return;
-    if ( direction == RootToLeaves )
-        VisitRootToLeaves(node);
-    else
-        VisitLeavesToRoot(node);
+    if ( rank != TR_NORANK )
+        it.value()->rank = rank;
 }
 
 //=========================================================================
 TaxNode::TaxNode(): TreeTaxNode(true), id(-555), level(0){}
 
 //=========================================================================
-TaxNode::TaxNode(qint32 _id): TreeTaxNode(true), id(_id), level(0){}
+TaxNode::TaxNode(qint32 _id, TaxRank _rank): TreeTaxNode(true), id(_id), level(0), rank(_rank) {}
 
 //=========================================================================
-TaxNode *TaxNode::TaxNode::addChildById(quint32 chId)
+TaxNode *TaxNode::TaxNode::addChildById(quint32 chId, TaxRank rank)
 {
-    return (TaxNode *)addChild(new TaxNode(chId));
+    return (TaxNode *)addChild(new TaxNode(chId, rank));
 }
 
 //=========================================================================

@@ -104,3 +104,92 @@ void TreeTaxNode::mergeWith(TreeTaxNode *other, TreeGraphView *gview)
     if ( ttgnode != NULL && changed )
         ttgnode->markDirty(DIRTY_CHILD, &gview->dirtyList);
 }
+
+
+//=========================================================================
+TaxNodeVisitor::TaxNodeVisitor(VisitorDirection _direction,
+        bool visit_collapsed,
+        TreeGraphView *gv,
+        bool createGNodes,
+        bool _visitNullGnodes,
+        bool _visit_invisible) :
+    direction(_direction),
+    createGraphNodes(createGNodes),
+    visitCollapsed(visit_collapsed),
+    graphView(gv),
+    visitNullGnodes(_visitNullGnodes),
+    visit_invisible(_visit_invisible)
+{
+
+}
+
+//=========================================================================
+bool TaxNodeVisitor::shouldVisitChildren(TreeTaxNode *node)
+{
+    if ( node->children.isEmpty() )
+        return false;
+    else if ( !visitCollapsed && node->isCollapsed() )
+        return false;
+    else if ( !visit_invisible && !node->visible() )
+        return false;
+    else if ( !visit_invisible && !node->hasVisibleChildren() )
+        return false;
+    return true;
+}
+
+//=========================================================================
+void TaxNodeVisitor::VisitRootToLeaves(TreeTaxNode *node)
+{
+    if ( node->getGnode() == NULL )
+    {
+        if ( createGraphNodes )
+            graphView->CreateGraphNode(node);
+        else if ( !visitNullGnodes )
+            return;
+
+    }
+    bool visit_children = shouldVisitChildren(node);
+    Action(node);
+    if ( visit_children )
+    {
+        beforeVisitChildren(node);
+        ThreadSafeListLocker<TreeTaxNode *> locker(&node->children);
+        for ( TaxNodeIterator it  = node->children.begin(); it != node->children.end(); it++ )
+            VisitRootToLeaves(*it);
+        afterVisitChildren(node);
+    }
+}
+
+//=========================================================================
+void TaxNodeVisitor::VisitLeavesToRoot(TreeTaxNode *node)
+{
+    if ( node->getGnode()  == NULL )
+    {
+        if ( createGraphNodes )
+            graphView->CreateGraphNode(node);
+        else if ( !visitNullGnodes )
+            return;
+    }
+    bool visit_children = shouldVisitChildren(node);
+    if ( visit_children )
+    {
+        beforeVisitChildren(node);
+        ThreadSafeListLocker<TreeTaxNode *> locker(&node->children);
+        for ( TaxNodeIterator it  = node->children.begin(); it != node->children.end(); it++ )
+            VisitLeavesToRoot(*it);
+        afterVisitChildren(node);
+    }
+    Action(node);
+}
+
+//=========================================================================
+void TaxNodeVisitor::Visit(TreeTaxNode *node)
+{
+    if ( node == NULL )
+        return;
+    if ( direction == RootToLeaves )
+        VisitRootToLeaves(node);
+    else
+        VisitLeavesToRoot(node);
+}
+

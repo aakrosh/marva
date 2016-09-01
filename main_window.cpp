@@ -32,50 +32,50 @@ MainWindow *mainWindow;
 void generateDefaultNodes()
 {
     // To improve the startup speed, first create hardcoded default nodes, they will be updated then the whole tree will be loaded
-    globalTaxDataProvider->taxTree = new TaxNode(1);
+    globalTaxDataProvider->taxTree = new TaxNode(1, TR_ROOT);
     taxMap.insert(1, globalTaxDataProvider->taxTree);
     taxMap.setName(1, "root");
     globalTaxDataProvider->taxTree->setCollapsed(false, false);
 
-    TaxNode *n131567 = (TaxNode *)globalTaxDataProvider->taxTree->addChildById(131567);
+    TaxNode *n131567 = (TaxNode *)globalTaxDataProvider->taxTree->addChildById(131567, TR_DOMAIN);
     taxMap.insert(131567, n131567);
     taxMap.setName(131567, "cellular organisms");
     n131567->setCollapsed(false, false);
 
-    TaxNode *n2 = (TaxNode *)n131567->addChildById(2);
+    TaxNode *n2 = (TaxNode *)n131567->addChildById(2, TR_KINGDOM);
     taxMap.insert(2, n2);
     taxMap.setName(2, "Bacteria");
 
-    taxMap.insert(201174, (TaxNode *)n2->addChildById(201174));
+    taxMap.insert(201174, (TaxNode *)n2->addChildById(201174, TR_PHYLUM));
     taxMap.setName(201174, "Actinobacteria <phylum>");
 
-    taxMap.insert(2157, (TaxNode *)n131567->addChildById(2157));
+    taxMap.insert(2157, (TaxNode *)n131567->addChildById(2157, TR_KINGDOM));
     taxMap.setName(2157, "Archaea");
 
-    taxMap.insert(2759, (TaxNode *)n131567->addChildById(2759));
+    taxMap.insert(2759, (TaxNode *)n131567->addChildById(2759, TR_KINGDOM));
     taxMap.setName(2759, "Eukaryota");
 
-    TaxNode *n10239 = (TaxNode *)globalTaxDataProvider->taxTree->addChildById(10239);
+    TaxNode *n10239 = (TaxNode *)globalTaxDataProvider->taxTree->addChildById(10239, TR_DOMAIN);
     taxMap.insert(10239, n10239);
     taxMap.setName(10239, "Viruses");
 
-    taxMap.insert(39759, (TaxNode *)n10239->addChildById(39759));
+    taxMap.insert(39759, (TaxNode *)n10239->addChildById(39759, TR_KINGDOM));
     taxMap.setName(39759, "Deltavirus");
 
-    TaxNode *n12884 = (TaxNode *)globalTaxDataProvider->taxTree->addChildById(12884);
+    TaxNode *n12884 = (TaxNode *)globalTaxDataProvider->taxTree->addChildById(12884, TR_DOMAIN);
     taxMap.insert(12884, n12884);
     taxMap.setName(12884, "Viroids");
 
-    taxMap.insert(185752, (TaxNode *)n12884->addChildById(185752));
+    taxMap.insert(185752, (TaxNode *)n12884->addChildById(185752, TR_KINGDOM));
     taxMap.setName(185752, "Avsunviroidae");
 
-    taxMap.insert(12908, (TaxNode *)globalTaxDataProvider->taxTree->addChildById(12908));
+    taxMap.insert(12908, (TaxNode *)globalTaxDataProvider->taxTree->addChildById(12908, TR_NORANK));
     taxMap.setName(12908, "unclassified sequences");
 
-    taxMap.insert(28384, (TaxNode *)globalTaxDataProvider->taxTree->addChildById(28384));
+    taxMap.insert(28384, (TaxNode *)globalTaxDataProvider->taxTree->addChildById(28384, TR_NORANK));
     taxMap.setName(28384, "other sequences");
 
-    taxMap.insert(-2, (TaxNode *)globalTaxDataProvider->taxTree->addChildById(-2));
+    taxMap.insert(-2, (TaxNode *)globalTaxDataProvider->taxTree->addChildById(-2, TR_NORANK));
     taxMap.setName(-2, "unassigned");
 }
 
@@ -115,6 +115,11 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->setupUi(this);
     ui->taxListDockWidget->setWidget(leftPanel);
+
+    taxRankChooser = new TaxRankChooser(this);
+    taxRankChooserAction = ui->toolBar->addWidget(taxRankChooser);
+    taxRankChooser->setToolTip("Filter by taxonomy rank");
+    taxRankChooser->setVisible(false);
 
     readsSlider = new SliderWithEdit(this);
     readsSlider->setLabel("Threshold");
@@ -188,6 +193,7 @@ void MainWindow::connectGraphView(DataGraphicsView *oldGV, DataGraphicsView *new
         tnss->disconnect(oldGV);
         readsSlider->disconnect(oldGV);
         bubbleSlider->disconnect(oldGV);
+        taxRankChooser->disconnect(oldGV);
     }
     connect(tnss, SIGNAL(makeCurrent(BaseTaxNode*)), newGV, SLOT(onCurrentNodeChanged(BaseTaxNode*)));
     connect(tnss, SIGNAL(visibilityChanged(BaseTaxNode*,bool)), newGV, SLOT(onNodeVisibilityChanged(BaseTaxNode*,bool)));
@@ -198,6 +204,7 @@ void MainWindow::connectGraphView(DataGraphicsView *oldGV, DataGraphicsView *new
 
     connect(readsSlider, SIGNAL(valueChanged(quint32, quint32)), newGV, SLOT(onReadsThresholdChanged(quint32,quint32)));
     connect(bubbleSlider, SIGNAL(valueChanged(quint32, quint32)), newGV, SLOT(onBubbleSizeChanged(quint32,quint32)));
+    connect(taxRankChooser, SIGNAL(selectedTaxRankChanged(TaxRank)), newGV, SLOT(onTaxRankChanged(TaxRank)));
 }
 
 //=========================================================================
@@ -311,16 +318,12 @@ void MainWindow::deserialize(QFile &loadFile)
     {
         BlastTaxDataProvider *provider = new BlastTaxDataProvider(NULL);
         provider->deserialize(loadFile, version);
-        blastTaxDataProviders.addProvider(provider);
     }
 
     loadFile.read((char *)&size, sizeof(size));
 
     for ( quint32 i = 0; i < size; i++ )
     {
-
-  /*      TaxDataProviderType dpType;
-        loadFile.read((char *)&dpType, sizeof(TaxDataProviderType));*/
         quint32 dgvsize;
         loadFile.read((char *)&dgvsize, sizeof(dgvsize));
         QByteArray ba = loadFile.read(dgvsize);
@@ -590,6 +593,7 @@ void MainWindow::setActiveGraphView(DataGraphicsView *newGV)
 
     readSliderAction->setVisible((newGV->getFlags() & DGF_READS) != 0);
     bubbleSliderAction->setVisible((newGV->getFlags() & DGF_BUBBLES) != 0);
+    taxRankChooserAction->setVisible((newGV->getFlags() & DGF_RANKS) != 0);
     emit activeGraphViewChanged(oldGV, newGV);
 }
 

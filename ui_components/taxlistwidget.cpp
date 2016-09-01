@@ -22,6 +22,7 @@ TaxListWidget::TaxListWidget(QWidget *parent) :
     ui->tableView->installEventFilter(this);
     connect(ui->tableView->selectionModel(), SIGNAL(currentRowChanged(QModelIndex, QModelIndex)), this, SLOT(taxChanged(QModelIndex, QModelIndex)));
     connect(model, SIGNAL(layoutChanged()), ui->tableView->selectionModel(), SLOT(clear()));
+    connect(ui->leFind, SIGNAL(textChanged(QString)), this, SLOT(filterChanged(QString)));
     refresh();
 
     this->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -198,6 +199,15 @@ void TaxListWidget::changeCurrentTaxColor()
 {
     QModelIndexList selRows = this->ui->tableView->selectionModel()->selectedRows();
     colors->pickColor(model->taxDataProvider->taxNode(selRows[0].row())->getId());
+}
+
+//=========================================================================
+void TaxListWidget::filterChanged(QString searchText)
+{
+    QModelIndexList matches = model->match(model->index(0,0), Qt::DisplayRole, QVariant::fromValue(searchText), 1, Qt::MatchStartsWith);
+    if ( matches.size() == 0 )
+        return;
+    ui->tableView->selectionModel()->setCurrentIndex(matches.at(0), QItemSelectionModel::NoUpdate|QItemSelectionModel::Select);
 }
 
 //=========================================================================

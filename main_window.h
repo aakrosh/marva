@@ -9,6 +9,7 @@
 #include "blast_data.h"
 #include "ui_components/statuslistpanel.h"
 #include "ui_components/sliderwithedit.h"
+#include "ui_components/taxrankchooser.h"
 #include "bubblechartview.h"
 #include "history.h"
 
@@ -16,7 +17,7 @@ namespace Ui {
 class MainWindow;
 }
 
-extern TaxMap taxMap;
+//extern TaxMap taxMap;
 class MapLoaderThread;
 class TaxListWidget;
 class LeftPanel;
@@ -27,7 +28,6 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 private:
     QJsonArray jProviders;
-//    QFile saveFile;
     quint32 serializingProviders;
     QJsonObject big_json;
 public:
@@ -36,8 +36,10 @@ public:
     StatusListPanel *statusList;
     SliderWithEdit *readsSlider;
     SliderWithEdit *bubbleSlider;
+    TaxRankChooser *taxRankChooser;
     QAction *readSliderAction;
     QAction *bubbleSliderAction;
+    QAction *taxRankChooserAction;
 
     void addGraphView(QWidget *gv, QString label);
     void setActiveGraphView(DataGraphicsView *gv);
@@ -58,7 +60,6 @@ private:
     LeftPanel *leftPanel;
     TaxListWidget *taxListWidget;
     History *history;
-
 
 signals:
     activeGraphViewChanged(DataGraphicsView *oldGV, DataGraphicsView *newGV);
@@ -88,6 +89,8 @@ private slots:
     QString getOpenFileName(QString text, QString filters);
     void onProviderSerialized(ProvidersSerializationThread *);
     void finishSerialization();
+
+    friend class DataGraphicsView;
 };
 extern MainWindow *mainWindow;
 

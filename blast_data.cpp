@@ -44,7 +44,7 @@ BlastTaxNode *BlastTaxNode::createPathToNode(BlastNodeMap *blastNodeMap)
         BlastNodeMap::iterator it = blastNodeMap->find(curNode->tNode->parent->getId());
         BlastTaxNode *cur_parent =
                 it == blastNodeMap->end()
-              ? new BlastTaxNode((TaxNode *)curNode->tNode->parent, 0, blastNodeMap)
+              ? new BlastTaxNode(curNode->tNode->parent, 0, blastNodeMap)
               : it.value();
         cur_parent->addChild(curNode);
         curNode = cur_parent;

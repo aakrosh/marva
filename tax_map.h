@@ -12,18 +12,34 @@ class QString;
 class TaxTreeGraphNode;
 class TreeGraphView;
 
+enum TaxRank
+{
+    TR_ROOT     = -1,
+    TR_DOMAIN   = 0,
+    TR_KINGDOM  = 1,
+    TR_PHYLUM   = 2,
+    TR_CLASS    = 3,
+    TR_ORDER    = 4,
+    TR_FAMILY   = 5,
+    TR_VARIETAS = 90,
+    TR_SPECIES  = 100,
+    TR_SUBSPIC  = 101,
+    TR_NORANK   = -666
+};
+
 class TaxNode : public TreeTaxNode
 {
 public:
     TaxNode();
-    TaxNode(qint32 _id);
-    TaxNode *addChildById(quint32 chId);
+    TaxNode(qint32 _id, TaxRank rank);
+    TaxNode *addChildById(quint32 chId, TaxRank rank  = TR_NORANK);
     virtual QString getName() { return name; }
     virtual qint32 getId() { return id; }
     virtual int getLevel() { return level; }
     virtual void setLevel(int _level) { level = _level; }
     virtual QString getText() { return text; }
     virtual GraphNode *createGnode(TreeGraphView *gv);
+    TaxRank getRank() { return rank; }
 
 protected:
 private:
@@ -31,6 +47,7 @@ private:
     qint32 id;
     int level;
     QString text;
+    TaxRank rank;
 
     friend class TaxNodeVisitor;
     friend class TreeLoaderThread;
@@ -38,40 +55,12 @@ private:
     friend class TaxTreeGraphNode;
 };
 
-typedef QList<TreeTaxNode *>::iterator TaxNodeIterator;
-
-enum VisitorDirection
-{
-    RootToLeaves,
-    LeavesToRoot
-};
-
-class TaxNodeVisitor
-{
-public:
-    TaxNodeVisitor(VisitorDirection _direction, bool visit_collapsed=false, TreeGraphView *gv=NULL, bool createGNodes=false, bool visitNullGnodes = true, bool _visit_invisible = true);
-    virtual void Action(TreeTaxNode *root) = 0;
-    void Visit(TreeTaxNode *node);
-private:
-    VisitorDirection direction;
-protected:
-    bool createGraphNodes;
-    bool visitCollapsed;
-    TreeGraphView *graphView;
-    bool visitNullGnodes;
-    bool visit_invisible;
-    void VisitRootToLeaves(TreeTaxNode *node);
-    void VisitLeavesToRoot(TreeTaxNode *node);
-    bool shouldVisitChildren(TreeTaxNode *node);
-    virtual void beforeVisitChildren(TreeTaxNode *){}
-    virtual void afterVisitChildren(TreeTaxNode *){}
-};
 
 class TaxMap : public QMap<qint32, TaxNode *>
 {
 public:
     TaxMap();
-    void setName(qint32 tid, const char *name);
+    void setName(qint32 tid, const char *name, TaxRank rank = TR_NORANK);
 };
 
 typedef TaxMap::const_iterator TaxMapIterator;

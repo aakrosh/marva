@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TaxRankChooser</class>
+ <widget class="QWidget" name="TaxRankChooser">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>20</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>16777215</width>
+    <height>20</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QComboBox" name="comboBox">
+     <item>
+      <property name="text">
+       <string extracomment="Ignore. Show all nodes">&lt;All&gt;</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Kingdom</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Phylum</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Class</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Order</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Family</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Genus</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Species</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>comboBox</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>TaxRankChooser</receiver>
+   <slot>onIndexChanged(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>153</x>
+     <y>11</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>156</x>
+     <y>30</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>onIndexChanged(int)</slot>
+ </slots>
+</ui>

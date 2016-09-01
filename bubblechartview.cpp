@@ -65,7 +65,7 @@ BubbleChartView::~BubbleChartView()
 void BubbleChartView::setChartRectSize(int w, int h)
 {
     chartRect = QRectF(0, 0, w, h);
-    scene()->setSceneRect(-2*MARGIN, getConfig()->showTitle ? -MARGIN : 0, chartRect.width()+3*MARGIN, chartRect.height()+MARGIN+(getConfig()->showTitle ? MARGIN : 0));
+    scene()->setSceneRect(-4*MARGIN, getConfig()->showTitle ? -MARGIN : 0, chartRect.width()+4*MARGIN, chartRect.height()+MARGIN+(getConfig()->showTitle ? MARGIN : 0));
 }
 
 //=========================================================================
@@ -364,6 +364,13 @@ void BubbleChartView::onDataSourceVisibilityChanged(int index)
 }
 
 //=========================================================================
+void BubbleChartView::onBubbleSizeCalcMethodChanged(int method)
+{
+    getConfig()->calcMethod = method;
+    showChart(true);
+}
+
+//=========================================================================
 void BubbleChartView::onDataChanged()
 {
     for ( int j = 0; j < verticalLegend.size(); j++)
@@ -514,6 +521,7 @@ void BubbleChartView::showPropertiesDialog()
     connect(propertiesDialog, SIGNAL(maxBubbleSizeChanged(int)), this, SLOT(changeMaxBubbleSize(int)));
     connect(propertiesDialog, SIGNAL(showTitleToggled(bool)), this, SLOT(toggleTitleVisibility(bool)));
     connect(propertiesDialog, SIGNAL(dataSourceVisibilityChanged(int)), this, SLOT(onDataSourceVisibilityChanged(int)));
+    connect(propertiesDialog, SIGNAL(bubbleSizeCalcMethodChanged(int)), this, SLOT(onBubbleSizeCalcMethodChanged(int)));
     propertiesDialog->show();
 }
 

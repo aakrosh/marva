@@ -18,6 +18,7 @@ public:                                         \
 
 #define TOJSON(_JVAR_, _NAME_) _JVAR_[#_NAME_] = _ ## _NAME_;
 #define INTFROMJSON(_JVAR_, _NAME_) _ ## _NAME_ = _JVAR_[#_NAME_].toInt();
+#define REALFROMJSON(_JVAR_, _NAME_) _ ## _NAME_ = _JVAR_[#_NAME_].toDouble();
 #define STRFROMJSON(_JVAR_, _NAME_) _ ## _NAME_ = _JVAR_[#_NAME_].toString();
 #define INITPROPERTY(__NAME__, __VAL__) _ ## __NAME__ = __VAL__
 

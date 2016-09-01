@@ -82,7 +82,7 @@ void Edge::adjust()
         return;
 
     prepareGeometryChange();
-    if ( configuration->TreeView()->edgeStyle() == EDGE_CURVE )
+    if ( configuration->GraphNode()->edgeStyle() == EDGE_CURVE )
     {
         points[0] = mapFromItem(source, 10, 0);
         points[1] = mapFromItem(source, LINE_BREAK_X+30, dest->y()-source->y());
@@ -128,7 +128,7 @@ void Edge::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
     }
     else
     {
-        if ( configuration->TreeView()->edgeStyle() == EDGE_CURVE )
+        if ( configuration->GraphNode()->edgeStyle() == EDGE_CURVE )
         {
             QPainterPath p(points[0]);
             p.cubicTo(points[1], points[1], points[2]);

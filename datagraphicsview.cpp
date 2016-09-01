@@ -3,6 +3,7 @@
 #include "taxnodesignalsender.h"
 #include "graphview.h"
 #include "bubblechartview.h"
+#include "main_window.h"
 
 #include <QPrinter>
 #include <QPrintDialog>
@@ -32,6 +33,8 @@ DataGraphicsView::~DataGraphicsView()
 {
     if ( config != NULL )
         delete config;
+    if ( mainWindow->activeGraphView == this )
+        mainWindow->activeGraphView = NULL;
 }
 
 //=========================================================================

@@ -45,14 +45,14 @@ void Gi2TaxMapBinProvider::open()
         if ( fileOpened++ > 0 )
             return;
     }
-    if ( !configuration->Paths()->gi2taxmap().isEmpty() )
-        fileName = configuration->Paths()->gi2taxmap();
+    if ( !configuration->ImportData()->gi2taxmap().isEmpty() )
+        fileName = configuration->ImportData()->gi2taxmap();
     file = new QFile(fileName);
     if ( !file->exists() )
         file->setFileName(QString(QApplication::applicationDirPath()).append(fileName));
     if ( !file->exists() )
     {
-            QMetaObject::invokeMethod(mainWindow,
+        QMetaObject::invokeMethod(mainWindow,
                                       "getOpenFileName",
                                       Qt::BlockingQueuedConnection,
                                       Q_RETURN_ARG(QString , fileName),
@@ -61,7 +61,7 @@ void Gi2TaxMapBinProvider::open()
                                       );
         if ( fileName.isEmpty() )
             return;
-        configuration->Paths()->setgi2taxmap(fileName);
+        configuration->ImportData()->setgi2taxmap(fileName);
         file->setFileName(fileName);
     }
     if( !file->open(QIODevice::ReadOnly|QIODevice::Unbuffered) )

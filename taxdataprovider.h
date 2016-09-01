@@ -2,6 +2,7 @@
 #define TAXDATAPROVIDER_H
 
 #include "tax_map.h"
+#include "tree_tax_node.h"
 
 #include <QList>
 #include <QReadWriteLock>
@@ -76,7 +77,7 @@ class GlobalTaxMapDataProvider : public TaxDataProvider
 {
     Q_OBJECT
 public:
-    TaxMap *taxMap;
+    TaxMap *taxMap;    
     QReadWriteLock lock;
     TaxNode *taxTree;
     GlobalTaxMapDataProvider(QObject *parent, TaxMap *tm);
@@ -133,13 +134,11 @@ class BlastTaxDataProviders : public QList<BlastTaxDataProvider *>
     int serializingProviders;
 public:
     BlastTaxDataProviders();
-    virtual void toJson(QJsonObject &json);
     virtual void fromJson(QJsonObject &json);
     BlastTaxDataProvider *providerByName(const QString &name) const;
     void setVisible(quint8 index, bool visible);
     bool isVisible(quint8 index);
     void addProvider(BlastTaxDataProvider *);
-    void serialize(QFile &file);
 };
 
 class ProvidersSerializationThread : public QThread

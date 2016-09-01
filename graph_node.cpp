@@ -3,6 +3,7 @@
 #include "graph_node.h"
 #include "graphview.h"
 #include "tax_map.h"
+#include "tree_tax_node.h"
 #include "taxdataprovider.h"
 #include "taxnodesignalsender.h"
 #include "bubblechartview.h"
@@ -16,7 +17,7 @@
 #include <QDebug>
 #include <QScrollBar>
 #include <QMenu>
-
+#include <QtCore/qmath.h>
 //=========================================================================
 GraphNode::GraphNode(DataGraphicsView *view, BaseTaxNode *node):
     view(view),
@@ -99,7 +100,8 @@ QPainterPath TaxTreeGraphNode::getTextPath() const
                                                        // of scene does not depend on width of text for visible nodes
     qreal h = fm.height();
     int ncs = configuration->GraphNode()->nodeCircleSize();
-    if ( getTaxNode()->children.isEmpty() || getTaxNode()->isCollapsed() )
+    TreeTaxNode *tnode = getTaxNode();
+    if ( tnode->children.isEmpty() || tnode->isCollapsed() || !tnode->hasVisibleChildren() )
         path.addRect(ncs+2, -h/2, w+2, h+2);
     else
         path.addRect(-5 - w/2, -ncs-2-h, w+2, h+2);
@@ -128,7 +130,8 @@ void TaxTreeGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *
     QFont font;
     QFontMetricsF fm(font);
     painter->setPen(QPen(mainColor, 0.5, Qt::SolidLine));
-    if ( !getTaxNode()->children.isEmpty() )
+    TreeTaxNode *tnode = getTaxNode();
+    if ( !tnode->children.isEmpty() )
     {
         int hps = configuration->GraphNode()->halfPlusSize();
         painter->drawLine(-hps, 0, hps, 0);
@@ -140,7 +143,7 @@ void TaxTreeGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *
         text = text.mid(0, 17).append("...");
     qreal w = fm.width(text);
     qreal h = fm.height();
-    if ( getTaxNode()->children.isEmpty() || getTaxNode()->isCollapsed() )
+    if ( tnode->children.isEmpty() || tnode->isCollapsed() || !tnode->hasVisibleChildren() )
         painter->drawText(QRectF(ncs+2, -h/2, w+2, h+2), text);
     else
         painter->drawText(QRectF(-5 - w/2, -ncs-2-h, w+2, h+2), text);
@@ -433,8 +436,13 @@ void ChartGraphNode::setMaxNodeSize(quint32 size)
 //=========================================================================
 int ChartGraphNode::size() const
 {
-    BubbleChartView * ch_view = (BubbleChartView *)view;
-    return qMax(1., ((qreal)reads())/ch_view->dataProvider()->getMaxReads()*maxNodeRadius);
+    BubbleChartView *ch_view = (BubbleChartView *)view;
+    qreal r = reads();
+    qreal mr = ch_view->dataProvider()->getMaxReads();
+    if ( ch_view->getConfig()->calcMethod == METHOD_LINEAR )
+        return qMax(1., r/mr*maxNodeRadius);
+    else
+        return qMax(1., qSqrt(r)/qSqrt(mr)*maxNodeRadius);
 }
 
 //=========================================================================

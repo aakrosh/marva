@@ -5,6 +5,7 @@
 #include "gi2taxmaptxtloader.h"
 #include "blastfileloader.h"
 #include "taxdataprovider.h"
+#include "config.h"
 
 #include <QTextStream>
 #include <QFileInfo>
@@ -71,16 +72,14 @@ void BlastFileLoader::processLine(QString &line)
     if ( parser == NULL )
         return;
     BlastRecord rec;
-    //BlastRecord *rec = parser->parse(line);
-    parser->parse(line, rec);
-//    if ( rec == NULL )
-//        return;
-    if ( rec.bitscore < 70 )           // TODO: Configure
-        return;
-    if ( lastQuery.queryName != rec.query_name )
-        ProcessFinishedQuery();
-    lastQuery.add(rec.query_name, &rec, curPos);
-//    delete rec;
+    if ( parser->parse(line, rec) )
+    {
+        if ( rec.bitscore < configuration->ImportData()->minBitscore() )           // TODO: Configure
+            return;
+        if ( lastQuery.queryName != rec.query_name )
+            ProcessFinishedQuery();
+        lastQuery.add(rec.query_name, &rec, curPos);
+    }
 }
 
 //=========================================================================
@@ -121,9 +120,9 @@ BlastRecord *BlastParser::parse(QString &line)
 }
 
 //=========================================================================
-void BlastParser::parse(QString &line, BlastRecord &rec)
+bool BlastParser::parse(QString &line, BlastRecord &rec)
 {
-    r.parse(getType(), line, rec);
+    return r.parse(getType(), line, rec);
 }
 
 
@@ -161,20 +160,34 @@ void QueryDetails::clean()
 {
     queryName.clear();
     tax_details_map.clean();
+    maxBitscore = 0;
 }
 
 //=========================================================================
 void QueryDetails::add(QString newQueryName, BlastRecord *br, quint32 pos)
 {
-    queryName = newQueryName;
+    if ( maxBitscore < br->bitscore )
+        maxBitscore = br->bitscore;
+    else if ( maxBitscore * (100-configuration->ImportData()->topPercent())/100 > br->bitscore )
+        return;
+
+    queryName.swap(newQueryName);
     tax_details_map.add(br, pos);
 }
 
 //=========================================================================
 quint32 QueryDetails::lca_id()
 {
+    TaxDetailsMap::Iterator it = tax_details_map.begin();
+    for (; it != tax_details_map.end(); )
+    {
+        if ( it.value()->score <  maxBitscore*(100-configuration->ImportData()->topPercent())/100 )
+            it = tax_details_map.erase(it);
+        else
+            ++it;
+    }
     QList<qint32> tax_ids = tax_details_map.keys();
-    qint32 i = 0;
+    qint32 i = 0;    
     qint32 cur_id = tax_ids[i++];
     TaxNode *cur_node = globalTaxDataProvider->taxMap->value(cur_id);
     while ( ( cur_id < 0 || cur_node == NULL ) && i < tax_ids.count() )

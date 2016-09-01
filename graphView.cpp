@@ -21,6 +21,7 @@
 #include "colors.h"
 #include "ui_components/blastnodedetails.h"
 #include "blastfileloader.h"
+#include "taxdataprovider.h"
 
 #define RIGHT_NODE_MARGIN   150
 #define MIN_DX 70
@@ -387,14 +388,19 @@ void TreeGraphView::AddNodeToScene(TreeTaxNode *node)
 {
     if ( node == NULL || !node->visible() )
         return;
-    if ( node->getGnode() == NULL )
+    TaxTreeGraphNode *gnode = ((TaxTreeGraphNode *)node->getGnode());
+    if ( gnode == NULL )
     {
-        if ( create_nodes )
-            CreateGraphNode(node);
-        else
+        if ( !create_nodes )
+            return;
+        CreateGraphNode(node);
+        gnode = ((TaxTreeGraphNode *)node->getGnode());
+    }
+    else
+    {
+        if ( gnode->scene() == scene() )
             return;
     }
-    TaxTreeGraphNode *gnode = ((TaxTreeGraphNode *)node->getGnode());
     scene()->addItem(gnode);
     Edge *e = gnode->edge;
     if ( e == NULL && node->parent != NULL )
@@ -404,7 +410,7 @@ void TreeGraphView::AddNodeToScene(TreeTaxNode *node)
     if ( node->isCollapsed() )
         return;
     ThreadSafeListLocker<TreeTaxNode *> locker(&node->children);
-    for (TaxNodeIterator it=node->children.begin(); it!=node->children.end(); it++ )
+    for ( TaxNodeIterator it=node->children.begin(); it!=node->children.end(); it++ )
         AddNodeToScene(*it);
 }
 
@@ -581,7 +587,7 @@ void TreeGraphView::resetNodesCoordinates()
         int maxLevel;
         int y;
         quint64 max_node_y;
-        NodeYSetter(int inity, TreeGraphView *gv):TaxNodeVisitor(LeavesToRoot, false, gv, false, false), maxLevel(0), y(inity), max_node_y(0) {}
+        NodeYSetter(int inity, TreeGraphView *gv):TaxNodeVisitor(LeavesToRoot, false, gv, false, false, false), maxLevel(0), y(inity), max_node_y(0) {}
         virtual void Action(TreeTaxNode *node)
         {            
             if ( !shouldVisitChildren(node) )
@@ -733,7 +739,7 @@ void TreeGraphView::hideNode(TreeTaxNode *node, bool resetCoordinates)
     if ( node == NULL )
         return;
     TaxTreeGraphNode *gnode = node->getTaxTreeGNode();
-    if ( gnode == NULL || !scene()->items().contains(gnode) )
+    if ( gnode == NULL || gnode->scene() != scene() )
         return;
     class NodeRemover : public TaxNodeVisitor
     {
@@ -784,14 +790,14 @@ void TreeGraphView::hideNodeCheckParents(TreeTaxNode *node, bool resetCoordinate
 //=========================================================================
 void TreeGraphView::showNode(TreeTaxNode *node, bool resetCoordinates)
 {
-    TaxTreeGraphNode *gnode = node->getTaxTreeGNode();
-    if ( gnode == NULL || !scene()->items().contains(gnode) )
+    TaxTreeGraphNode *gnode = node->getTaxTreeGNode();    
+    if ( gnode == NULL || gnode->scene() != scene() )
     {
         TreeTaxNode *pnode = node->parent;
         if ( pnode != NULL )
         {
             TaxTreeGraphNode *pgnode = pnode->getTaxTreeGNode();
-            if ( pgnode == NULL  || !scene()->items().contains(pgnode) )
+            if ( pgnode == NULL  || pgnode->scene() != scene() )
                 pnode->setVisible(true, true);
         }
         if ( pnode == NULL || !pnode->isCollapsed() )
@@ -872,9 +878,10 @@ void TreeGraphView::onNodeVisiblityChanged()
 //=========================================================================
 void TreeGraphView::onNodeVisibilityChanged(BaseTaxNode *node, bool node_visible)
 {
-    NodePositionKeeper keeper(this, getCurNode());
+    TreeTaxNode *curNode = getCurNode();
+    NodePositionKeeper keeper(this, curNode);
 
-    if ( getCurNode() == node )
+    if (curNode == node )
         keeper.gnode = NULL;
 
     TreeTaxNode *ttn = (TreeTaxNode *)node;
@@ -902,7 +909,7 @@ BlastGraphView::BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidg
     reads_threshold(0),
     dirty(false)
 {
-    flags |= DGF_BUBBLES|DGF_READS;
+    flags |= DGF_BUBBLES|DGF_READS|DGF_RANKS;
     config = new BubbledGraphViewConfig();
     taxDataProvider = (TaxDataProvider*)blastTaxDataProvider;
     if ( blastTaxDataProvider != NULL )
@@ -1066,6 +1073,33 @@ void BlastGraphView::onBubbleSizeChanged(quint32, quint32 newSize)
                 gnode->update();
         }
     }
+}
+
+//=========================================================================
+void BlastGraphView::onTaxRankChanged(TaxRank rank)
+{
+    onTaxRankChanged(rank, (BlastTaxNode *)root);
+}
+
+//=========================================================================
+void BlastGraphView::onTaxRankChanged(TaxRank rank, BlastTaxNode *node)
+{
+    if ( !node->visible() )
+        return;
+
+    TaxNode *tn = taxMap.value(node->getId());
+
+    if ( !node->isCollapsed() && rank <= tn->getRank() )
+    {
+        node->setCollapsed(true, true);
+        return;
+    }
+
+    if ( node->isCollapsed() && rank > tn->getRank() )
+        node->setCollapsed(false, true);
+    ThreadSafeListLocker<TreeTaxNode *> locker(&node->children);
+    for ( TaxNodeIterator it  = node->children.begin(); it != node->children.end(); it++ )
+        onTaxRankChanged(rank, (BlastTaxNode *)*it);
 }
 
 //=========================================================================
