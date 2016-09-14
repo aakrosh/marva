@@ -20,6 +20,8 @@ private:
 private slots:
     void onConfigChanged();
     void onGiToTaxMapPathClicked();
+signals:
+    void configChanged();
 };
 
 #endif // CONFIGURATIONDIALOG_H

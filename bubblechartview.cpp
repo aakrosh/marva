@@ -21,7 +21,7 @@
 BubbleChartView::BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
     : DataGraphicsView(NULL, parent)
 {
-    flags |= DGF_BUBBLES;
+    flags |= DGF_BUBBLES | DGF_RANKS;
     config = new BubbleChartParameters();
     setWindowTitle(tr("Gene chart"));
 
@@ -32,6 +32,7 @@ BubbleChartView::BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget 
 
     connect((ChartDataProvider *)taxDataProvider, SIGNAL(taxVisibilityChanged(quint32)), this, SLOT(onTaxVisibilityChanged(quint32)));
     connect((ChartDataProvider *)taxDataProvider, SIGNAL(cacheUpdated()), this, SLOT(onDataChanged()));
+
 
     QGraphicsScene *s = new QGraphicsScene(this);
     s->setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -155,7 +156,8 @@ void BubbleChartView::prepareScene()
 //=========================================================================
 void BubbleChartView::showChart(bool forceNodeUpdate)
 {
-    if ( dataProvider()->data.size() == 0 )
+    ChartDataProvider *chartDataProvider = dataProvider();
+    if ( chartDataProvider->data.size() == 0 )
         return;
     quint32 sheight = (int)this->sceneRect().height()*0.8;
     quint32 swidth = (int)this->sceneRect().height()*0.8;
@@ -163,7 +165,6 @@ void BubbleChartView::showChart(bool forceNodeUpdate)
     quint32 bubbleSize = getConfig()->bubbleSize;
     quint32 maxBubbleSize = tsize == 0 ? 0 : qMin(bubbleSize, sheight/tsize);
     quint32 columnWidth = qMin(bubbleSize, swidth/dataProvider()->providers->count());
-    ChartDataProvider *chartDataProvider = dataProvider();
     int rnum = 0;
     quint32 column = 0;
     for ( int j = 0; j < chartDataProvider->data.count(); j++)
@@ -522,13 +523,13 @@ void BubbleChartView::showPropertiesDialog()
     connect(propertiesDialog, SIGNAL(showTitleToggled(bool)), this, SLOT(toggleTitleVisibility(bool)));
     connect(propertiesDialog, SIGNAL(dataSourceVisibilityChanged(int)), this, SLOT(onDataSourceVisibilityChanged(int)));
     connect(propertiesDialog, SIGNAL(bubbleSizeCalcMethodChanged(int)), this, SLOT(onBubbleSizeCalcMethodChanged(int)));
+    connect(propertiesDialog, SIGNAL(dataSourceMoved(int, int)), this, SLOT(onDataSourceMoved(int, int)));
     propertiesDialog->show();
 }
 
 //=========================================================================
 void BubbleChartView::showDataSourceDialog()
 {
-
 }
 
 //=========================================================================
@@ -543,6 +544,29 @@ void BubbleChartView::onColorChanged(BaseTaxNode *node)
         if ( gn != NULL )
             gn->update();
     }
+}
+
+//=========================================================================
+void BubbleChartView::onTaxRankChanged(TaxRank rank)
+{
+    ChartDataProvider *dp = dataProvider();
+    quint32 c = dp->count();
+    for ( quint32 i = 0; i < c; i++ )
+    {
+        BaseTaxNode *node = dp->taxNode(i);
+        TaxNode *tn = taxMap.value(node->getId());
+        dp->setCheckedState(i, tn->getRank() == rank ? Qt::Checked : Qt::Unchecked);
+    }
+}
+
+//=========================================================================
+void BubbleChartView::onDataSourceMoved(int index, int dest)
+{
+    horizontalLegend.move(index, dest);
+    ChartDataProvider *chartDataProvider = dataProvider();
+    for ( quint32 i = 0 ; i < chartDataProvider->count(); i++ )
+        chartDataProvider->data[i].tax_nodes.move(index, dest);
+    showChart();
 }
 
 //=========================================================================
@@ -676,9 +700,9 @@ quint32 ChartDataProvider::readsById(quint32 id)
 
 //=========================================================================
 static ChartDataProvider *cdp;
-bool readsLessThan(const IdBlastTaxNodesPair &x1, const IdBlastTaxNodesPair &x2)
+bool sumLessThan(const IdBlastTaxNodesPair &x1, const IdBlastTaxNodesPair &x2)
 {
-    return x1.reads() < x2.reads();
+    return x1.sum() < x2.sum();
 }
 
 //=========================================================================
@@ -694,17 +718,19 @@ void ChartDataProvider::updateCache(bool ids_only)
             {
                 if ( p->checkState(j) == Qt::Checked )
                 {
-                    quint32 reads = p->reads(j);
-                    if ( reads == 0 )
-                        continue;
                     quint32 taxid = p->id(j);
+                    if ( taxMap.value(taxid)->getRank() <= 0 )
+                        continue;
+                    quint32 sum = p->sum(j);
+                    if ( sum == 0 )
+                        continue;                    
                     qint32 ind = indexOf(taxid);
                     if ( ind == -1 )
                         data.append(IdBlastTaxNodesPair(taxid));
                     else
                         data[ind].tax_nodes.clear();
-                    if ( reads > maxreads )
-                        maxreads = reads;
+                    if ( sum > maxreads )
+                        maxreads = sum;
                 }
             }
         }
@@ -724,7 +750,7 @@ void ChartDataProvider::updateCache(bool ids_only)
         }
 
         cdp = this;
-        qSort(data.begin(), data.end(), readsLessThan);
+        qSort(data.begin(), data.end(), sumLessThan);
         while ( data.size() > configuration->BubbleChart()->maxChartTaxes() )
             data.removeFirst();
         quint32 dsize = data.size();
@@ -794,7 +820,7 @@ void ChartDataProvider::setCheckedState(int index, QVariant val)
             BlastTaxNode *node = di.tax_nodes[j];
             if ( node == NULL )
                 continue;
-            quint32 reads = node->reads;
+            quint32 reads = node->sum();
             if ( reads > maxreads )
                  maxreads = reads;
         }
@@ -895,13 +921,11 @@ BaseTaxNode *ChartDataProvider::taxNode(qint32 index)
 //=========================================================================
 //*************************************************************************
 //=========================================================================
-quint32 IdBlastTaxNodesPair::reads() const
+quint32 IdBlastTaxNodesPair::sum() const
 {
     quint32 res = 0;
     foreach (BlastTaxNode *n, tax_nodes )
-    {
         if ( n != NULL )
-            res += n->reads;
-    }
+            res += n->sum();
     return res;
 }

@@ -249,7 +249,6 @@ void TreeGraphView::hideNodes(quint32 oldT, quint32 newT)
     {
         quint32 oldT;
         quint32 newT;
-//        bool has_visible;
     public:
         NodeHider(TreeGraphView *gv, quint32 _oldT, quint32 _newT):
             TaxNodeVisitor(LeavesToRoot, false, gv, false, true),
@@ -262,30 +261,14 @@ void TreeGraphView::hideNodes(quint32 oldT, quint32 newT)
         virtual void Action(TreeTaxNode *node)
         {
             BlastTaxNode *bnode = dynamic_cast<BlastTaxNode *>(node);
-//            if ( bnode->reads == 0 )
-              if ( bnode->sum() == 0 )
+            if ( bnode->sum() == 0 )
             {
-                if ( /*!has_visible */ bnode->hasVisibleChildren() )
+                if ( bnode->hasVisibleChildren() )
                     graphView->setNodeInvisible(bnode);
             }
             else if ( bnode->visible() && bnode->sum() < newT )
                 graphView->setNodeInvisible(bnode);
         }
-       /* virtual void afterVisitChildren(TreeTaxNode *node)
-        {
-            QList<TreeTaxNode *> &list = node->children;
-            has_visible = false;
-            for ( TaxNodeIterator it = list.begin(); it < list.end(); it++ )
-            {
-                if ( (*it)->visible() )
-                {
-                    has_visible = true;
-                    break;
-                }
-            }
-            //node->markChildrenDirty();
-//            bnode->hasVisibleChildren();
-        }*/
     };
     NodeHider nh(this, oldT, newT); // Mark nodes as non-visible
     nh.Visit(root);
@@ -318,9 +301,7 @@ void TreeGraphView::unhideNodes(quint32 oldT, quint32 newT)
             TaxNodeVisitor(LeavesToRoot, false, gv, false, true),
             oldT(_oldT),
             newT(_newT)
-        {
-
-        }
+        {}
         virtual void Action(TreeTaxNode *node)
         {
             BlastTaxNode *bnode = dynamic_cast<BlastTaxNode *>(node);
@@ -330,19 +311,6 @@ void TreeGraphView::unhideNodes(quint32 oldT, quint32 newT)
             else if ( bnsum > newT && bnsum <= oldT )
                bnode->setVisible(true);
         }
-        /*virtual void afterVisitChildren(TreeTaxNode *node)
-        {
-            QList<TreeTaxNode *> &list = node->children;
-            has_visible = false;
-            for ( TaxNodeIterator it = list.begin(); it < list.end(); it++ )
-            {
-                if ( (*it)->visible() )
-                {
-                    has_visible = true;
-                    break;
-                }
-            }
-        }*/
     };
     NodeUnHider nh(this, oldT, newT);
     nh.Visit(root);

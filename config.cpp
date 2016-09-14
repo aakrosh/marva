@@ -51,6 +51,8 @@ GraphNodeConfig::GraphNodeConfig():
     INITPROPERTY(halfPlusSize, 3);
     INITPROPERTY(maxNodeRadius, 30);
     INITPROPERTY(edgeStyle, EDGE_CURVE);
+    INITPROPERTY(showTitle, SHOW_TITLE_MAIN);
+    INITPROPERTY(nodeTitleLen, 20);
 }
 
 //=========================================================================
@@ -61,6 +63,8 @@ void GraphNodeConfig::toJson(QJsonObject &json) const
     TOJSON(jGNode, halfPlusSize);
     TOJSON(jGNode, maxNodeRadius);
     TOJSON(jGNode, edgeStyle);
+    TOJSON(jGNode, showTitle);
+    TOJSON(jGNode, nodeTitleLen);
     json["GraphNode"] = jGNode;
 }
 
@@ -74,6 +78,8 @@ void GraphNodeConfig::fromJson(QJsonObject &json)
         INTFROMJSON(jGNode, halfPlusSize)
         INTFROMJSON(jGNode, maxNodeRadius)
         INTFROMJSON(jGNode, edgeStyle)
+        INTFROMJSON(jGNode, showTitle)
+        INTFROMJSON(jGNode, nodeTitleLen)
     }
     catch(...)
     {
@@ -87,6 +93,7 @@ ImportDataConfig::ImportDataConfig():
 {
     INITPROPERTY(minBitscore, 50);
     INITPROPERTY(topPercent, 10);
+    INITPROPERTY(maxEValue, 0.01);
     INITPROPERTY(gi2taxmap, "");
 }
 
@@ -96,6 +103,7 @@ void ImportDataConfig::toJson(QJsonObject &json) const
     QJsonObject jImportData;
     TOJSON(jImportData, minBitscore)
     TOJSON(jImportData, topPercent)
+    TOJSON(jImportData, maxEValue)
     TOJSON(jImportData, gi2taxmap)
     json["ImportData"] = jImportData;
 }
@@ -108,6 +116,7 @@ void ImportDataConfig::fromJson(QJsonObject &json)
         QJsonObject jImportData = json["ImportData"].toObject();
         REALFROMJSON(jImportData, minBitscore)
         REALFROMJSON(jImportData, topPercent)
+        REALFROMJSON(jImportData, maxEValue)
         STRFROMJSON(jImportData, gi2taxmap)
     }
     catch(...)

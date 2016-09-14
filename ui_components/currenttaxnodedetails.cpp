@@ -46,6 +46,23 @@ void CurrentTaxNodeDetails::refresh()
     quint32 sum = dataProvider->sum(index);
     BaseTaxNode *bNode = dataProvider->taxNode(index);
 
+    QString rank;
+    TaxRank tr = taxMap.value(curNodeId)->getRank();
+    switch ( tr )
+    {
+        case TR_DOMAIN: rank = "Domain"; break;
+        case TR_KINGDOM: rank = "Kingdom"; break;
+        case TR_PHYLUM: rank = "Phylum"; break;
+        case TR_CLASS: rank = "Class"; break;
+        case TR_ORDER: rank = "Order"; break;
+        case TR_FAMILY: rank = "Family"; break;
+        case TR_VARIETAS: rank = "Genus"; break;
+        case TR_SPECIES: rank = "Species"; break;
+        default: break;
+    }
+    rank.append(QString("(%1)").arg((qint32)tr));
+    ui->lRank->setText(rank);
+
     if ( curNodeId > 1 )
     {
         QString text = bNode->getText();

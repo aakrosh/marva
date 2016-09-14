@@ -63,7 +63,27 @@
           <widget class="QLabel" name="lId">
            <property name="minimumSize">
             <size>
-             <width>30</width>
+             <width>75</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>Rank:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="lRank">
+           <property name="minimumSize">
+            <size>
+             <width>100</width>
              <height>0</height>
             </size>
            </property>

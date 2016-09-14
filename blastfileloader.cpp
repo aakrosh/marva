@@ -74,7 +74,9 @@ void BlastFileLoader::processLine(QString &line)
     BlastRecord rec;
     if ( parser->parse(line, rec) )
     {
-        if ( rec.bitscore < configuration->ImportData()->minBitscore() )           // TODO: Configure
+        if ( rec.bitscore < configuration->ImportData()->minBitscore() )
+            return;
+        if ( rec.e_value > configuration->ImportData()->maxEValue() )
             return;
         if ( lastQuery.queryName != rec.query_name )
             ProcessFinishedQuery();

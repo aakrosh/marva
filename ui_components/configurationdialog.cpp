@@ -21,11 +21,19 @@ ConfigurationDialog::ConfigurationDialog(QWidget *parent) :
     ui->sbPlusSignSize->setValue(gnc->halfPlusSize()*2);
     ui->sbMaxNodeRadius->setValue(gnc->maxNodeRadius());
     ui->rbCurves->setChecked(gnc->edgeStyle() == EDGE_CURVE);
+    switch ( gnc->showTitle() )
+    {
+        case SHOW_TITLE_ALL:   ui->rbShowTitleAll->setChecked(true);  break;
+        case SHOW_TITLE_MAIN:  ui->rbShowTitleMain->setChecked(true); break;
+        case SHOW_TITLE_NONE:  ui->rbShowTitleNone->setChecked(true); break;
+    }
+    ui->sbMaxTitleLen->setValue(gnc->nodeTitleLen());
 
     ImportDataConfig *idc = configuration->ImportData();
     ui->sbMinBitscore->setValue(idc->minBitscore());
     ui->leGiToTaxMapPath->setText(idc->gi2taxmap());
     ui->sbTopPercent->setValue(idc->topPercent());
+    ui->sbMaxEValue->setValue(idc->maxEValue());
 
     inited = true;
 
@@ -41,7 +49,7 @@ ConfigurationDialog::~ConfigurationDialog()
 
 void ConfigurationDialog::closeEvent(QCloseEvent *)
 {
-    //configuration->save();
+    onConfigChanged();
 }
 
 void ConfigurationDialog::onConfigChanged()
@@ -58,13 +66,23 @@ void ConfigurationDialog::onConfigChanged()
     gnc->sethalfPlusSize(ui->sbPlusSignSize->value()/2);
     gnc->setmaxNodeRadius(ui->sbMaxNodeRadius->value());
     gnc->setedgeStyle(ui->rbCurves->isChecked() ? EDGE_CURVE : EDGE_LINE);
+    int st = SHOW_TITLE_MAIN;
+    if ( ui->rbShowTitleAll->isChecked() )
+        st = SHOW_TITLE_ALL;
+    else if ( ui->rbShowTitleNone->isChecked() )
+        st = SHOW_TITLE_NONE;
+    gnc->setshowTitle(st);
+    gnc->setnodeTitleLen(ui->sbMaxTitleLen->value());
 
     ImportDataConfig *idc = configuration->ImportData();
     idc->setminBitscore(ui->sbMinBitscore->value());
     idc->settopPercent(ui->sbTopPercent->value());
+    idc->setmaxEValue(ui->sbMaxEValue->value());
     idc->setgi2taxmap(ui->leGiToTaxMapPath->text());
 
     configuration->save();
+
+    emit configChanged();
 }
 
 void ConfigurationDialog::onGiToTaxMapPathClicked()

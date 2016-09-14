@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>465</width>
-    <height>303</height>
+    <width>480</width>
+    <height>311</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -120,16 +120,16 @@
              <string/>
             </property>
             <property name="minimum">
-             <number>1</number>
+             <number>10</number>
             </property>
             <property name="maximum">
-             <number>200</number>
+             <number>2000</number>
             </property>
             <property name="singleStep">
              <number>10</number>
             </property>
             <property name="value">
-             <number>120</number>
+             <number>200</number>
             </property>
            </widget>
           </item>
@@ -157,47 +157,13 @@
         </widget>
         <widget class="QWidget" name="page_2">
          <layout class="QGridLayout" name="gridLayout_3">
-          <item row="0" column="1">
-           <widget class="QLabel" name="label_4">
+          <item row="3" column="3">
+           <widget class="QRadioButton" name="rbCurves">
             <property name="text">
-             <string>Node circle size</string>
+             <string>&amp;Curves</string>
             </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QLabel" name="label_6">
-            <property name="text">
-             <string>Maximum node radius</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QLabel" name="label_5">
-            <property name="text">
-             <string>Plus sign size</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3">
-           <spacer name="horizontalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="0" column="2">
-           <widget class="QSpinBox" name="sbNodeCircleSize">
-            <property name="minimum">
-             <number>2</number>
-            </property>
-            <property name="value">
-             <number>8</number>
+            <property name="checked">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -214,6 +180,16 @@
             </property>
            </widget>
           </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="label_6">
+            <property name="text">
+             <string>Maximum node &amp;radius</string>
+            </property>
+            <property name="buddy">
+             <cstring>sbMaxNodeRadius</cstring>
+            </property>
+           </widget>
+          </item>
           <item row="1" column="2">
            <widget class="QSpinBox" name="sbPlusSignSize">
             <property name="minimum">
@@ -227,18 +203,85 @@
             </property>
            </widget>
           </item>
-          <item row="4" column="1">
-           <spacer name="verticalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
+          <item row="4" column="1" colspan="3">
+           <widget class="QGroupBox" name="gShowTitle">
+            <property name="title">
+             <string>Show node titles</string>
             </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
+            <layout class="QVBoxLayout" name="verticalLayout_2">
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_3">
+               <item>
+                <widget class="QRadioButton" name="rbShowTitleAll">
+                 <property name="text">
+                  <string>&amp;All</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="rbShowTitleMain">
+                 <property name="text">
+                  <string>&amp;Main ranks</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="rbShowTitleNone">
+                 <property name="text">
+                  <string>&amp;None</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <item>
+                <widget class="QLabel" name="label_11">
+                 <property name="text">
+                  <string>Max title &amp;length</string>
+                 </property>
+                 <property name="buddy">
+                  <cstring>sbMaxTitleLen</cstring>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="sbMaxTitleLen">
+                 <property name="minimumSize">
+                  <size>
+                   <width>50</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="minimum">
+                  <number>1</number>
+                 </property>
+                 <property name="value">
+                  <number>20</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_3">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
           </item>
           <item row="3" column="1">
            <widget class="QLabel" name="label_9">
@@ -254,21 +297,67 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="3">
-           <widget class="QRadioButton" name="rbCurves">
-            <property name="text">
-             <string>&amp;Curves</string>
+          <item row="0" column="2">
+           <widget class="QSpinBox" name="sbNodeCircleSize">
+            <property name="minimum">
+             <number>2</number>
             </property>
-            <property name="checked">
-             <bool>true</bool>
+            <property name="value">
+             <number>8</number>
             </property>
            </widget>
+          </item>
+          <item row="0" column="3">
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLabel" name="label_5">
+            <property name="text">
+             <string>&amp;Plus sign size</string>
+            </property>
+            <property name="buddy">
+             <cstring>sbPlusSignSize</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="label_4">
+            <property name="text">
+             <string>Node circle &amp;size</string>
+            </property>
+            <property name="buddy">
+             <cstring>sbNodeCircleSize</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </widget>
         <widget class="QWidget" name="page_3">
          <layout class="QGridLayout" name="gridLayout_2">
-          <item row="4" column="3">
+          <item row="5" column="3">
            <widget class="QPushButton" name="bGiToTaxMapPath">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -299,10 +388,10 @@
             </property>
            </widget>
           </item>
-          <item row="4" column="2">
+          <item row="5" column="2">
            <widget class="QLineEdit" name="leGiToTaxMapPath"/>
           </item>
-          <item row="4" column="1">
+          <item row="5" column="1">
            <widget class="QLabel" name="label_8">
             <property name="text">
              <string>&amp;Gi to taxonomy map</string>
@@ -312,7 +401,7 @@
             </property>
            </widget>
           </item>
-          <item row="5" column="1">
+          <item row="6" column="1">
            <spacer name="verticalSpacer_3">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -354,6 +443,41 @@
           </item>
           <item row="3" column="2">
            <widget class="QDoubleSpinBox" name="sbTopPercent"/>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLabel" name="label_12">
+            <property name="text">
+             <string>Max &amp;E-Value</string>
+            </property>
+            <property name="buddy">
+             <cstring>sbMaxEValue</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="2">
+           <widget class="QDoubleSpinBox" name="sbMaxEValue">
+            <property name="toolTip">
+             <string>Ignore all matches whoes expected value is higher then this threshold</string>
+            </property>
+            <property name="prefix">
+             <string/>
+            </property>
+            <property name="decimals">
+             <number>6</number>
+            </property>
+            <property name="minimum">
+             <double>0.000001000000000</double>
+            </property>
+            <property name="maximum">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.010000000000000</double>
+            </property>
+            <property name="value">
+             <double>0.010000000000000</double>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -413,8 +537,8 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>349</x>
-     <y>38</y>
+     <x>304</x>
+     <y>39</y>
     </hint>
     <hint type="destinationlabel">
      <x>378</x>
@@ -429,8 +553,8 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>349</x>
-     <y>64</y>
+     <x>304</x>
+     <y>39</y>
     </hint>
     <hint type="destinationlabel">
      <x>367</x>
@@ -445,8 +569,8 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>349</x>
-     <y>90</y>
+     <x>304</x>
+     <y>39</y>
     </hint>
     <hint type="destinationlabel">
      <x>464</x>
@@ -461,7 +585,7 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>280</x>
+     <x>289</x>
      <y>18</y>
     </hint>
     <hint type="destinationlabel">
@@ -477,7 +601,7 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>280</x>
+     <x>289</x>
      <y>23</y>
     </hint>
     <hint type="destinationlabel">
@@ -493,7 +617,7 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>280</x>
+     <x>289</x>
      <y>28</y>
     </hint>
     <hint type="destinationlabel">
@@ -525,8 +649,8 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>385</x>
-     <y>29</y>
+     <x>424</x>
+     <y>38</y>
     </hint>
     <hint type="destinationlabel">
      <x>457</x>
@@ -541,8 +665,8 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>409</x>
-     <y>91</y>
+     <x>424</x>
+     <y>117</y>
     </hint>
     <hint type="destinationlabel">
      <x>391</x>
@@ -557,8 +681,8 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>335</x>
-     <y>105</y>
+     <x>304</x>
+     <y>39</y>
     </hint>
     <hint type="destinationlabel">
      <x>327</x>
@@ -573,12 +697,76 @@
    <slot>onConfigChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>340</x>
-     <y>57</y>
+     <x>424</x>
+     <y>64</y>
     </hint>
     <hint type="destinationlabel">
      <x>349</x>
      <y>339</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sbMaxTitleLen</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>ConfigurationDialog</receiver>
+   <slot>onConfigChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>304</x>
+     <y>39</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>309</x>
+     <y>333</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>rbShowTitleMain</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>ConfigurationDialog</receiver>
+   <slot>onConfigChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>304</x>
+     <y>39</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>477</x>
+     <y>176</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>rbShowTitleNone</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>ConfigurationDialog</receiver>
+   <slot>onConfigChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>304</x>
+     <y>39</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>475</x>
+     <y>216</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sbMaxEValue</sender>
+   <signal>valueChanged(double)</signal>
+   <receiver>ConfigurationDialog</receiver>
+   <slot>onConfigChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>346</x>
+     <y>79</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>493</x>
+     <y>82</y>
     </hint>
    </hints>
   </connection>

@@ -23,6 +23,7 @@ BlastTaxNode *BlastTaxNode::clone()
     n->flags = flags;
     n->gnode = NULL;
     n->is_visible = is_visible;
+    n->children.append(children);
     return n;
 }
 

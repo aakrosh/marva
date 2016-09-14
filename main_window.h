@@ -89,6 +89,7 @@ private slots:
     QString getOpenFileName(QString text, QString filters);
     void onProviderSerialized(ProvidersSerializationThread *);
     void finishSerialization();
+    void onConfigChanged();
 
     friend class DataGraphicsView;
 };

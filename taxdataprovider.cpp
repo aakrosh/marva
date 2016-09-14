@@ -587,7 +587,7 @@ QColor BlastTaxDataProvider::color(int index)
 }
 
 //=========================================================================
-bool readsLessThan(const IdTaxNodePair &v1, const IdTaxNodePair &v2)
+bool sumLessThan(const IdTaxNodePair &v1, const IdTaxNodePair &v2)
 {
      return ((BlastTaxNode *)v1.node)->reads < ((BlastTaxNode *)v2.node)->reads;
 }
@@ -597,7 +597,7 @@ void BlastTaxDataProvider::sort(int column, Qt::SortOrder order)
     if ( column == 2 )
     {
         QReadWriteLocker locker(&lock, true);
-        qSort(idTaxNodeList.begin(), idTaxNodeList.end(), readsLessThan);
+        qSort(idTaxNodeList.begin(), idTaxNodeList.end(), sumLessThan);
         if ( order == Qt::DescendingOrder )
             std::reverse(idTaxNodeList.begin(), idTaxNodeList.end());
     }

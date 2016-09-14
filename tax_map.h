@@ -21,7 +21,7 @@ enum TaxRank
     TR_CLASS    = 3,
     TR_ORDER    = 4,
     TR_FAMILY   = 5,
-    TR_VARIETAS = 90,
+    TR_VARIETAS = 98,
     TR_SPECIES  = 100,
     TR_SUBSPIC  = 101,
     TR_NORANK   = -666

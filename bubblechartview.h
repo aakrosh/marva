@@ -21,7 +21,7 @@ public:
     BlastTaxNodes tax_nodes;
     bool checked;
     IdBlastTaxNodesPair(quint32 _id, bool _checked=true):id(_id),checked(_checked){}
-    quint32 reads() const;
+    quint32 sum() const;
 };
 
 class ChartDataProvider : public TaxDataProvider
@@ -128,6 +128,8 @@ public slots:
     virtual void onDataSourceVisibilityChanged(int);
     virtual void onBubbleSizeCalcMethodChanged(int);
     virtual void onColorChanged(BaseTaxNode *);
+    virtual void onTaxRankChanged(TaxRank);
+    virtual void onDataSourceMoved(int, int);
 
     friend class MainWindow;
 };

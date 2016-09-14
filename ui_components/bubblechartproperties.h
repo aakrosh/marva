@@ -26,12 +26,14 @@ signals:
     void showTitleToggled(bool);
     void dataSourceVisibilityChanged(int);
     void bubbleSizeCalcMethodChanged(int);
+    void dataSourceMoved(int, int);
 
 private slots:
     void onBubbleMaxSizeSliderValueChanged(int val);
     void onShowTitleToggled(bool val);
     void onDataSourceCheckBoxTriggered(QModelIndex,QModelIndex,QVector<int>);
     void onBubbleSizeCalcMethodChanged(bool);
+    void onDataSourceRowsMoved(int start, int row);
 
 private:
 };

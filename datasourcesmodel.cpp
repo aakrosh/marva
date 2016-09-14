@@ -1,6 +1,8 @@
 #include "datasourcesmodel.h"
 #include "taxdataprovider.h"
 
+#include <QMimeData>
+#include <QDataStream>
 
 //=========================================================================
 DataSourcesModel::DataSourcesModel(QObject *parent, BlastTaxDataProviders *providers) :
@@ -85,9 +87,96 @@ QVariant DataSourcesModel::headerData(int section, Qt::Orientation orientation, 
 }
 
 //=========================================================================
-Qt::ItemFlags DataSourcesModel::flags(const QModelIndex &) const
+Qt::ItemFlags DataSourcesModel::flags(const QModelIndex &index) const
 {
-    return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable;
+    Qt::ItemFlags flags = Qt::ItemIsDropEnabled | Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable;
+    if (index.isValid())
+        return Qt::ItemIsDragEnabled | flags;
+    return flags;
+}
+
+//=========================================================================
+QStringList DataSourcesModel::mimeTypes() const
+{
+    QStringList types;
+    types << "application/vnd.text.list";
+    return types;
+}
+
+
+//=========================================================================
+QMimeData *DataSourcesModel::mimeData(const QModelIndexList &indexes) const
+{
+    QMimeData *mimeData = new QMimeData();
+    QByteArray encodedData;
+
+    QDataStream stream(&encodedData, QIODevice::WriteOnly);
+
+    foreach (const QModelIndex &index, indexes)
+    {
+        if ( index.isValid() )
+        {
+//            QString text = data(index, Qt::DisplayRole).toString();
+            stream << index.row();
+        }
+    }
+
+    mimeData->setData("application/vnd.text.list", encodedData);
+    return mimeData;
+}
+
+//=========================================================================
+bool DataSourcesModel::dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent)
+{
+    if (action == Qt::IgnoreAction)
+        return true;
+
+    if (!data->hasFormat("application/vnd.text.list"))
+        return false;
+
+    if (column > 0)
+        return false;
+
+    int beginRow;
+    int maxRowCount = rowCount(QModelIndex());
+
+    if ( row != -1 || row >= maxRowCount )
+        beginRow = row;
+    else if (parent.isValid())
+        beginRow = parent.row();
+    else
+        beginRow = maxRowCount-1;
+
+    QByteArray encodedData = data->data("application/vnd.text.list");
+    QDataStream stream(&encodedData, QIODevice::ReadOnly);
+    QList<int> movedProviderIndexes;
+
+    while (!stream.atEnd())
+    {
+        int row;
+        stream >> row;
+        movedProviderIndexes.append(row);
+    }
+
+    for ( int i = 0 ; i < movedProviderIndexes.count(); i ++ )
+    {
+        int row = movedProviderIndexes.at(i);
+        //if ( !beginMoveRows(parent, row, row, parent, beginRow) )
+        //    continue;
+        if ( beginRow >= maxRowCount )
+            --beginRow;
+        dataProviders->move(row, beginRow);
+        //endMoveRows();
+        emit rowMoved(row, beginRow);
+    }
+
+    return true;
+}
+
+//=========================================================================
+Qt::DropActions DataSourcesModel::supportedDropActions() const
+{
+    return Qt::MoveAction;
 }
 
 

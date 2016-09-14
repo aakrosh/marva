@@ -97,6 +97,7 @@ MainWindow::MainWindow(QWidget *parent) :
     history = AbstractConfigFileFactory<History>::create(this);
     colors = AbstractConfigFileFactory<Colors>::create(this);
     configuration = AbstractConfigFileFactory<Config>::create(this);
+    onConfigChanged();
 
     globalTaxDataProvider = new GlobalTaxMapDataProvider(this, &taxMap);
     mainWindow = this;
@@ -603,6 +604,7 @@ void MainWindow::onCurrentTabCnaged(int)
     DataGraphicsView *gv = dynamic_cast<DataGraphicsView *>(ui->tabWidget->currentWidget());
     if ( gv != NULL )
         setActiveGraphView(gv);
+    statusBar()->showMessage(gv->taxDataProvider->name);
 }
 
 //=========================================================================
@@ -614,6 +616,7 @@ void MainWindow::activeGraphViewDestroyed()
 void MainWindow::openOptionsDialog()
 {
     ConfigurationDialog *cd = new ConfigurationDialog(this);
+    connect(cd, SIGNAL(configChanged()), this, SLOT(onConfigChanged()));
     cd->show();
 }
 
@@ -644,24 +647,11 @@ void MainWindow::onProviderSerialized(ProvidersSerializationThread *thr)
 //=========================================================================
 void MainWindow::finishSerialization()
 {
- /*   QJsonArray jViewArr;
-    for ( int i = 0; i < ui->tabWidget->count(); i++ )
-    {
-        DataGraphicsView *dgv = (DataGraphicsView *)ui->tabWidget->widget(i);
-        if ( dgv != NULL && !dgv->persistant )
-        {
-            mlog.log(QString("Start saving view %1 to json").arg(dgv->taxDataProvider->name));
-            QJsonObject jview;
-            dgv->toJson(jview);
-            jViewArr.append(jview);
-            mlog.log(QString("End saving view %1 to json").arg(dgv->taxDataProvider->name));
-        }
-    }
-    big_json["views"] = jViewArr;
-    QJsonDocument saveDoc(big_json);
-    saveFile.write(saveDoc.toJson(QJsonDocument::Compact));
-    saveFile.close();
-    QString fName = saveFile.fileName();
-    history->addProject(fName);*/
+}
 
+void MainWindow::onConfigChanged()
+{
+    QFont font;
+    QFontMetricsF fm(font);
+    nodeTextWidth = fm.width("X")*configuration->GraphNode()->nodeTitleLen();
 }

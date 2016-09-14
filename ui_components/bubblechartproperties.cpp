@@ -10,7 +10,16 @@ BubbleChartProperties::BubbleChartProperties(QWidget *parent, BubbleChartParamet
     ui(new Ui::BubbleChartProperties)
 {
     ui->setupUi(this);
-    ui->lvDataSources->setModel(new DataSourcesModel(this, dp));
+    DataSourcesModel *model = new DataSourcesModel(this, dp);
+    connect(model, SIGNAL(rowMoved(int, int)), this, SLOT(onDataSourceRowsMoved(int, int)));
+    //connect(model, SIGNAL(rowsMoved(const QModelIndex &, int, int, const QModelIndex &, int)), this, SLOT(onDataSourceRowsMoved(int, int)));
+    ui->lvDataSources->setModel(model);
+    ui->lvDataSources->viewport()->setAcceptDrops(true);
+    ui->lvDataSources->setDropIndicatorShown(true);
+    ui->lvDataSources->setDragDropMode(QAbstractItemView::InternalMove);
+    ui->lvDataSources->setDragEnabled(true);
+    ui->lvDataSources->setAcceptDrops(true);
+
     setValues();
     connect(ui->horizontalSlider, SIGNAL(valueChanged(int)), this, SLOT(onBubbleMaxSizeSliderValueChanged(int)));
     connect(ui->cbShowTitle, SIGNAL(toggled(bool)), this, SLOT(onShowTitleToggled(bool)));
@@ -22,6 +31,9 @@ void BubbleChartProperties::setValues()
 {
     ui->horizontalSlider->setValue(config->bubbleSize);
     ui->cbShowTitle->setChecked(config->showTitle);
+    bool isLinear = config->calcMethod == METHOD_LINEAR;
+    ui->rbLinear->setChecked(isLinear);
+    ui->rbSqrt->setChecked(!isLinear);
 }
 
 BubbleChartProperties::~BubbleChartProperties()
@@ -48,5 +60,11 @@ void BubbleChartProperties::onDataSourceCheckBoxTriggered(QModelIndex start, QMo
 
 void BubbleChartProperties::onBubbleSizeCalcMethodChanged(bool isLinear)
 {
-    emit bubbleSizeCalcMethodChanged(isLinear ? METHOD_LINEAR : METHOD_SQRT);
+    config->calcMethod = isLinear ? METHOD_LINEAR : METHOD_SQRT;
+    emit bubbleSizeCalcMethodChanged(config->calcMethod);
+}
+
+void BubbleChartProperties::onDataSourceRowsMoved(int start, int row)
+{
+    emit dataSourceMoved(start, row);
 }

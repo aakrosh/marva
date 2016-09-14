@@ -18,6 +18,9 @@
 #include <QScrollBar>
 #include <QMenu>
 #include <QtCore/qmath.h>
+
+int nodeTextWidth = 20;
+
 //=========================================================================
 GraphNode::GraphNode(DataGraphicsView *view, BaseTaxNode *node):
     view(view),
@@ -92,16 +95,29 @@ TaxTreeGraphNode::~TaxTreeGraphNode()
 QPainterPath TaxTreeGraphNode::getTextPath() const
 {
     QPainterPath path;
+    TreeTaxNode *tnode = getTaxNode();
+    bool lastNode = tnode->children.isEmpty() || tnode->isCollapsed() || !tnode->hasVisibleChildren();
+    if ( !lastNode )
+    {
+        int showTitle = configuration->GraphNode()->showTitle();
+        if ( showTitle == SHOW_TITLE_NONE )
+            return path;
+        if ( showTitle == SHOW_TITLE_MAIN )
+        {
+            if ( taxMap.value(tnode->getId())->getRank() <=0 )
+                return path;
+        }
+
+    }
     QFont font;
     QFontMetricsF fm(font);
-    static qreal w = fm.width("XXXXXXXXXXXXXXXXXXXX"); // Instead of calculation of width of actual width
-                                                       // We will use the precalculated length of 20 big symbols
+    qreal w = nodeTextWidth; // Instead of calculation of width of actual width
+                                                       // We will use the precalculated length of nodeTitleLen big symbols
                                                        // Its not just about the performance. The bounding rectangle
                                                        // of scene does not depend on width of text for visible nodes
     qreal h = fm.height();
     int ncs = configuration->GraphNode()->nodeCircleSize();
-    TreeTaxNode *tnode = getTaxNode();
-    if ( tnode->children.isEmpty() || tnode->isCollapsed() || !tnode->hasVisibleChildren() )
+    if ( lastNode )
         path.addRect(ncs+2, -h/2, w+2, h+2);
     else
         path.addRect(-5 - w/2, -ncs-2-h, w+2, h+2);
@@ -138,12 +154,25 @@ void TaxTreeGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *
         if ( getTaxNode()->isCollapsed() )
             painter->drawLine(0 , -hps, 0, hps);
     }
+    bool lastNode = tnode->children.isEmpty() || tnode->isCollapsed() || !tnode->hasVisibleChildren();
+    if ( !lastNode )
+    {
+        int showTitle = configuration->GraphNode()->showTitle();
+        if ( showTitle == SHOW_TITLE_NONE )
+            return;
+        if (showTitle == SHOW_TITLE_MAIN )
+        {
+            if ( taxMap.value(tnode->getId())->getRank() <=0 )
+                return;
+        }
+    }
     QString text = this->text();
-    if ( text.length() > 20 )
-        text = text.mid(0, 17).append("...");
+    int txtMaxLen = configuration->GraphNode()->nodeTitleLen();
+    if ( text.length() > txtMaxLen )
+        text = text.mid(0, txtMaxLen-3).append("...");
     qreal w = fm.width(text);
     qreal h = fm.height();
-    if ( tnode->children.isEmpty() || tnode->isCollapsed() || !tnode->hasVisibleChildren() )
+    if ( lastNode )
         painter->drawText(QRectF(ncs+2, -h/2, w+2, h+2), text);
     else
         painter->drawText(QRectF(-5 - w/2, -ncs-2-h, w+2, h+2), text);
@@ -448,7 +477,7 @@ int ChartGraphNode::size() const
 //=========================================================================
 quint32 ChartGraphNode::reads() const
 {
-    return ((BlastTaxNode *)tax_node)->reads;
+    return ((BlastTaxNode *)tax_node)->sum();
 }
 
 //=========================================================================

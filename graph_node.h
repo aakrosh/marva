@@ -85,6 +85,8 @@ protected:
 
 class TreeTaxNode;
 
+extern int nodeTextWidth;
+
 class TaxTreeGraphNode : public GraphNode
 {
 public:

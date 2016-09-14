@@ -28,7 +28,6 @@ class DataGraphicsView : public QGraphicsView
     QAction *printAction;
     QAction *screenshotAction;
 protected:
-//    BaseTaxNode *curNode;
     QMenu popupMenu;
     quint64 flags;
 public:

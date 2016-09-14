@@ -23,6 +23,10 @@ public:
 #define EDGE_LINE   0
 #define EDGE_CURVE  1
 
+#define SHOW_TITLE_ALL    0
+#define SHOW_TITLE_MAIN   1
+#define SHOW_TITLE_NONE   2
+
 class GraphNodeConfig : public AbstractConfigBlock
 {
     Q_OBJECT
@@ -32,6 +36,8 @@ public:
     CONFIG_PROPERTY(int, halfPlusSize)               // Number of visible taxonomies by default
     CONFIG_PROPERTY(int, maxNodeRadius)              // Default size of biggest bubble
     CONFIG_PROPERTY(int, edgeStyle)                  // Edge style
+    CONFIG_PROPERTY(int, showTitle)                  // Show node title
+    CONFIG_PROPERTY(int, nodeTitleLen)               // Length of shown title
     virtual void toJson(QJsonObject &json) const;
     virtual void fromJson(QJsonObject &json);
 };
@@ -43,6 +49,7 @@ public:
     ImportDataConfig();
     CONFIG_PROPERTY(qreal, minBitscore)
     CONFIG_PROPERTY(qreal, topPercent)
+    CONFIG_PROPERTY(qreal, maxEValue)
     CONFIG_PROPERTY(QString, gi2taxmap)             // Path to GI to Taxonomy mapping file
     virtual void toJson(QJsonObject &json) const;
     virtual void fromJson(QJsonObject &json);
