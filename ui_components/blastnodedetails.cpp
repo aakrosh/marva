@@ -11,12 +11,13 @@
 
 #define COLUMN_BLAST_RECORD 1
 #define COLUMN_QUERY        0
-
+static int old_row_count = 0;
 //=========================================================================
 BlastNodeDetails::BlastNodeDetails(QWidget *parent, BlastTaxNode *n, QString &fileName, BlastFileType type) :
     QDialog(parent),
     ui(new Ui::BlastNodeDetails)
 {
+    old_row_count = 0;
     ui->setupUi(this);
     model = new BlastNodeDetailsModel();
     ui->treeView->setModel(model);
@@ -26,6 +27,8 @@ BlastNodeDetails::BlastNodeDetails(QWidget *parent, BlastTaxNode *n, QString &fi
     connect(ndlt, SIGNAL(finished()), ndlt, SLOT(deleteLater()));
     connect(ndlt, SIGNAL(progress(LoaderThread *, qreal)), this, SLOT(refresh()));
     connect(ndlt, SIGNAL(resultReady(LoaderThread *)), this, SLOT(refresh()));
+
+    connect(this, SIGNAL(finished(int)), ndlt, SLOT(stop_thread()));
     ndlt->start();
 }
 
@@ -35,7 +38,12 @@ BlastNodeDetails::~BlastNodeDetails()
     delete ui;
 }
 
+//=========================================================================
 void BlastNodeDetails::setNode(BlastTaxNode *n) { model->node = n; }
+
+void BlastNodeDetails::closeEvent(QCloseEvent *)
+{
+}
 
 //=========================================================================
 void BlastNodeDetails::refresh()
@@ -139,6 +147,23 @@ QVariant BlastNodeDetailsModel::headerData(int section, Qt::Orientation orientat
 }
 
 //=========================================================================
+void BlastNodeDetailsModel::reset()
+{
+    //beginResetModel();
+    //endResetModel();
+
+
+    int new_row_count = nodeDetails.children.count();
+    if ( new_row_count > old_row_count )
+    {
+        beginInsertRows(QModelIndex(),old_row_count, new_row_count-1);
+        endInsertRows();
+        old_row_count = new_row_count;
+    }
+
+}
+
+//=========================================================================
 NodeDetailsLoaderThread::NodeDetailsLoaderThread(QObject *parent, QString fileName, BlastTaxNode *_node, BlastFileType _type):
     LoaderThread(parent, fileName, "Node details", NULL, 50),
     node(_node),
@@ -147,6 +172,7 @@ NodeDetailsLoaderThread::NodeDetailsLoaderThread(QObject *parent, QString fileNa
 
 }
 
+//=========================================================================
 NodeDetailsLoaderThread::~NodeDetailsLoaderThread()
 {
     if ( gi2TaxProvider != NULL )

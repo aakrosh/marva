@@ -85,8 +85,8 @@ bool BlastRecord::parse(BlastFileType type, QString &line, BlastRecord &rec)
                 rec.query_end = list[7].toUInt();
                 rec.ref_start = list[8].toULongLong();
                 rec.ref_end = list[9].toULongLong();
-                rec.e_value = list[10].toDouble();
             }
+            rec.e_value = list[10].toDouble();
             rec.bitscore = list[11].toDouble();
             rec.taxa_id = list[12].toInt();
         }

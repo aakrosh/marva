@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>529</width>
-    <height>281</height>
+    <width>506</width>
+    <height>398</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,7 +16,7 @@
   <property name="modal">
    <bool>true</bool>
   </property>
-  <layout class="QVBoxLayout" name="Bubble">
+  <layout class="QVBoxLayout" name="Horizontalinterval">
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
@@ -54,7 +54,7 @@
      <item>
       <widget class="QLabel" name="lNumber">
        <property name="text">
-        <string>TextLabel</string>
+        <string>0</string>
        </property>
       </widget>
      </item>
@@ -69,6 +69,47 @@
       <bool>true</bool>
      </property>
     </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="cbShowGrid">
+     <property name="text">
+      <string>Show &amp;grid</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>Horizontal &amp;interval</string>
+       </property>
+       <property name="buddy">
+        <cstring>horIntervalSlider</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSlider" name="horIntervalSlider">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="tickPosition">
+        <enum>QSlider::TicksBelow</enum>
+       </property>
+       <property name="tickInterval">
+        <number>5</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>0</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="QListView" name="lvDataSources">
@@ -128,17 +169,14 @@
     </layout>
    </item>
    <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
+    <widget class="QCheckBox" name="cbNormalized">
+     <property name="text">
+      <string>&amp;Normalized</string>
      </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>0</height>
-      </size>
+     <property name="checked">
+      <bool>true</bool>
      </property>
-    </spacer>
+    </widget>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
@@ -161,8 +199,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>236</x>
-     <y>105</y>
+     <x>245</x>
+     <y>271</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -177,8 +215,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>304</x>
-     <y>105</y>
+     <x>313</x>
+     <y>271</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
@@ -199,6 +237,22 @@
     <hint type="destinationlabel">
      <x>500</x>
      <y>23</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>horIntervalSlider</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>label_4</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>426</x>
+     <y>76</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>504</x>
+     <y>81</y>
     </hint>
    </hints>
   </connection>

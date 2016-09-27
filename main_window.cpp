@@ -239,12 +239,6 @@ void MainWindow::openProject(QString fileName)
     QListWidgetItem *statusListItem = statusList->AddItem(status);
     QCoreApplication::processEvents();
     deserialize(loadFile);
-    /*
-    QByteArray saveData = loadFile.readAll();
-    QJsonDocument loadDoc = QJsonDocument::fromJson(saveData);
-    QJsonObject jobj = loadDoc.object();
-    fromJson(jobj);
-    */
     loadFile.close();
     statusList->RemoveItem(statusListItem);
     history->addProject(fileName);
@@ -274,7 +268,7 @@ void MainWindow::serialize(QFile &saveFile)
     qint32 size = blastTaxDataProviders.count();
     saveFile.write((const char *)&size, sizeof(size));
 
-    for ( int  i = 0; i < size; i++ )
+    for ( int  i = 0; i < blastTaxDataProviders.count(); i++ )
         blastTaxDataProviders[i]->serialize(saveFile);
 
     size = 0;
@@ -371,6 +365,7 @@ void MainWindow::save_project()
 void MainWindow::close_project()
 {
     closeAllViews();
+    blastTaxDataProviders.clear();
 }
 
 //=========================================================================
@@ -432,6 +427,9 @@ void MainWindow::closeAllViews()
         if ( dgv != NULL && !dgv->persistant )
             dgv->close();
     }
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+    blastTaxDataProviders.clear();
 }
 
 //=========================================================================
@@ -584,18 +582,34 @@ void MainWindow::setActiveGraphView(DataGraphicsView *newGV)
     if ( bgv != NULL )
     {
         readsSlider->setMaxValue(activeGraphView->taxDataProvider->getMaxReads());
-        readsSlider->setValue(bgv->reads_threshold);
+        readsSlider->setValue(bgv->state.threshold);
     }
     BubbledGraphViewConfig *bgv_config = dynamic_cast<BubbledGraphViewConfig*>(newGV->config);
     if ( bgv_config != NULL )
-    {
         bubbleSlider->setValue(bgv_config->bubbleSize);
-    }
 
     readSliderAction->setVisible((newGV->getFlags() & DGF_READS) != 0);
     bubbleSliderAction->setVisible((newGV->getFlags() & DGF_BUBBLES) != 0);
     taxRankChooserAction->setVisible((newGV->getFlags() & DGF_RANKS) != 0);
     emit activeGraphViewChanged(oldGV, newGV);
+}
+
+//=========================================================================
+quint32 MainWindow::getThreshold()
+{
+    return readsSlider->value();
+}
+
+//=========================================================================
+TaxRank MainWindow::getRank()
+{
+    return taxRankChooser->rank();
+}
+
+//=========================================================================
+quint32 MainWindow::getBubbleSize()
+{
+    return bubbleSlider->value();
 }
 
 //=========================================================================

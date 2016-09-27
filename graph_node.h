@@ -142,7 +142,8 @@ protected:
 class ChartGraphNode: public GraphNode
 {
 public:
-    ChartGraphNode(DataGraphicsView *view, BaseTaxNode *node);
+    BlastTaxDataProvider *blastProvider;
+    ChartGraphNode(DataGraphicsView *view, BaseTaxNode *node, BlastTaxDataProvider *blastProvider);
     ~ChartGraphNode(){}
     QPainterPath shape() const Q_DECL_OVERRIDE;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;

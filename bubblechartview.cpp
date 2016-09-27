@@ -16,6 +16,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QMessageBox>
+#include <QGraphicsItemGroup>
 
 //=========================================================================
 BubbleChartView::BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
@@ -54,11 +55,13 @@ BubbleChartView::BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget 
         prepareScene();
         showChart();
     }
+    this->installEventFilter(this);
 }
 
 //=========================================================================
 BubbleChartView::~BubbleChartView()
 {
+    scene()->removeItem(&gGrid);
     scene()->clear();
 }
 
@@ -85,34 +88,40 @@ void BubbleChartView::prepareScene()
     peng.setWidth(1.5);
     QBrush brushg(Qt::transparent);
     chartRectGI = scene()->addRect(chartRect, peng, brushg);
+    gGrid.addToGroup(chartRectGI);
     setHeader(/*chartData.header*/ "Chart header");
     ChartDataProvider *dp = dataProvider();
     if ( dp->data.size() == 0 )
         return;
     QPen pen(Qt::lightGray);
-    pen.setWidth(0.2);
+    pen.setWidth(0.05);
     QBrush brush(Qt::transparent);
     quint32 swidth = (int)this->sceneRect().height()*0.8;
     quint32 columnWidth = qMin((quint32)getConfig()->bubbleSize, swidth/dp->providers->count());
     grid.clear();
     for ( int i = 0; i < dp->providers->size(); i++ )
     {
+        BlastTaxDataProvider *provider = dp->providers->at(i);
         for ( int j = 0; j < dp->data.count(); j++)
         {
-                if ( !dp->data.at(j).checked )
+            if ( !dp->data.at(j).checked )
+                continue;
+            const BlastTaxNodes &btns = dp->data.at(j).tax_nodes;
+            BlastTaxNode *node = btns.at(i);
+            if ( node != NULL )
+            {
+                quint32 reads = node->reads;
+                if ( reads == 0 )
                     continue;
-                const BlastTaxNodes &btns = dp->data.at(j).tax_nodes;
-                BlastTaxNode *node = btns.at(i);
-                if ( node != NULL )
-                {
-                    quint32 reads = node->reads;
-                    if ( reads == 0 )
-                        continue;
-                    CreateGraphNode(node);
-                }
+                CreateGraphNode(node, provider);
+            }
         }
         qreal x1 = i*columnWidth;
-        grid.append(scene()->addRect(chartRect.x()+x1, chartRect.y(), columnWidth, chartRect.height(), pen, brush));
+        QGraphicsRectItem *gridItem  = scene()->addRect(chartRect.x()+x1, chartRect.y(), columnWidth, chartRect.height(), pen, brush);
+        grid.append(gridItem);
+        gGrid.addToGroup(gridItem);
+        scene()->addItem(&gGrid);
+        gGrid.setVisible(getConfig()->showGrid);
         // Create horizontal axe labels
         BlastTaxDataProvider *p = dp->providers->at(i);
         QString stxt = p->name;
@@ -164,7 +173,7 @@ void BubbleChartView::showChart(bool forceNodeUpdate)
     quint32 tsize = dataProvider()->visibleTaxNumber();
     quint32 bubbleSize = getConfig()->bubbleSize;
     quint32 maxBubbleSize = tsize == 0 ? 0 : qMin(bubbleSize, sheight/tsize);
-    quint32 columnWidth = qMin(bubbleSize, swidth/dataProvider()->providers->count());
+    quint32 columnWidth = qMin(bubbleSize, swidth/dataProvider()->providers->count())+getConfig()->horInterval;
     int rnum = 0;
     quint32 column = 0;
     for ( int j = 0; j < chartDataProvider->data.count(); j++)
@@ -259,19 +268,19 @@ void BubbleChartView::onCurrentNodeChanged(BaseTaxNode *node)
         {
             ChartGraphNode *n = (ChartGraphNode *)item;
             compareNodesAndUpdate(n, oldCurNode);
-            compareNodesAndUpdate(n, curNode);
+            compareNodesAndUpdate(n, node);
         }
     }
-    if ( curNode != NULL && oldCurNode != NULL && curNode->getId() == oldCurNode->getId() )
+    if ( curNode != NULL && oldCurNode != NULL && node->getId() == oldCurNode->getId() )
         return;
-    setVerticalLegentColor(curNode, true);
+    setVerticalLegentColor(node, true);
     setVerticalLegentColor(oldCurNode, false);
 }
 
 //=========================================================================
-void BubbleChartView::CreateGraphNode(BlastTaxNode *node)
+void BubbleChartView::CreateGraphNode(BlastTaxNode *node, BlastTaxDataProvider *bProvider)
 {
-    ChartGraphNode *gnode = new ChartGraphNode(this, node);
+    ChartGraphNode *gnode = new ChartGraphNode(this, node, bProvider);
     node->gnode = gnode;
     gnode->updateToolTip();
     scene()->addItem(gnode);
@@ -282,8 +291,9 @@ void BubbleChartView::toJson(QJsonObject &json) const
 {
     json["Type"] = QString("ChartView");
     json["Header"] = header->toPlainText();
-    json["MaxNodeSize"] = qint32(getConfig()->bubbleSize);
-    json["ShowTitle"] = getConfig()->showTitle;
+    QJsonObject jConfig;
+    getConfig()->toJson(jConfig);
+    json["Config"] = jConfig;
     QJsonObject jDp;
     dataProvider()->toJson(jDp);
     json["Dp"] = jDp;
@@ -296,11 +306,10 @@ void BubbleChartView::fromJson(QJsonObject &json)
     {
         QJsonObject jDp = json["Dp"].toObject();
         dataProvider()->fromJson(jDp);
+        QJsonObject jConfig = json["Config"].toObject();
+        getConfig()->fromJson(jConfig);
         prepareScene();
         header->setPlainText(json["Header"].toString());
-        getConfig()->bubbleSize = json["MaxNodeSize"].toInt();
-        getConfig()->maxBubbleSize = getConfig()->bubbleSize*2;
-        getConfig()->showTitle = json["ShowTitle"].toBool();
         showChart();
     }
     catch (...)
@@ -314,14 +323,16 @@ void BubbleChartView::onTaxVisibilityChanged(quint32 index)
 {
     ChartDataProvider *chartDataProvider = dataProvider();
     const BlastTaxNodes &btns = chartDataProvider->data.at(index).tax_nodes;
+    bool createGNode = chartDataProvider->data.at(index).checked;
     for ( int i = 0; i < btns.size(); i++ )
     {
+        BlastTaxDataProvider *bProvider = chartDataProvider->getBlastTaxDataProviders()->at(i);
         BlastTaxNode *node = btns.at(i);
         if ( node == NULL )
             continue;
-        if ( chartDataProvider->data.at(index).checked )
+        if ( createGNode )
         {
-            CreateGraphNode(node);
+            CreateGraphNode(node, bProvider);
         }
         else
         {
@@ -339,6 +350,7 @@ void BubbleChartView::onDataSourceVisibilityChanged(int index)
 {
     ChartDataProvider *dp = dataProvider();
     BlastTaxDataProviders *btdps = dp->getBlastTaxDataProviders();
+    BlastTaxDataProvider *bProvider = btdps->at(index);
     bool visible = btdps->isVisible(index);
     for ( int i = 0; i < dp->data.count(); i++ )
     {
@@ -351,7 +363,7 @@ void BubbleChartView::onDataSourceVisibilityChanged(int index)
         if ( visible )
         {
             if ( gnode == NULL )
-                CreateGraphNode(node);
+                CreateGraphNode(node, bProvider);
         }
         else
         {
@@ -361,13 +373,6 @@ void BubbleChartView::onDataSourceVisibilityChanged(int index)
     }
     horizontalLegend.at(index)->setVisible(visible);
     grid.at(index)->setVisible(visible);
-    showChart(true);
-}
-
-//=========================================================================
-void BubbleChartView::onBubbleSizeCalcMethodChanged(int method)
-{
-    getConfig()->calcMethod = method;
     showChart(true);
 }
 
@@ -434,9 +439,15 @@ void BubbleChartView::showContextMenu(const QPoint &pos)
 }
 
 //=========================================================================
-void BubbleChartView::changeMaxBubbleSize(int)
+void BubbleChartView::update()
 {
     showChart();
+}
+
+//=========================================================================
+void BubbleChartView::updateForce()
+{
+    showChart(true);
 }
 
 //=========================================================================
@@ -453,6 +464,12 @@ void BubbleChartView::toggleTitleVisibility(bool visible)
     header->setVisible(visible);
     setChartRectSize(s.width()*0.8, s.height()*0.8);
     showChart();
+}
+
+//=========================================================================
+void BubbleChartView::onNormalizedChanged(bool)
+{
+
 }
 
 //=========================================================================
@@ -519,11 +536,14 @@ void BubbleChartView::goDown()
 void BubbleChartView::showPropertiesDialog()
 {
     BubbleChartProperties *propertiesDialog = new BubbleChartProperties(this, getConfig(), dataProvider()->getBlastTaxDataProviders());
-    connect(propertiesDialog, SIGNAL(maxBubbleSizeChanged(int)), this, SLOT(changeMaxBubbleSize(int)));
+    connect(propertiesDialog, SIGNAL(maxBubbleSizeChanged(int)), this, SLOT(update()));
     connect(propertiesDialog, SIGNAL(showTitleToggled(bool)), this, SLOT(toggleTitleVisibility(bool)));
     connect(propertiesDialog, SIGNAL(dataSourceVisibilityChanged(int)), this, SLOT(onDataSourceVisibilityChanged(int)));
-    connect(propertiesDialog, SIGNAL(bubbleSizeCalcMethodChanged(int)), this, SLOT(onBubbleSizeCalcMethodChanged(int)));
+    connect(propertiesDialog, SIGNAL(bubbleSizeCalcMethodChanged(int)), this, SLOT(updateForce()));
     connect(propertiesDialog, SIGNAL(dataSourceMoved(int, int)), this, SLOT(onDataSourceMoved(int, int)));
+    connect(propertiesDialog, SIGNAL(normalizedChanged(bool)), this, SLOT(updateForce()));
+    connect(propertiesDialog, SIGNAL(showGridChanged(bool)), this, SLOT(onShowGridChanged(bool)));
+    connect(propertiesDialog, SIGNAL(horIntervalChanged(int)), this, SLOT(update()));
     propertiesDialog->show();
 }
 
@@ -570,6 +590,12 @@ void BubbleChartView::onDataSourceMoved(int index, int dest)
 }
 
 //=========================================================================
+void BubbleChartView::onShowGridChanged(bool val)
+{
+    gGrid.setVisible(val);
+}
+
+//=========================================================================
 void BubbleChartView::hideCurrentTax()
 {
     TaxNodeSignalSender *tnss = getTaxNodeSignalSender(currentNode());
@@ -611,7 +637,7 @@ bool BubbleChartView::eventFilter(QObject *object, QEvent *event)
             if ( index >= 0 )
             {
                 TaxNodeSignalSender *tnss = getTaxNodeSignalSender(dataProvider()->taxNode(index));
-                tnss->makeCurrent();
+                tnss->makeCurrent();                
             }
         }
     }
@@ -735,9 +761,13 @@ void ChartDataProvider::updateCache(bool ids_only)
             }
         }
 
+        maxTotalReads = 0;
+
         for ( int i = 0; i < providers->size(); i++ )
         {
             BlastTaxDataProvider *p = providers->at(i);
+            if ( p->totalReads > maxTotalReads )
+                maxTotalReads = p->totalReads;
             for ( int j = 0; j < data.count(); j++)
             {
                 int id = data[j].id;
@@ -887,9 +917,12 @@ void ChartDataProvider::fromJson(QJsonObject &json)
         bool checked = (quint32)tax_node[1].toInt() == 1;
         data.append(IdBlastTaxNodesPair(tax_id, checked));
     }
+    maxTotalReads = 0;
     for ( int i = 0; i < providers->size(); i++ )
     {
         BlastTaxDataProvider *p = providers->at(i);
+        if ( maxTotalReads < p->totalReads )
+            maxTotalReads = p->totalReads;
         for ( int j = 0; j < data.count(); j++)
         {
             int id = data[j].id;
@@ -928,4 +961,26 @@ quint32 IdBlastTaxNodesPair::sum() const
         if ( n != NULL )
             res += n->sum();
     return res;
+}
+
+//=========================================================================
+//*************************************************************************
+//=========================================================================
+void BubbleChartParameters::toJson(QJsonObject &jConf)
+{
+    BubbledGraphViewConfig::toJson(jConf);
+    jConf["showTitle"] = showTitle;
+    jConf["normalized"] = normalized;
+    jConf["horInterval"] = horInterval;
+    jConf["showGrid"] = showGrid;
+}
+
+//=========================================================================
+void BubbleChartParameters::fromJson(QJsonObject &jConf)
+{
+    BubbledGraphViewConfig::fromJson(jConf);
+    showTitle = jConf["showTitle"].toBool();
+    normalized = jConf["normalized"].toBool();
+    horInterval = jConf["horInterval"].toInt();
+    showGrid = jConf["showGrid"].toBool();
 }

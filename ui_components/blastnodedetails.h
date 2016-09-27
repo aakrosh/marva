@@ -27,6 +27,9 @@ public:
     ~BlastNodeDetails();
     inline void setNode(BlastTaxNode *n);
 
+protected:
+    virtual void closeEvent(QCloseEvent *);
+
 private:
     Ui::BlastNodeDetails *ui;
 
@@ -108,11 +111,7 @@ public:
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
     virtual QVariant headerData(int section, Qt::Orientation orientation,
                         int role = Qt::DisplayRole) const;
-    void reset()
-    {
-        beginResetModel();
-        endResetModel();
-    }
+    void reset();
 };
 
 #endif // BLASTNODEDETAILS_H

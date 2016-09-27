@@ -99,6 +99,7 @@ class BlastTaxDataProvider : public TaxDataProvider
 public:
     BlastTaxNode *root;
     QString fileName;
+    quint64 totalReads;
     BlastTaxDataProvider(QObject *parent);
     ~BlastTaxDataProvider();
     virtual quint32 reads(quint32 index);
@@ -117,7 +118,7 @@ public:
     virtual void fromJson(QJsonObject &json);
     BlastTaxNode *nodeById(qint32 id);
     void serialize(QFile &file);
-    void deserialize(QFile &file, qint32 version);
+    void deserialize(QFile &file, qint32 version);    
 
 public slots:
     void onBlastProgress(void *);

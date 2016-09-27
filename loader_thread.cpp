@@ -148,12 +148,6 @@ void LoaderThread::onProgress(LoaderThread *, qreal val)
     if ( val < 0 )
         return;
     int percents = 100 * val;
-    /*QString txt = statusListItem->text();
-    int b = txt.indexOf(" ( ");
-    if ( b > 0 )
-        txt = txt.left(b);
-    txt.append(QString(" ( %1% )").arg(percents));
-    */
     QString txt = QString("%1 (%2%)").arg(caption).arg(percents);
     if ( statusListItem != NULL )
         statusListItem->setText(txt);

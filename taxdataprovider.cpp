@@ -207,7 +207,8 @@ void GlobalTaxMapDataProvider::onMapChanged()
 BlastTaxDataProvider::BlastTaxDataProvider(QObject *parent):
     TaxDataProvider(NULL, BLAST_DATA_PROVIDER),
     parent_count(0),
-    root(NULL)
+    root(NULL),
+    totalReads(0)
 {
     blastTaxDataProviders.addProvider(this);
     blastNodeMap = new BlastNodeMap();
@@ -230,7 +231,7 @@ void BlastTaxDataProvider::addParent()
 void BlastTaxDataProvider::removeParent()
 {
     if ( --parent_count == 0 )
-        deleteLater();
+        delete this;
 }
 
 //=========================================================================
@@ -273,6 +274,7 @@ BlastTaxNode *BlastTaxDataProvider::addTaxNode(qint32 id, qint32 reads, QVector<
     blastNode->positions.append(pos);
     if ( (qint32)blastNodeMap->max_reads < reads )
         blastNodeMap->max_reads = reads;
+    totalReads++;
     return blastNode;
 }
 
@@ -459,6 +461,7 @@ void BlastTaxDataProvider::deserialize(QFile &file, qint32 /*version*/)
     readJsonObjectFromFile(json, file);
     name = json["Name"].toString();
     fileName = json["Filename"].toString();
+    totalReads = 0;
 
     quint32 size;
     file.read((char *)&size, sizeof(size));
@@ -470,6 +473,8 @@ void BlastTaxDataProvider::deserialize(QFile &file, qint32 /*version*/)
         quint32 reads = jNode[1].toInt();
         bool visible = jNode[2].toInt() == 1;
         bool collapsed = jNode[3].toInt() == 1;
+
+        totalReads += reads;
 
         quint32 psize;
         file.read((char *)&psize, sizeof(psize));

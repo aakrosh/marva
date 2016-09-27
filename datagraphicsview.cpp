@@ -18,7 +18,7 @@ DataGraphicsView::DataGraphicsView(TaxDataProvider *_dataProvider, QWidget *pare
     persistant(false)
 {
     flags = DGF_NONE;
-    setAttribute(Qt::WA_DeleteOnClose);
+//    setAttribute(Qt::WA_DeleteOnClose);
     printAction = popupMenu.addAction("Print...");
     screenshotAction = popupMenu.addAction("Screenshot...");
     connect(printAction, SIGNAL(triggered(bool)), this, SLOT(print()));
@@ -129,5 +129,11 @@ void DataGraphicsView::renderToPainter(QPainter *painter)
 void DataGraphicsView::showContextMenu(const QPoint &p)
 {
     popupMenu.exec(mapToGlobal(p));
+}
+
+void DataGraphicsView::closeEvent(QCloseEvent *event)
+{
+    deleteLater();
+    QGraphicsView::closeEvent(event);
 }
 

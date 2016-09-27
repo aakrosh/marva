@@ -28,6 +28,9 @@ public:
     int bubbleSize;
     quint32 maxBubbleSize;
     int calcMethod;
+
+    void toJson(QJsonObject &);
+    void fromJson(QJsonObject &);
 };
 
 class TreeGraphView : public DataGraphicsView
@@ -115,11 +118,19 @@ public slots:
     virtual void onNodeNamesChanged();
 };
 
+
+struct BlastGraphViewState
+{
+    quint32 threshold;
+    TaxRank rank;
+    BlastGraphViewState() :threshold(0), rank(TR_SPECIES){}
+};
+
 class BlastGraphView : public TreeGraphView
 {
     Q_OBJECT
 public:    
-    quint32 reads_threshold;
+    BlastGraphViewState state;
     QAction *nodeDetailsAction;
     BlastFileType type;
     bool dirty;
@@ -134,6 +145,7 @@ public:
 
 protected:
     virtual void showEvent(QShowEvent * event);
+    virtual void hideEvent(QHideEvent *event);
     void onTaxRankChanged(TaxRank rank, BlastTaxNode *node);
 private slots:
     void blastLoadingProgress(LoaderThread *loader);

@@ -43,6 +43,9 @@ public:
 
     void addGraphView(QWidget *gv, QString label);
     void setActiveGraphView(DataGraphicsView *gv);
+    quint32 getThreshold();
+    TaxRank getRank();
+    quint32 getBubbleSize();
 
     void serialize(QFile &saveFile);
     void deserialize(QFile &loadFile);
@@ -89,7 +92,7 @@ private slots:
     QString getOpenFileName(QString text, QString filters);
     void onProviderSerialized(ProvidersSerializationThread *);
     void finishSerialization();
-    void onConfigChanged();
+    void onConfigChanged();        
 
     friend class DataGraphicsView;
 };

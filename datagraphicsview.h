@@ -51,6 +51,7 @@ protected slots:
     void renderToPrinter(QPrinter *);
     void renderToPainter(QPainter *);
     virtual void showContextMenu(const QPoint&);
+    virtual void closeEvent(QCloseEvent * event);
 public slots:
     virtual void onNodeVisibilityChanged(BaseTaxNode*, bool) {}
     virtual void reset() {}

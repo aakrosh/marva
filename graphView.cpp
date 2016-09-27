@@ -22,6 +22,7 @@
 #include "ui_components/blastnodedetails.h"
 #include "blastfileloader.h"
 #include "taxdataprovider.h"
+#include "main_window.h"
 
 #define RIGHT_NODE_MARGIN   150
 #define MIN_DX 70
@@ -874,7 +875,6 @@ void DirtyGNodesList::Add(TaxTreeGraphNode *node)
 //=========================================================================
 BlastGraphView::BlastGraphView(BlastTaxDataProvider *blastTaxDataProvider, QWidget *parent, TaxNode *taxTree):
     TreeGraphView(parent, taxTree),
-    reads_threshold(0),
     dirty(false)
 {
     flags |= DGF_BUBBLES|DGF_READS|DGF_RANKS;
@@ -970,7 +970,7 @@ void BlastGraphView::showCurrentNodeDetails()
 void BlastGraphView::toJson(QJsonObject &json) const
 {
     json["Type"] = type == tabular ? "BlastGraphViewTabular" : "BlastGraphViewSequence";
-    json["Threshold"] = (int)reads_threshold;
+    json["Threshold"] = (int)state.threshold;
     json["DataProvider"] = blastTaxDataProvider()->name;
 }
 
@@ -979,14 +979,12 @@ void BlastGraphView::fromJson(QJsonObject &json)
 {
     try
     {
-        reads_threshold = json["Threshold"].toInt();
+        state.threshold = json["Threshold"].toInt();
         QString dpName = json["DataProvider"].toString();
         BlastTaxDataProvider *p = blastTaxDataProviders.providerByName(dpName);
         if ( p == NULL )
         {
-             //close();
             throw("Cannot found data provider");
-             return;
         }
         p->addParent();
         taxDataProvider = p;
@@ -1002,6 +1000,27 @@ void BlastGraphView::fromJson(QJsonObject &json)
 //=========================================================================
 void BlastGraphView::showEvent(QShowEvent *event)
 {
+    quint32 cur_threshold = mainWindow->getThreshold();
+    if ( state.threshold != cur_threshold )
+    {
+        onReadsThresholdChanged(state.threshold, cur_threshold);
+        state.threshold = cur_threshold;
+    }
+
+    TaxRank cur_rank = mainWindow->getRank();
+    if ( state.rank != cur_rank )
+    {
+        onTaxRankChanged(cur_rank);
+        state.rank = cur_rank;
+    }
+
+    qint32 cur_bub_size = mainWindow->getBubbleSize();
+    if ( getConfig()->bubbleSize != cur_bub_size )
+    {
+        getConfig()->bubbleSize = cur_bub_size;
+        dirty = true;
+    }
+
     if ( dirty )
     {
         dirty = false;
@@ -1011,11 +1030,19 @@ void BlastGraphView::showEvent(QShowEvent *event)
 }
 
 //=========================================================================
+void BlastGraphView::hideEvent(QHideEvent *event)
+{
+    state.threshold = mainWindow->getThreshold();
+    state.rank = mainWindow->getRank();
+    QGraphicsView::hideEvent(event);
+}
+
+//=========================================================================
 void BlastGraphView::onReadsThresholdChanged(quint32 oldT, quint32 newT)
 {
-    if ( reads_threshold == newT )
+    if ( state.threshold == newT )
         return;
-    reads_threshold = newT;
+    state.threshold = newT;
     getTaxNodeSignalSender(NULL)->sendSignals = false;
     if ( oldT == newT )
         return;
@@ -1052,12 +1079,12 @@ void BlastGraphView::onTaxRankChanged(TaxRank rank)
 //=========================================================================
 void BlastGraphView::onTaxRankChanged(TaxRank rank, BlastTaxNode *node)
 {
-    if ( !node->visible() )
+    if ( node == NULL || !node->visible() )
         return;
 
     TaxNode *tn = taxMap.value(node->getId());
 
-    if ( !node->isCollapsed() && rank <= tn->getRank() )
+    if ( !node->isCollapsed() && rank <= tn->getRank() && rank != TR_NORANK )
     {
         node->setCollapsed(true, true);
         return;
@@ -1074,6 +1101,8 @@ void BlastGraphView::onTaxRankChanged(TaxRank rank, BlastTaxNode *node)
 NodePositionKeeper::NodePositionKeeper(TreeGraphView *gv, BaseTaxNode *n):
     graphView(gv)
 {
+    if ( n == NULL )
+        return;
     gnode = n->getGnode();
     if ( gnode == NULL )
         return;
@@ -1089,3 +1118,20 @@ NodePositionKeeper::~NodePositionKeeper()
     graphView->verticalScrollBar()->setValue(graphView->verticalScrollBar()->value()+p_new.y()-pos.y());
     graphView->update();
 }
+
+//=========================================================================
+void BubbledGraphViewConfig::toJson(QJsonObject &jConf)
+{
+    jConf["bubbleSize"] = bubbleSize;
+    jConf["maxBubbleSize"] = (int)maxBubbleSize;
+    jConf["calcMethod"] = calcMethod;
+}
+
+//=========================================================================
+void BubbledGraphViewConfig::fromJson(QJsonObject &jConf)
+{
+    bubbleSize = jConf["bubbleSize"].toInt();
+    maxBubbleSize = (quint32)jConf["maxBubbleSize"].toInt();
+    calcMethod = jConf["calcMethod"].toInt();
+}
+

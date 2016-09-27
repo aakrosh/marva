@@ -406,8 +406,9 @@ void BlastGraphNode::updateToolTip()
 //=========================================================================
 //*************************************************************************
 //=========================================================================
-ChartGraphNode::ChartGraphNode(DataGraphicsView *view, BaseTaxNode *node):
-    GraphNode(view, node)
+ChartGraphNode::ChartGraphNode(DataGraphicsView *view, BaseTaxNode *node, BlastTaxDataProvider *_blastProvider):
+    GraphNode(view, node),
+    blastProvider(_blastProvider)
 {
     maxNodeRadius = configuration->BubbleChart()->defaultMaxBubbleSize();
 }
@@ -467,11 +468,15 @@ int ChartGraphNode::size() const
 {
     BubbleChartView *ch_view = (BubbleChartView *)view;
     qreal r = reads();
+    ChartDataProvider *cdp = ch_view->dataProvider();
     qreal mr = ch_view->dataProvider()->getMaxReads();
+
+    qreal coeff = (ch_view->getConfig()->normalized && cdp->maxTotalReads > 0
+                                 ? ((qreal)cdp->maxTotalReads)/((qreal)(blastProvider->totalReads)) : 1.);
     if ( ch_view->getConfig()->calcMethod == METHOD_LINEAR )
-        return qMax(1., r/mr*maxNodeRadius);
+        return qMax(1., r/mr*coeff*maxNodeRadius);
     else
-        return qMax(1., qSqrt(r)/qSqrt(mr)*maxNodeRadius);
+        return qMax(1., qSqrt(r*coeff/mr)*maxNodeRadius);
 }
 
 //=========================================================================

@@ -16,6 +16,7 @@ class TaxRankChooser : public QWidget
 public:
     explicit TaxRankChooser(QWidget *parent = 0);
     ~TaxRankChooser();
+    TaxRank rank();
 
 private:
     Ui::TaxRankChooser *ui;

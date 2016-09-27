@@ -31,6 +31,7 @@ class ChartDataProvider : public TaxDataProvider
     QList<IdBlastTaxNodesPair> data;
     quint32 maxreads;
 public:
+    quint64 maxTotalReads;
     ChartDataProvider(BlastTaxDataProviders *_providers, QObject *parent);
     virtual ~ChartDataProvider();
     virtual quint32 count();
@@ -64,8 +65,14 @@ signals:
 class BubbleChartParameters : public BubbledGraphViewConfig
 {
 public:
-    BubbleChartParameters(): showTitle(true) {}
+    BubbleChartParameters(): showTitle(true), normalized(true), horInterval(0), showGrid(true) {}
     bool showTitle;
+    bool normalized;
+    int horInterval;
+    bool showGrid;
+
+    void toJson(QJsonObject &);
+    void fromJson(QJsonObject &);
 };
 
 
@@ -77,13 +84,15 @@ class BubbleChartView : public DataGraphicsView
     QGraphicsTextItem *header;
     QGraphicsRectItem *chartRectGI;
     QList<QGraphicsRectItem *> grid;
+    QGraphicsItemGroup gGrid;
     QList<QGraphicsTextItem*> verticalLegend;
     QList<QGraphicsTextItem*> horizontalLegend;
 public:
+    QRectF chartRect;
+
     BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent = 0);
     virtual ~BubbleChartView();
     void prepareScene();
-    QRectF chartRect;
     ChartGraphNode *getGNode(BlastTaxNode *node);
     inline ChartDataProvider *dataProvider() { return (ChartDataProvider*)taxDataProvider; }
     inline ChartDataProvider *dataProvider() const { return (ChartDataProvider*)taxDataProvider; }
@@ -95,7 +104,7 @@ public:
     virtual void resizeEvent(QResizeEvent *e);
     virtual void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
     virtual bool eventFilter(QObject *object, QEvent *event) Q_DECL_OVERRIDE;
-    void CreateGraphNode(BlastTaxNode *node);
+    void CreateGraphNode(BlastTaxNode *node, BlastTaxDataProvider *bProvider);
     virtual void toJson(QJsonObject &json) const;
     virtual void fromJson(QJsonObject &json);
     inline BubbleChartParameters *getConfig() { return (BubbleChartParameters *)config; }
@@ -122,14 +131,16 @@ protected slots:
 public slots:
     virtual void onNodeVisibilityChanged(BaseTaxNode*, bool) {}
     virtual void reset() {}
-    virtual void changeMaxBubbleSize(int);
     virtual void onBubbleSizeChanged(quint32 /*oldS*/, quint32 /*newS*/);
     virtual void toggleTitleVisibility(bool);
+    virtual void onNormalizedChanged(bool);
     virtual void onDataSourceVisibilityChanged(int);
-    virtual void onBubbleSizeCalcMethodChanged(int);
     virtual void onColorChanged(BaseTaxNode *);
     virtual void onTaxRankChanged(TaxRank);
     virtual void onDataSourceMoved(int, int);
+    virtual void onShowGridChanged(bool);
+    virtual void update();
+    virtual void updateForce();
 
     friend class MainWindow;
 };
