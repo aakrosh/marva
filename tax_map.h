@@ -14,8 +14,9 @@ class TreeGraphView;
 
 enum TaxRank
 {
-    TR_ROOT     = -1,
-    TR_DOMAIN   = 0,
+    TR_ROOT     = -2,
+    TR_DOMAIN   = -1,
+    TR_NORANK2   = 0,
     TR_KINGDOM  = 1,
     TR_PHYLUM   = 2,
     TR_CLASS    = 3,
@@ -24,7 +25,7 @@ enum TaxRank
     TR_VARIETAS = 98,
     TR_SPECIES  = 100,
     TR_SUBSPIC  = 101,
-    TR_NORANK   = -666
+    TR_NORANK   = -666,
 };
 
 class TaxNode : public TreeTaxNode

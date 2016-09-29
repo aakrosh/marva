@@ -91,6 +91,11 @@ TaxTreeGraphNode::~TaxTreeGraphNode()
     }
 }
 
+static bool isMainRank(TaxRank rank)
+{
+    return !(rank == TR_NORANK || rank == TR_NORANK2 || rank == TR_SUBSPIC );
+}
+
 //=========================================================================
 QPainterPath TaxTreeGraphNode::getTextPath() const
 {
@@ -104,7 +109,7 @@ QPainterPath TaxTreeGraphNode::getTextPath() const
             return path;
         if ( showTitle == SHOW_TITLE_MAIN )
         {
-            if ( taxMap.value(tnode->getId())->getRank() <=0 )
+            if ( !isMainRank(taxMap.value(tnode->getId())->getRank()) )
                 return path;
         }
 
@@ -162,7 +167,7 @@ void TaxTreeGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *
             return;
         if (showTitle == SHOW_TITLE_MAIN )
         {
-            if ( taxMap.value(tnode->getId())->getRank() <=0 )
+            if ( !isMainRank(taxMap.value(tnode->getId())->getRank()) )
                 return;
         }
     }

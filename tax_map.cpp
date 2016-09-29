@@ -21,6 +21,8 @@ void TaxMap::setName(qint32 tid, const char *name, TaxRank rank)
         QMessageBox::information(0, "Cannot set name", QString("No node with id %1 found").arg(tid));
         return;
     }
+    if ( !it.value()->text.isEmpty() ) // Already filled
+        return;
     it.value()->text = name;
     if ( rank != TR_NORANK )
         it.value()->rank = rank;

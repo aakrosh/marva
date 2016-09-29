@@ -55,7 +55,7 @@ BubbleChartView::BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget 
         prepareScene();
         showChart();
     }
-    this->installEventFilter(this);
+//    scene()->installEventFilter(this);
 }
 
 //=========================================================================
@@ -153,6 +153,7 @@ void BubbleChartView::prepareScene()
             stxt.append("...");
         }
         QGraphicsTextItem *item = scene()->addText(stxt);
+        item->installEventFilter(this);
         item->setToolTip(txt);
         item->setVisible(dp->data.at(j).checked);
         verticalLegend.append(item);
@@ -629,16 +630,12 @@ bool BubbleChartView::eventFilter(QObject *object, QEvent *event)
     if ( event->type() == QEvent::GraphicsSceneMousePress )
     if ( object->metaObject() == &QGraphicsTextItem::staticMetaObject )
     {
-        QGraphicsSceneMouseEvent *mevent = (QGraphicsSceneMouseEvent *)event;
-        if ( mevent->scenePos().y() <= verticalLegend.last()->y()+10 )
+        QGraphicsTextItem *item = (QGraphicsTextItem*)object;
+        qint32 index = verticalLegend.indexOf(item);
+        if ( index >= 0 )
         {
-            QGraphicsTextItem *item = (QGraphicsTextItem*)object;
-            qint32 index = verticalLegend.indexOf(item);
-            if ( index >= 0 )
-            {
-                TaxNodeSignalSender *tnss = getTaxNodeSignalSender(dataProvider()->taxNode(index));
-                tnss->makeCurrent();                
-            }
+            TaxNodeSignalSender *tnss = getTaxNodeSignalSender(dataProvider()->taxNode(index));
+            tnss->makeCurrent();
         }
     }
     return DataGraphicsView::eventFilter(object, event);
