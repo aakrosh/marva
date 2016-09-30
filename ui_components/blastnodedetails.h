@@ -16,12 +16,13 @@ class NodeDetails;
 namespace Ui {
 class BlastNodeDetails;
 }
-
+class NodeDetailsLoaderThread;
 class BlastNodeDetails : public QDialog
 {
     Q_OBJECT
     BlastNodeDetailsModel *model;
     QFile *file;
+    NodeDetailsLoaderThread *ndlt;
 public:
     explicit BlastNodeDetails(QWidget *parent, BlastTaxNode *n, QString &fileName, BlastFileType type);
     ~BlastNodeDetails();

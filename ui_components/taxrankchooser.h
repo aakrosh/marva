@@ -17,12 +17,13 @@ public:
     explicit TaxRankChooser(QWidget *parent = 0);
     ~TaxRankChooser();
     TaxRank rank();
+    void setRank(TaxRank rank);
 
 private:
     Ui::TaxRankChooser *ui;
 
 signals:
-    selectedTaxRankChanged(TaxRank rank);
+    void selectedTaxRankChanged(TaxRank rank);
 
 private slots:
     void onIndexChanged(int index);

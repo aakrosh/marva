@@ -77,7 +77,6 @@ void CurrentTaxNodeDetails::refresh()
     {
         ui->lName->setText(bNode->getText());
     }
-
     TreeTaxNode *ttn = dynamic_cast<TreeTaxNode *>(bNode);
     QStringList sl;
     if ( ttn != NULL )

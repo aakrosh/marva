@@ -20,6 +20,19 @@ TaxRank TaxRankChooser::rank()
     return ranks[ui->comboBox->currentIndex()];
 }
 
+void TaxRankChooser::setRank(TaxRank rank)
+{
+    int arsize = sizeof(ranks)/sizeof(TaxRank);
+    for ( int r = 0; r < arsize; r++ )
+    {
+        if ( ranks[r] == rank )
+        {
+            ui->comboBox->setCurrentIndex(r);
+            return;
+        }
+    }
+}
+
 void TaxRankChooser::onIndexChanged(int index)
 {
     emit selectedTaxRankChanged(ranks[index]);

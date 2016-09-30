@@ -64,15 +64,10 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <widget class="QMenu" name="menuImport">
-     <property name="title">
-      <string>&amp;Import</string>
-     </property>
-     <addaction name="action_Tab_separated_BLAST_file"/>
-    </widget>
     <addaction name="actionOpen"/>
-    <addaction name="actionSave"/>
-    <addaction name="menuImport"/>
+    <addaction name="action_Save"/>
+    <addaction name="actionSaveAs"/>
+    <addaction name="action_import"/>
     <addaction name="actionCloseProject"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
@@ -105,7 +100,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="action_Tab_separated_BLAST_file"/>
+   <addaction name="action_import"/>
   </widget>
   <widget class="QDockWidget" name="taxListDockWidget">
    <attribute name="dockWidgetArea">
@@ -113,12 +108,9 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents"/>
   </widget>
-  <action name="actionSave">
+  <action name="actionSaveAs">
    <property name="text">
-    <string>&amp;Save project as...</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+S</string>
+    <string>Save project &amp;as...</string>
    </property>
   </action>
   <action name="actionQuit">
@@ -129,12 +121,12 @@
     <string>Ctrl+Q</string>
    </property>
   </action>
-  <action name="action_Tab_separated_BLAST_file">
+  <action name="action_import">
    <property name="text">
-    <string>&amp;Tab-separated BLAST file</string>
+    <string>&amp;Import data</string>
    </property>
    <property name="toolTip">
-    <string>Open tab-separated BLAST file</string>
+    <string>Import sequence allignment data</string>
    </property>
   </action>
   <action name="actionTaxonomyTree">
@@ -165,11 +157,19 @@
     <string>&amp;Options...</string>
    </property>
   </action>
+  <action name="action_Save">
+   <property name="text">
+    <string>&amp;Save project</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections>
   <connection>
-   <sender>action_Tab_separated_BLAST_file</sender>
+   <sender>action_import</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
    <slot>open_tab_blast_files()</slot>
@@ -201,7 +201,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>actionSave</sender>
+   <sender>actionSaveAs</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
    <slot>save_project()</slot>
@@ -264,6 +264,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>action_Save</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>save_current_project()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>449</x>
+     <y>313</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>open_tab_blast_files()</slot>
@@ -271,5 +287,6 @@
   <slot>open_project()</slot>
   <slot>close_project()</slot>
   <slot>openOptionsDialog()</slot>
+  <slot>save_current_project()</slot>
  </slots>
 </ui>

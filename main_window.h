@@ -74,6 +74,7 @@ private slots:
     void open_tab_blast_files();
     void open_project();
     void save_project();
+    void save_current_project();
     void close_project();
     void openProject(QString fileName);
     void toJson();

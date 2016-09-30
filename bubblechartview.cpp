@@ -943,7 +943,7 @@ BaseTaxNode *ChartDataProvider::taxNode(qint32 index)
     {
         BlastTaxNode *btn = btns[i];
         if ( btn != NULL )
-            return btn;
+            return btn->tNode;
     }
     return NULL;
 }

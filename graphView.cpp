@@ -115,7 +115,7 @@ void TreeGraphView::updateXCoord()
         public:
         qreal dx;
         qreal max_w;
-        NodeXChanger(qreal _dx, qreal _max_w):TaxNodeVisitor(RootToLeaves, false, NULL, false, false), dx(_dx), max_w(_max_w) {}
+        NodeXChanger(qreal _dx, qreal _max_w):TaxNodeVisitor(RootToLeaves, false, NULL, false, false, false), dx(_dx), max_w(_max_w) {}
         virtual void Action(TreeTaxNode *node)
         {
             if ( shouldVisitChildren(node) )
@@ -983,9 +983,7 @@ void BlastGraphView::fromJson(QJsonObject &json)
         QString dpName = json["DataProvider"].toString();
         BlastTaxDataProvider *p = blastTaxDataProviders.providerByName(dpName);
         if ( p == NULL )
-        {
             throw("Cannot found data provider");
-        }
         p->addParent();
         taxDataProvider = p;
         root = blastTaxDataProvider()->root;

@@ -22,7 +22,7 @@ BlastNodeDetails::BlastNodeDetails(QWidget *parent, BlastTaxNode *n, QString &fi
     model = new BlastNodeDetailsModel();
     ui->treeView->setModel(model);
     setNode(n);
-    NodeDetailsLoaderThread *ndlt = new NodeDetailsLoaderThread(this, fileName, n, type);
+    ndlt = new NodeDetailsLoaderThread(this, fileName, n, type);
     ndlt->nodeDetails = &model->nodeDetails;
     connect(ndlt, SIGNAL(finished()), ndlt, SLOT(deleteLater()));
     connect(ndlt, SIGNAL(progress(LoaderThread *, qreal)), this, SLOT(refresh()));
@@ -41,8 +41,10 @@ BlastNodeDetails::~BlastNodeDetails()
 //=========================================================================
 void BlastNodeDetails::setNode(BlastTaxNode *n) { model->node = n; }
 
+//=========================================================================
 void BlastNodeDetails::closeEvent(QCloseEvent *)
 {
+    ndlt->Stop();
 }
 
 //=========================================================================

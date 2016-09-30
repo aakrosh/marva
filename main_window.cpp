@@ -98,6 +98,7 @@ MainWindow::MainWindow(QWidget *parent) :
     colors = AbstractConfigFileFactory<Colors>::create(this);
     configuration = AbstractConfigFileFactory<Config>::create(this);
     onConfigChanged();
+    setWindowTitle("Marva");
 
     globalTaxDataProvider = new GlobalTaxMapDataProvider(this, &taxMap);
     mainWindow = this;
@@ -145,7 +146,7 @@ MainWindow::MainWindow(QWidget *parent) :
     statusList->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     centralWidget()->layout()->addWidget(statusList);
     statusList->setMaximumHeight(0);
-    ui->action_Tab_separated_BLAST_file->setEnabled(false);
+    ui->action_import->setEnabled(false);
     connect(ui->tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeGraphView(int)));
 
     taxTreeView->setFocus();
@@ -242,6 +243,7 @@ void MainWindow::openProject(QString fileName)
     loadFile.close();
     statusList->RemoveItem(statusListItem);
     history->addProject(fileName);
+    setWindowTitle(QString("Marva - %1").arg(QFileInfo(fileName).baseName()));
 }
 
 //=========================================================================
@@ -291,6 +293,12 @@ void MainWindow::serialize(QFile &saveFile)
             mlog.log(QString("End saving view %1 to json").arg(dgv->taxDataProvider->name));
         }
     }
+
+    TaxRank rank = getRank();
+    saveFile.write((const char *)&rank, sizeof(rank));
+    quint32 threshold = getThreshold();
+    saveFile.write((const char *)&threshold, sizeof(threshold));
+
 }
 
 //=========================================================================
@@ -338,13 +346,23 @@ void MainWindow::deserialize(QFile &loadFile)
         addGraphView(dgv, dgv->taxDataProvider->name);
         leftPanel->setTaxDataProvider(dgv->taxDataProvider);
     }
+    TaxRank rank;
+    if ( loadFile.read((char *)&rank, sizeof(rank)) > 0 )
+    {
+        taxRankChooser->setRank(rank);
+    }
+    quint32 threshold;
+    if ( loadFile.read((char *)&threshold, sizeof(threshold)) > 0 )
+    {
+        readsSlider->setValue(threshold);
+    }
 }
 
 //=========================================================================
 void MainWindow::save_project()
 {
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save project"),
-                                                          QString(),                                                          tr("Marva project (*.marva)"));
+                                                          QString(), tr("Marva project (*.marva)"));
     if ( fileName.isEmpty() )
         return;
     QFile saveFile(fileName);
@@ -358,6 +376,27 @@ void MainWindow::save_project()
 
     history->addProject(fileName);
 
+    saveFile.close();
+    setWindowTitle(QString("Marva - %1").arg(QFileInfo(fileName).baseName()));
+}
+
+//=========================================================================
+void MainWindow::save_current_project()
+{
+    QString fileName = history->lastProject();
+    if ( fileName.isEmpty() )
+    {
+        save_project();
+        return;
+    }
+
+    QFile saveFile(fileName);
+    if ( !saveFile.open(QIODevice::WriteOnly ))
+    {
+        qWarning("Couldn't open project file for writing.");
+        return;
+    }
+    serialize(saveFile);
     saveFile.close();
 }
 
@@ -507,7 +546,7 @@ void MainWindow::treeIsLoaded(LoaderThread *loader)
     TaxNode *tree = (TaxNode *)loader->getResult();
     qDebug() << "Tree Loading is finished";
     globalTaxDataProvider->taxTree->mergeWith(tree, taxonomyTreeView);
-    ui->action_Tab_separated_BLAST_file->setEnabled(true);
+    ui->action_import->setEnabled(true);
 
     disconnect(globalTaxDataProvider, SIGNAL(dataChanged()), taxonomyTreeView, SLOT(onTreeChanged()));
     connect(globalTaxDataProvider, SIGNAL(dataChanged()), taxonomyTreeView, SLOT(onNodeNamesChanged()));
