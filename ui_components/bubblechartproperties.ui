@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Bubble chart properties</string>
   </property>
   <property name="modal">
    <bool>true</bool>
@@ -21,6 +21,12 @@
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QLabel" name="label">
+       <property name="minimumSize">
+        <size>
+         <width>110</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="text">
         <string>Maximum &amp;bubble size</string>
        </property>
@@ -53,6 +59,12 @@
      </item>
      <item>
       <widget class="QLabel" name="lNumber">
+       <property name="minimumSize">
+        <size>
+         <width>10</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="text">
         <string>0</string>
        </property>
@@ -81,6 +93,12 @@
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
       <widget class="QLabel" name="label_3">
+       <property name="minimumSize">
+        <size>
+         <width>110</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="text">
         <string>Horizontal &amp;interval</string>
        </property>
@@ -98,14 +116,115 @@
         <enum>QSlider::TicksBelow</enum>
        </property>
        <property name="tickInterval">
-        <number>5</number>
+        <number>3</number>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QLabel" name="label_4">
+       <property name="minimumSize">
+        <size>
+         <width>10</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="text">
         <string>0</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_4">
+     <item>
+      <widget class="QLabel" name="label_5">
+       <property name="minimumSize">
+        <size>
+         <width>110</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>&amp;Vertical interval</string>
+       </property>
+       <property name="buddy">
+        <cstring>vertIntervalSlider</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSlider" name="vertIntervalSlider">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="tickPosition">
+        <enum>QSlider::TicksBelow</enum>
+       </property>
+       <property name="tickInterval">
+        <number>3</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_6">
+       <property name="minimumSize">
+        <size>
+         <width>10</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>0</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_5">
+     <item>
+      <widget class="QLabel" name="label_7">
+       <property name="minimumSize">
+        <size>
+         <width>110</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Tr&amp;ansparancy</string>
+       </property>
+       <property name="buddy">
+        <cstring>bubbleTransparancySlider</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSlider" name="bubbleTransparancySlider">
+       <property name="value">
+        <number>50</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="tickPosition">
+        <enum>QSlider::TicksBelow</enum>
+       </property>
+       <property name="tickInterval">
+        <number>3</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_8">
+       <property name="minimumSize">
+        <size>
+         <width>10</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>50</string>
        </property>
       </widget>
      </item>
@@ -199,8 +318,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>245</x>
-     <y>271</y>
+     <x>254</x>
+     <y>388</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -215,8 +334,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>313</x>
-     <y>271</y>
+     <x>322</x>
+     <y>388</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
@@ -235,8 +354,8 @@
      <y>20</y>
     </hint>
     <hint type="destinationlabel">
-     <x>500</x>
-     <y>23</y>
+     <x>495</x>
+     <y>33</y>
     </hint>
    </hints>
   </connection>
@@ -247,12 +366,44 @@
    <slot>setNum(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>426</x>
-     <y>76</y>
+     <x>483</x>
+     <y>111</y>
     </hint>
     <hint type="destinationlabel">
-     <x>504</x>
-     <y>81</y>
+     <x>495</x>
+     <y>111</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>vertIntervalSlider</sender>
+   <signal>sliderMoved(int)</signal>
+   <receiver>label_6</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>411</x>
+     <y>132</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>495</x>
+     <y>130</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>bubbleTransparancySlider</sender>
+   <signal>sliderMoved(int)</signal>
+   <receiver>label_8</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>231</x>
+     <y>158</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>493</x>
+     <y>165</y>
     </hint>
    </hints>
   </connection>

@@ -9,6 +9,9 @@
 class TreeGraphView;
 class GraphNode;
 
+/*
+ * This is the base class for all the Taxonomy-subclasses
+*/
 class BaseTaxNode
 {
 public:

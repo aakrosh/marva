@@ -27,6 +27,8 @@ signals:
     void normalizedChanged(bool);
     void showGridChanged(bool);
     void horIntervalChanged(int);
+    void vertIntervalChanged(int);
+    void bubbleTransparancyChanged(int);
     void dataSourceVisibilityChanged(int);
     void bubbleSizeCalcMethodChanged(int);
     void dataSourceMoved(int, int);
@@ -34,6 +36,8 @@ signals:
 private slots:
     void onBubbleMaxSizeSliderValueChanged(int val);
     void onHorIntervalChanged(int val);
+    void onVertIntervalChanged(int val);
+    void onTransparancyChanged(int val);
     void onShowTitleToggled(bool val);
     void onNormalizedToggled(bool val);
     void onShowGridToggled(bool val);

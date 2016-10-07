@@ -244,7 +244,7 @@ void TreeGraphView::setNodeInvisible(TreeTaxNode *bnode)
 }
 
 //=========================================================================
-void TreeGraphView::hideNodes(quint32 oldT, quint32 newT)
+void TreeGraphView::hideNodes(quint32 oldT, quint32 newT, bool resetCoordinates)
 {
     class NodeHider : public TaxNodeVisitor
     {
@@ -286,11 +286,12 @@ void TreeGraphView::hideNodes(quint32 oldT, quint32 newT)
     };
     GraphNodeHider gh(this); // remove invisible graph nodes
     gh.Visit(root);
-    resetNodesCoordinates();
+    if ( resetCoordinates )
+        resetNodesCoordinates();
 }
 
 //=========================================================================
-void TreeGraphView::unhideNodes(quint32 oldT, quint32 newT)
+void TreeGraphView::unhideNodes(quint32 oldT, quint32 newT, bool resetCoordinates)
 {
     class NodeUnHider : public TaxNodeVisitor
     {
@@ -309,13 +310,13 @@ void TreeGraphView::unhideNodes(quint32 oldT, quint32 newT)
             quint32 bnsum = bnode->sum();
             if ( bnode->hasVisibleChildren() )
                bnode->setVisible(true);
-            else if ( bnsum > newT && bnsum <= oldT )
+            else if ( bnsum >= newT && bnsum < oldT )
                bnode->setVisible(true);
         }
     };
     NodeUnHider nh(this, oldT, newT);
     nh.Visit(root);
-    createMissedGraphNodes();
+    createMissedGraphNodes(resetCoordinates);
 }
 
 //=========================================================================
@@ -649,7 +650,7 @@ void TreeGraphView::updateDirtyNodes(quint32 flag)
 }
 
 //=========================================================================
-void TreeGraphView::createMissedGraphNodes()
+void TreeGraphView::createMissedGraphNodes(bool resetCoordinates)
 {
     class GNodesCreator : public TaxNodeVisitor
     {
@@ -668,7 +669,7 @@ void TreeGraphView::createMissedGraphNodes()
     };
     GNodesCreator gnCreator(this);
     gnCreator.Visit(root);
-    if ( gnCreator.nodesCreated > 0 )        
+    if (resetCoordinates &&  gnCreator.nodesCreated > 0 )
         resetNodesCoordinates();
 }
 
@@ -998,14 +999,15 @@ void BlastGraphView::fromJson(QJsonObject &json)
 //=========================================================================
 void BlastGraphView::showEvent(QShowEvent *event)
 {
+
     quint32 cur_threshold = mainWindow->getThreshold();
+    TaxRank cur_rank = mainWindow->getRank();
     if ( state.threshold != cur_threshold )
     {
         onReadsThresholdChanged(state.threshold, cur_threshold);
         state.threshold = cur_threshold;
     }
 
-    TaxRank cur_rank = mainWindow->getRank();
     if ( state.rank != cur_rank )
     {
         onTaxRankChanged(cur_rank);
@@ -1036,7 +1038,7 @@ void BlastGraphView::hideEvent(QHideEvent *event)
 }
 
 //=========================================================================
-void BlastGraphView::onReadsThresholdChanged(quint32 oldT, quint32 newT)
+void BlastGraphView::onReadsThresholdChanged(quint32 oldT, quint32 newT, bool resetCoordinates)
 {
     if ( state.threshold == newT )
         return;
@@ -1045,10 +1047,16 @@ void BlastGraphView::onReadsThresholdChanged(quint32 oldT, quint32 newT)
     if ( oldT == newT )
         return;
     if ( oldT < newT )
-        hideNodes(oldT, newT);
+        hideNodes(oldT, newT, resetCoordinates);
     else
-        unhideNodes(oldT, newT);
+        unhideNodes(oldT, newT, resetCoordinates);
     getTaxNodeSignalSender(NULL)->sendSignals = true;
+}
+
+//=========================================================================
+void BlastGraphView::onReadsThresholdChanged(quint32 oldT, quint32 newT)
+{
+    onReadsThresholdChanged(oldT, newT, true);
 }
 
 //=========================================================================
@@ -1081,18 +1089,34 @@ void BlastGraphView::onTaxRankChanged(TaxRank rank, BlastTaxNode *node)
         return;
 
     TaxNode *tn = taxMap.value(node->getId());
+    bool collapsed = node->isCollapsed();
 
-    if ( !node->isCollapsed() && rank <= tn->getRank() && rank != TR_NORANK )
+    if ( !collapsed && rank <= tn->getRank() && rank != TR_NORANK )
     {
         node->setCollapsed(true, true);
         return;
     }
 
-    if ( node->isCollapsed() && rank > tn->getRank() )
+    if ( collapsed && rank > tn->getRank() )
         node->setCollapsed(false, true);
+
     ThreadSafeListLocker<TreeTaxNode *> locker(&node->children);
     for ( TaxNodeIterator it  = node->children.begin(); it != node->children.end(); it++ )
         onTaxRankChanged(rank, (BlastTaxNode *)*it);
+}
+
+//=========================================================================
+void BlastGraphView::resizeEvent(QResizeEvent *e)
+{
+    quint32 cur_threshold = mainWindow->getThreshold();
+    TaxRank cur_rank = mainWindow->getRank();
+    if ( state.threshold != cur_threshold
+      || state.rank != cur_rank )
+    {
+        DataGraphicsView::resizeEvent(e);
+        return;
+    }
+    TreeGraphView::resizeEvent(e);
 }
 
 //=========================================================================

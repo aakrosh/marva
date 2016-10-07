@@ -30,7 +30,7 @@ void StartDialog::EmitFileNameAndAccept(QString projectFileName)
 {
     setEnabled(false);
     setVisible(false);
-    QMessageBox *msg = new QMessageBox(QMessageBox::NoIcon, "Please wait", "Taxonomy tree is loading", QMessageBox::NoButton, this,
+    QMessageBox *msg = new QMessageBox(QMessageBox::NoIcon, "Please wait", "Please wait untill data loading will be completed", QMessageBox::NoButton, this,
                                    Qt::WindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint | Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::CustomizeWindowHint) & ~Qt::WindowCloseButtonHint);
     msg->setStandardButtons(0);
     msg->show();

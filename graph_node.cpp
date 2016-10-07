@@ -431,15 +431,17 @@ QPainterPath ChartGraphNode::shape() const
 void ChartGraphNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 {
     int s = size();
+    BubbleChartView *ch_view = (BubbleChartView *)view;
+    qreal transp = ((qreal)ch_view->getConfig()->bubbleTransparancy)/100;
     if ( s > 0 )
     {
         QRadialGradient gradient(QPointF(0 ,0 ), s);
         QColor col_orig = color();
         QColor col = col_orig;
-        QColor col0 = col.darker(50);
-        col0.setAlphaF(0.8);
+        QColor col0 = col.darker(-50);
+        col0.setAlphaF(0.5+transp/2);
         QColor col1 = col.lighter(150);
-        col1.setAlphaF(0.2);
+        col1.setAlphaF(transp);
         gradient.setColorAt(0, col0);
         gradient.setColorAt(1, col1);
         QPen pen = QPen(col_orig);

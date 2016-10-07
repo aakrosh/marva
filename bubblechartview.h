@@ -39,6 +39,7 @@ public:
     virtual qint32 id(quint32 index);
     virtual quint32 reads(quint32 index);
     virtual quint32 readsById(quint32 id);
+    virtual quint32 sum(quint32 index);
     virtual BaseTaxNode *taxNode(qint32 index);
     virtual void updateCache(bool values_only);
     virtual QColor color(int index);
@@ -65,10 +66,12 @@ signals:
 class BubbleChartParameters : public BubbledGraphViewConfig
 {
 public:
-    BubbleChartParameters(): showTitle(true), normalized(true), horInterval(0), showGrid(true) {}
+    BubbleChartParameters(): showTitle(true), normalized(true), horInterval(0), vertInterval(0), bubbleTransparancy(50), showGrid(true) {}
     bool showTitle;
     bool normalized;
     int horInterval;
+    int vertInterval;
+    int bubbleTransparancy;
     bool showGrid;
 
     void toJson(QJsonObject &);
@@ -78,6 +81,9 @@ public:
 
 
 class ChartGraphNode;
+/* The bubbles chart view shows the number of reads for each taxonomy in each data set as a bubble.
+ * By default it is build using all data sets in the project.
+ */
 class BubbleChartView : public DataGraphicsView
 {
     Q_OBJECT

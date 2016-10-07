@@ -62,7 +62,7 @@ public:
     void adjustAllEdges();
     void markAllNodesDirty();
     void updateDirtyNodes(quint32 flag);
-    void createMissedGraphNodes();
+    void createMissedGraphNodes(bool resetCoordinates=true);
 
     DirtyGNodesList dirtyList;
 
@@ -96,8 +96,8 @@ private:
 
 protected:
     void setNodeInvisible(TreeTaxNode *bnode);
-    void hideNodes(quint32 oldT, quint32 newT);
-    void unhideNodes(quint32 oldT, quint32 newT);
+    void hideNodes(quint32 oldT, quint32 newT, bool resetCoordinates = true);
+    void unhideNodes(quint32 oldT, quint32 newT, bool resetCoordinates = true);
 
 signals:
     currentNodeChanged(BaseTaxNode *);
@@ -142,11 +142,13 @@ public:
     virtual void fromJson(QJsonObject &json);
     BubbledGraphViewConfig *getConfig() { return (BubbledGraphViewConfig *)config; }
     void updateView();
+    void onReadsThresholdChanged(quint32 oldT, quint32 newT, bool resetCoordinates);
 
 protected:
     virtual void showEvent(QShowEvent * event);
     virtual void hideEvent(QHideEvent *event);
     void onTaxRankChanged(TaxRank rank, BlastTaxNode *node);
+    virtual void resizeEvent(QResizeEvent *e);
 private slots:
     void blastLoadingProgress(LoaderThread *loader);
     void blastIsLoaded(LoaderThread *loader);

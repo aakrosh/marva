@@ -49,6 +49,14 @@ virtual void fromJson(QJsonObject &json);
 #define ADDBLOCK(__X__) blocks.insert(#__X__, new __X__ ## Config()); \
     connect(blocks.value(#__X__), SIGNAL(dataChanged()), this, SLOT(save()));
 
+/*
+ * This is the base class for all settings files (config file, colors, etc)
+ * Constructor should never be called for classes derrived from AbstractConfigFile
+ * Use AbstractConfigFileFactory<T>::create(QObject *parent) instead.
+ * F.e. History *history = AbstractConfigFileFactory<History>::create(this);
+ *
+*/
+
 class AbstractConfigFile : public QObject
 {
     Q_OBJECT
