@@ -650,6 +650,12 @@ TaxRank MainWindow::getRank()
 }
 
 //=========================================================================
+void MainWindow::setRank(TaxRank rank)
+{
+    taxRankChooser->setRank(rank);
+}
+
+//=========================================================================
 quint32 MainWindow::getBubbleSize()
 {
     return bubbleSlider->value();

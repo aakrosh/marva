@@ -68,7 +68,7 @@ DataGraphicsView *DataGraphicsView::createViewByType(QWidget *parent, QString &t
         return gview;
     }
     if ( type == "ChartView" )
-        return new BubbleChartView(NULL, parent);
+        return new BubbleChartView(NULL, parent, false);
     return NULL;
 }
 

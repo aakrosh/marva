@@ -96,7 +96,7 @@ class BubbleChartView : public DataGraphicsView
 public:
     QRectF chartRect;
 
-    BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent = 0);
+    BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent = 0, bool setRank = true);
     virtual ~BubbleChartView();
     void prepareScene();
     ChartGraphNode *getGNode(BlastTaxNode *node);

@@ -21,12 +21,14 @@
 #include <QGraphicsItemGroup>
 
 //=========================================================================
-BubbleChartView::BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent)
+BubbleChartView::BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget *parent, bool setRank)
     : DataGraphicsView(NULL, parent)
 {
     flags |= DGF_BUBBLES | DGF_RANKS;
     config = new BubbleChartParameters();
-    setWindowTitle(tr("Gene chart"));
+
+    if ( setRank && mainWindow->getRank() == TR_NORANK )
+        mainWindow->setRank(TR_SPECIES);
 
     if ( _dataProviders == NULL )
         _dataProviders = new BlastTaxDataProviders();
@@ -35,7 +37,6 @@ BubbleChartView::BubbleChartView(BlastTaxDataProviders *_dataProviders, QWidget 
 
     connect((ChartDataProvider *)taxDataProvider, SIGNAL(taxVisibilityChanged(quint32)), this, SLOT(onTaxVisibilityChanged(quint32)));
     connect((ChartDataProvider *)taxDataProvider, SIGNAL(cacheUpdated()), this, SLOT(onDataChanged()));
-
 
     QGraphicsScene *s = new QGraphicsScene(this);
     s->setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -163,7 +164,8 @@ void BubbleChartView::prepareScene()
     }
 
     header->setPos(0, 10-MARGIN);
-    header->setTextWidth(dp->providers->count()*columnWidth);
+    quint32 tw = header->textWidth();
+    header->setTextWidth(qMax(tw, dp->providers->count()*columnWidth));
 }
 
 //=========================================================================
@@ -501,6 +503,8 @@ void BubbleChartView::setHeader(QString fileName)
     QFont font;
     font.setPixelSize(25);
     font.setBold(true);
+    QFontMetricsF fm(font);
+    header->setTextWidth(fm.width(fileName)+10);
     header->setFont(font);
     header->setVisible(getConfig()->showTitle);
 }
@@ -587,12 +591,16 @@ void BubbleChartView::onColorChanged(BaseTaxNode *node)
 void BubbleChartView::onTaxRankChanged(TaxRank rank)
 {
     ChartDataProvider *dp = dataProvider();
-    quint32 c = dp->count();
-    for ( quint32 i = 0; i < c; i++ )
+    int c = dp->count();
+    int max = configuration->BubbleChart()->defaultVisibleChartTaxes();
+    for ( int i = c-1; i >= 0; --i )
     {
         BaseTaxNode *node = dp->taxNode(i);
         TaxNode *tn = taxMap.value(node->getId());
-        dp->setCheckedState(i, tn->getRank() == rank ? Qt::Checked : Qt::Unchecked);
+        bool checked = max > 0 && tn->getRank() == rank;
+        dp->setCheckedState(i, checked ? Qt::Checked : Qt::Unchecked);
+        if ( checked )
+            --max;
     }
 }
 
