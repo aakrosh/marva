@@ -20,7 +20,7 @@ private:
 public slots:
 
 signals:
-    historyChanged();
+    void historyChanged();
 };
 
 #endif // HISTORY_H

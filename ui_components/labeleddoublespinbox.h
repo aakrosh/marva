@@ -29,7 +29,7 @@ private slots:
     void onValueChanged(double newVal);
 
 signals:
-    valueChanged(quint32, quint32);
+    void valueChanged(quint32, quint32);
 };
 
 #endif // LABELEDDOUBLESPINBOX_H

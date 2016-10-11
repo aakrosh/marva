@@ -100,9 +100,9 @@ protected:
     void unhideNodes(quint32 oldT, quint32 newT);
 
 signals:
-    currentNodeChanged(BaseTaxNode *);
-    nodeHidden(BaseTaxNode *bnode);
-    allNodesShown();
+    void currentNodeChanged(BaseTaxNode *);
+    void nodeHidden(BaseTaxNode *bnode);
+    void allNodesShown();
 private slots:
     void hideCurrent();
     void hideAllButCurrent();
@@ -157,7 +157,7 @@ public slots:
     virtual void onColorChanged(BaseTaxNode *);
     virtual void showCurrentNodeDetails();
 signals:
-    blast_view_closed();
+    void blast_view_closed();
 };
 
 class NodePositionKeeper

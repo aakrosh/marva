@@ -1,6 +1,7 @@
 #include "blast_record.h"
 #include "gi2taxmaptxtloader.h"
 
+#include <cmath>
 #include <QStringList>
 
 QHash<quint32, quint32> gi2taxmap;

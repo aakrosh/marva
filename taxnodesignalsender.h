@@ -23,13 +23,13 @@ public:
     void BigChangesHappened();
     void ColorChanged();
 signals:
-    visibilityChanged(BaseTaxNode *n, bool visible);
-    collapsedChanged(BaseTaxNode *n, bool collapsed);
-    gnodeCreated(BaseTaxNode *n);
-    gnodeRemoved(BaseTaxNode *n);
-    makeCurrent(BaseTaxNode *n);
-    bigChangesHappened();
-    colorChanged(BaseTaxNode *n);
+    void visibilityChanged(BaseTaxNode *n, bool visible);
+    void collapsedChanged(BaseTaxNode *n, bool collapsed);
+    void gnodeCreated(BaseTaxNode *n);
+    void gnodeRemoved(BaseTaxNode *n);
+    void makeCurrent(BaseTaxNode *n);
+    void bigChangesHappened();
+    void colorChanged(BaseTaxNode *n);
 public slots:
 };
 

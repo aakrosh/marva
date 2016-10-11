@@ -65,7 +65,7 @@ private:
     History *history;
 
 signals:
-    activeGraphViewChanged(DataGraphicsView *oldGV, DataGraphicsView *newGV);
+    void activeGraphViewChanged(DataGraphicsView *oldGV, DataGraphicsView *newGV);
     void allProvidersSerialized();
 private slots:
     void mapIsLoaded();

@@ -25,7 +25,7 @@ private slots:
     void EmitFileNameAndAccept(QString projectFileName);
 
 signals:
-    fileChoosen(QString fileName);
+    void fileChoosen(QString fileName);
 };
 
 #endif // START_DIALOG_H
