@@ -167,7 +167,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionTaxonomyTree, SIGNAL(triggered(bool)), this, SLOT(openTaxonomyTreeView()));
     connect(ui->actionCreateChart, SIGNAL(triggered(bool)), this, SLOT(createChartView()));
 
-    StartDialog *startDialog = new StartDialog(this);
+    StartDialog *startDialog = new
+            StartDialog(this);
     connect(startDialog, SIGNAL(fileChoosen(QString)), this, SLOT(openProject(QString)));
     connect(startDialog, SIGNAL(accepted()), startDialog, SLOT(deleteLater()));
     startDialog->open();

@@ -72,6 +72,7 @@ void LoaderThread::run()
                 continue;
             if ( ignoreRepeated )
             {
+
                 if ( line == prevLine )
                     continue;
                 prevLine = line;
