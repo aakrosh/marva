@@ -26,6 +26,8 @@ BubbleChartProperties::BubbleChartProperties(QWidget *parent, BubbleChartParamet
     connect(ui->lvDataSources->model(), SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this, SLOT(onDataSourceCheckBoxTriggered(QModelIndex,QModelIndex,QVector<int>)));
     connect(ui->rbLinear, SIGNAL(toggled(bool)), this, SLOT(onBubbleSizeCalcMethodChanged(bool)));
     connect(ui->horIntervalSlider, SIGNAL(valueChanged(int)), this, SLOT(onHorIntervalChanged(int)));
+    connect(ui->vertIntervalSlider, SIGNAL(valueChanged(int)), this, SLOT(onVertIntervalChanged(int)));
+    connect(ui->bubbleTransparancySlider, SIGNAL(valueChanged(int)), this, SLOT(onTransparancyChanged(int)));
     connect(ui->cbNormalized, SIGNAL(toggled(bool)), this, SLOT(onNormalizedToggled(bool)));
     connect(ui->cbShowGrid, SIGNAL(toggled(bool)), this, SLOT(onShowGridToggled(bool)));
 }
@@ -38,6 +40,8 @@ void BubbleChartProperties::setValues()
     ui->rbLinear->setChecked(isLinear);
     ui->rbSqrt->setChecked(!isLinear);
     ui->horIntervalSlider->setValue(config->horInterval);
+    ui->vertIntervalSlider->setValue(config->vertInterval);
+    ui->bubbleTransparancySlider->setValue(config->bubbleTransparancy);
     ui->cbNormalized->setChecked(config->normalized);
     ui->cbShowGrid->setChecked(config->showGrid);
 }
@@ -57,6 +61,18 @@ void BubbleChartProperties::onHorIntervalChanged(int val)
 {
     config->horInterval = val;
     emit horIntervalChanged(val);
+}
+
+void BubbleChartProperties::onVertIntervalChanged(int val)
+{
+    config->vertInterval = val;
+    emit vertIntervalChanged(val);
+}
+
+void BubbleChartProperties::onTransparancyChanged(int val)
+{
+    config->bubbleTransparancy = val;
+    emit bubbleTransparancyChanged(val);
 }
 
 void BubbleChartProperties::onShowTitleToggled(bool val)

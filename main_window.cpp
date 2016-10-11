@@ -214,6 +214,10 @@ void MainWindow::open_tab_blast_files()
 {
     QFileDialog dialog(this);
     dialog.setFileMode(QFileDialog::ExistingFiles);
+    QStringList filters;
+    filters << "Alignmnet files (*.txt *.aln)"
+            << "Any files (*)";
+    dialog.setNameFilters(filters);
     QStringList fileNames;
     if ( dialog.exec() )
         fileNames = dialog.selectedFiles();
@@ -643,6 +647,12 @@ quint32 MainWindow::getThreshold()
 TaxRank MainWindow::getRank()
 {
     return taxRankChooser->rank();
+}
+
+//=========================================================================
+void MainWindow::setRank(TaxRank rank)
+{
+    taxRankChooser->setRank(rank);
 }
 
 //=========================================================================

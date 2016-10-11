@@ -45,6 +45,7 @@ public:
     void setActiveGraphView(DataGraphicsView *gv);
     quint32 getThreshold();
     TaxRank getRank();
+    void setRank(TaxRank rank);
     quint32 getBubbleSize();
 
     void serialize(QFile &saveFile);
