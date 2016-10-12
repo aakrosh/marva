@@ -4,11 +4,18 @@
 
 //=========================================================================
 MapLoaderThread::MapLoaderThread(QObject *parent, bool _merge, GlobalTaxMapDataProvider *_globalTaxDataProvider) :
-    LoaderThread(parent, "/data/ncbi.map", "loading taxanomy mapping", _globalTaxDataProvider, 50000),
+    LoaderThread(parent, configuration->Initialization()->taxMapPath(), "loading taxanomy mapping", _globalTaxDataProvider, 50000),
     merge(_merge),
     globalTaxDataProvider(_globalTaxDataProvider)
 {
 
+}
+
+//=========================================================================
+void MapLoaderThread::onFileNameChanged(QString fileName)
+{
+    configuration->Initialization()->settaxMapPath(fileName);
+    configuration->save();
 }
 
 //=========================================================================

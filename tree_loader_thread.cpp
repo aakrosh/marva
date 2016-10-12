@@ -6,10 +6,17 @@ QMutex treeLoaderMutex;
 
 //=========================================================================
 TreeLoaderThread::TreeLoaderThread(QObject *parent, GlobalTaxMapDataProvider *gProvider, bool _merge) :
-    LoaderThread(parent, "/data/ncbi.tre", "loading taxonomy tree"),
+    LoaderThread(parent, configuration->Initialization()->taxTreePath(), "loading taxonomy tree"),
     merge(_merge),
     dataProvider(gProvider)
 {
+}
+
+//=========================================================================
+void TreeLoaderThread::onFileNameChanged(QString fileName)
+{
+    configuration->Initialization()->settaxTreePath(fileName);
+    configuration->save();
 }
 
 //=========================================================================

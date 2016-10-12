@@ -20,6 +20,8 @@ private:
 private slots:
     void onConfigChanged();
     void onGiToTaxMapPathClicked();
+    void onTaxTreePathClicked();
+    void onTaxMapPathClicked();
 signals:
     void configChanged();
 };

@@ -691,6 +691,12 @@ QString MainWindow::getOpenFileName(QString text, QString filters)
 }
 
 //=========================================================================
+void MainWindow::showMessageBox(QString text)
+{
+    QMessageBox::information(this, tr("MARVA"), text);
+}
+
+//=========================================================================
 void MainWindow::blastIsLoaded(LoaderThread *)
 {
     blastLoadingProgress(NULL);

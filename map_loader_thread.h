@@ -17,6 +17,8 @@ public:
     MapLoaderThread(QObject *parent, bool merge, GlobalTaxMapDataProvider *_globalTaxDataProvider);
 protected:
     virtual void processLine(QString &line);
+protected slots:
+    virtual void onFileNameChanged(QString fileName);
 };
 
 #endif // MAP_LOADER_MAP_H

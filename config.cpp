@@ -126,20 +126,50 @@ void ImportDataConfig::fromJson(QJsonObject &json)
 }
 
 //=========================================================================
+InitializationConfig::InitializationConfig():
+    AbstractConfigBlock("Initialization")
+{
+    INITPROPERTY(taxTreePath, "/data/ncbi.tre");
+    INITPROPERTY(taxMapPath, "/data/ncbi.map");
+}
+
+//=========================================================================
+void InitializationConfig::toJson(QJsonObject &json) const
+{
+    QJsonObject jInit;
+    TOJSON(jInit, taxTreePath);
+    TOJSON(jInit, taxMapPath);
+    json["Initialization"] = jInit;
+}
+
+//=========================================================================
+void InitializationConfig::fromJson(QJsonObject &json)
+{
+    try
+    {
+        QJsonObject jInit = json["Initialization"].toObject();
+        STRFROMJSON(jInit, taxTreePath)
+        STRFROMJSON(jInit, taxMapPath)
+    }
+    catch(...)
+    {
+        QMessageBox::warning(NULL, "Cannot restore config", "Cannot restore Initialization parameters from configuration");
+    }
+}
+
+//=========================================================================
 Config::Config(QObject *parent):
     AbstractConfigFile("cfg", "configuration", parent)
 {
     ADDBLOCK(BubbleChart);
     ADDBLOCK(GraphNode);
     ADDBLOCK(ImportData)
+    ADDBLOCK(Initialization)
 }
 
 //=========================================================================
 void Config::init()
 {    
 }
-
-
-
 
 

@@ -39,6 +39,13 @@ ConfigurationDialog::ConfigurationDialog(QWidget *parent) :
 
     connect(ui->bGiToTaxMapPath, SIGNAL(clicked(bool)), this, SLOT(onGiToTaxMapPathClicked()));
 
+    InitializationConfig *ic = configuration->Initialization();
+    ui->leTaxTree->setText(ic->taxTreePath());
+    ui->leTaxMap->setText(ic->taxMapPath());
+    connect(ui->bTaxTree, SIGNAL(clicked(bool)), this, SLOT(onTaxTreePathClicked()));
+    connect(ui->bTaxMap, SIGNAL(clicked(bool)), this, SLOT(onTaxMapPathClicked()));
+
+
     ui->leftList->setCurrentRow(0);
 }
 
@@ -80,6 +87,10 @@ void ConfigurationDialog::onConfigChanged()
     idc->setmaxEValue(ui->sbMaxEValue->value());
     idc->setgi2taxmap(ui->leGiToTaxMapPath->text());
 
+    InitializationConfig *ie = configuration->Initialization();
+    ie->settaxMapPath(ui->leTaxMap->text());
+    ie->settaxTreePath(ui->leTaxTree->text());
+
     configuration->save();
 
     emit configChanged();
@@ -88,8 +99,25 @@ void ConfigurationDialog::onConfigChanged()
 void ConfigurationDialog::onGiToTaxMapPathClicked()
 {
     QString fileName = QFileDialog::getOpenFileName(this, tr("Select GI to taxonomy map file"),
-                                                         ui->leGiToTaxMapPath->text(),
+                                                          ui->leGiToTaxMapPath->text(),
                                                           tr("Map files (*.bin *.map)"));
     if ( !fileName.isEmpty() )
         ui->leGiToTaxMapPath->setText(fileName);
+}
+
+void ConfigurationDialog::onTaxTreePathClicked()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Select taxonomy tree file"),
+                                                          ui->leTaxTree->text(),
+                                                          tr("Tree files (*.tre *.tree *.txt);;All files(*)"));
+    if ( !fileName.isEmpty() )
+        ui->leTaxTree->setText(fileName);
+}
+void ConfigurationDialog::onTaxMapPathClicked()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Select taxonomy map file"),
+                                                          ui->leTaxMap->text(),
+                                                          tr("Map files (*.map *.txt);;All files(*)"));
+    if ( !fileName.isEmpty() )
+        ui->leTaxMap->setText(fileName);
 }
