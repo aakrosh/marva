@@ -31,7 +31,7 @@ private:
     virtual void fromJson(QJsonObject &json);
 
 signals:
-    colorsChanged(qint32);
+    void colorsChanged(qint32);
 };
 
 extern Colors *colors;

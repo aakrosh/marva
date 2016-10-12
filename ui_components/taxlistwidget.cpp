@@ -9,7 +9,7 @@
 #include <QPaintEvent>
 #include <QtConcurrent/QtConcurrent>
 #include <functional>
-#include <qDebug>
+#include <QDebug>
 //=========================================================================
 TaxListWidget::TaxListWidget(QWidget *parent) :
     QWidget(parent),
