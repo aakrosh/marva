@@ -68,7 +68,7 @@ public:
 public slots:
     void onDataLoaded();
 signals:
-    dataChanged();
+    void dataChanged();
 };
 
 extern TaxMap taxMap;
