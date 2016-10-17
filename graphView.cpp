@@ -297,24 +297,27 @@ void TreeGraphView::unhideNodes(quint32 oldT, quint32 newT, bool resetCoordinate
     {
         quint32 oldT;
         quint32 newT;
+        TaxRank rank;
         bool has_visible;
     public:
-        NodeUnHider(TreeGraphView *gv, quint32 _oldT, quint32 _newT):
+        NodeUnHider(TreeGraphView *gv, quint32 _oldT, quint32 _newT, TaxRank _rank):
             TaxNodeVisitor(LeavesToRoot, false, gv, false, true),
             oldT(_oldT),
-            newT(_newT)
+            newT(_newT),
+            rank(_rank)
         {}
         virtual void Action(TreeTaxNode *node)
         {
+            if ( node->visible() )
+                return;
             BlastTaxNode *bnode = dynamic_cast<BlastTaxNode *>(node);
             quint32 bnsum = bnode->sum();
-            if ( bnode->hasVisibleChildren() )
-               bnode->setVisible(true);
-            else if ( bnsum >= newT && bnsum < oldT )
+            if ( bnsum >= newT && bnsum < oldT )
                bnode->setVisible(true);
         }
     };
-    NodeUnHider nh(this, oldT, newT);
+    TaxRank rank = mainWindow->getRank();
+    NodeUnHider nh(this, oldT, newT, rank);
     nh.Visit(root);
     createMissedGraphNodes(resetCoordinates);
 }

@@ -23,6 +23,8 @@ private:
 public:
     TreeLoaderThread(QObject *parent, GlobalTaxMapDataProvider *_taxMap, bool _merge);
     TaxNode tree;
+protected slots:
+    virtual void onFileNameChanged(QString fileName);
 protected:
     virtual void processLine(QString &line);
     virtual void run();

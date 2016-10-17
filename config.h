@@ -55,6 +55,17 @@ public:
     virtual void fromJson(QJsonObject &json);
 };
 
+class InitializationConfig : public AbstractConfigBlock
+{
+    Q_OBJECT
+public:
+    InitializationConfig();
+    CONFIG_PROPERTY(QString, taxTreePath)
+    CONFIG_PROPERTY(QString, taxMapPath)
+    virtual void toJson(QJsonObject &json) const;
+    virtual void fromJson(QJsonObject &json);
+};
+
 
 class Config : public AbstractConfigFile
 {
@@ -64,6 +75,7 @@ public:
     GETBLOCK(BubbleChart)
     GETBLOCK(GraphNode)
     GETBLOCK(ImportData)
+    GETBLOCK(Initialization)
 };
 
 extern Config *configuration;

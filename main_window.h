@@ -92,6 +92,7 @@ private slots:
     void activeGraphViewDestroyed();
     void openOptionsDialog();
     QString getOpenFileName(QString text, QString filters);
+    void showMessageBox(QString text);
     void onProviderSerialized(ProvidersSerializationThread *);
     void finishSerialization();
     void onConfigChanged();        

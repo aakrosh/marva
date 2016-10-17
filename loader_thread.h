@@ -25,11 +25,14 @@ protected:
     virtual void processLine(QString &line) = 0;
     virtual void finishProcessing();
     virtual void reportProgress(qreal val);
+protected slots:
+    virtual void onFileNameChanged(QString ){}
 public:
     virtual void run();
 signals:
     void resultReady(LoaderThread *loader);
     void progress(LoaderThread *loader, qreal val);
+    void fileNameChanged(QString fileName);
 private slots:
     void addToList();
     void removeFromList();

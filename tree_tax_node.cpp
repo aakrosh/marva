@@ -23,6 +23,7 @@ TreeTaxNode *TreeTaxNode::addChild(TreeTaxNode *node)
     return node;
 }
 
+//=========================================================================
 inline void setFlag(quint8 &var, quint8 flags, bool set)
 {
     if ( set )
@@ -30,6 +31,7 @@ inline void setFlag(quint8 &var, quint8 flags, bool set)
     else
         var &= ~flags;
 }
+
 //=========================================================================
 void TreeTaxNode::setCollapsed(bool b, bool updateGnode)
 {

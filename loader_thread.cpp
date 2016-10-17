@@ -7,6 +7,7 @@
 #include <QTextStream>
 #include <QApplication>
 #include <QDebug>
+#include <QFileInfo>
 
 QList<LoaderThread *> activeThreads;
 
@@ -26,6 +27,8 @@ LoaderThread::LoaderThread(QObject *parent, QString _fileName, const char *_capt
     connect(this, SIGNAL(started()), this, SLOT(addToList()));
     connect(this, SIGNAL(progress(LoaderThread* ,qreal)), this, SLOT(onProgress(LoaderThread* ,qreal)));
     connect(this, SIGNAL(finished()), this, SLOT(removeFromList()));
+    connect(this, SIGNAL(fileNameChanged(QString)), this, SLOT(onFileNameChanged(QString)));
+
 }
 
 //=========================================================================
@@ -48,12 +51,45 @@ void LoaderThread::run()
 {
     QFile file(fileName);
     if ( !file.exists() )
-        file.setFileName(QString(QApplication::applicationDirPath()).append(fileName));
-    if( !file.open(QIODevice::ReadOnly|QIODevice::Text) )
     {
-        qDebug() << "Cannot open input file " << fileName;
-        return;
-    }    
+        fileName.prepend(QString(QApplication::applicationDirPath()));
+        file.setFileName(fileName);
+    }
+    bool cannotOpenFile = !file.exists();
+    if( cannotOpenFile )
+    {
+        QFileInfo fi(fileName);
+        QString ext = fi.suffix();
+        QMetaObject::invokeMethod(mainWindow,
+                                      "getOpenFileName",
+                                      Qt::BlockingQueuedConnection,
+                                      Q_RETURN_ARG(QString , fileName),
+                                      Q_ARG(QString, QString("Select file %1").arg(fi.fileName())),
+                                      Q_ARG(QString, QString("(*.%1);;All Files(*)").arg(ext))
+                                      );
+        file.setFileName(fileName);
+        cannotOpenFile = fileName.isEmpty();
+        if ( !cannotOpenFile )
+            emit fileNameChanged(fileName);
+    }
+    if ( !cannotOpenFile )
+    {
+        if ( !file.open(QIODevice::ReadOnly|QIODevice::Text) )
+        {
+            QMetaObject::invokeMethod(mainWindow,
+                                      "showMessageBox",
+                                      Q_ARG(QString, QString("Connot open file %1").arg(fileName)));
+        }
+        else
+        {
+            cannotOpenFile = false;
+        }
+
+    }
+    if ( cannotOpenFile )
+    {
+        QMetaObject::invokeMethod(mainWindow, "close");
+    }
     int p = 0;
     QString prevLine;
     quint64 fileSize = file.size();
@@ -72,6 +108,7 @@ void LoaderThread::run()
                 continue;
             if ( ignoreRepeated )
             {
+
                 if ( line == prevLine )
                     continue;
                 prevLine = line;
